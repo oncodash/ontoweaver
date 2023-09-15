@@ -6,5 +6,6 @@ Adapter = base.Adapter
 All = base.All
 
 from . import tabular
+from . import types
 
-__all__ = ['Node', 'Edge', 'Adapter', 'All', 'tabular']
+__all__ = ['Node', 'Edge', 'Adapter', 'All', 'tabular', 'types']

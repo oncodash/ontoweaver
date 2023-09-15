@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterable
 from abc import ABCMeta as ABSTRACT
 from abc import abstractmethod as abstract
@@ -343,6 +344,7 @@ class All:
             and m[c].__module__ == self.module.__name__ \
             and issubclass(m[c], asked):
                 classes.append(m[c])
+                logging.debug(f"Found `{asked.__name__}` class: `{m[c]}`.")
         return classes
 
     def nodes(self) -> list[Node]:
@@ -354,12 +356,12 @@ class All:
     def node_fields(self) -> list[str]:
         names = [] # FIXME use a set?
         for c in self.nodes():
-            names += c.available()
+            names += c.fields()
         return names
 
     def edge_fields(self) -> list[str]:
         names = [] # FIXME use a set?
         for c in self.edges():
-            names += c.available()
+            names += c.fields()
         return names
 

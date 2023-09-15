@@ -1,3 +1,4 @@
+import types as pytypes
 import logging
 from typing import Optional
 from collections.abc import Iterable
@@ -5,6 +6,7 @@ from collections.abc import Iterable
 import pandas as pd
 
 from . import base
+from . import types
 
 class PandasAdapter(base.Adapter):
 
@@ -85,4 +87,84 @@ class PandasAdapter(base.Adapter):
                     logging.debug(f"Append `{st}` via `{et}`")
                 else:
                     logging.debug(f"Column `{c}` not allowed.")
+
+
+class Configure:
+    def __init__(self,
+        config: dict,
+        module,
+    ):
+
+        self.config = config
+        self.module = module
+
+        source_t, type_of, properties_of = self.parse()
+        logging.debug(f"Source class: {source_t}")
+        logging.debug(f"Type_of: {type_of}")
+        logging.debug(f"Properties_of: {properties_of}")
+
+    def get(self, key, config=None):
+        if not config:
+            config = self.config
+        for k in key:
+            if k in config:
+                return config[k]
+        return None
+
+    def make_node(self, name, base = base.Node):
+        t = type(name, (base,), {"__module__": self.module.__name__})
+        def empty_fields(cls):
+            return []
+        t.fields = staticmethod(pytypes.MethodType(empty_fields, t))
+        logging.debug(f"Declare Node class `{t}`.")
+        setattr(self.module, t.__name__, t)
+        return t
+
+    def make_edge(self, name, source_t, target_t, base = base.Edge):
+        t = type(name, (base,), {"__module__": self.module.__name__})
+        def empty_fields(cls):
+            return []
+        t.fields = staticmethod(pytypes.MethodType(empty_fields, t))
+        def st(cls):
+            return source_t
+        def tt(cls):
+            return target_t
+        t.source_type = staticmethod(pytypes.MethodType(st, t))
+        t.target_type = staticmethod(pytypes.MethodType(tt, t))
+        logging.debug(f"Declare Edge class `{t}`.")
+        setattr(self.module, t.__name__, t)
+        return t
+
+    def parse(self):
+        type_of = {}
+        properties_of = {}
+
+        k_row = ["row", "entry", "line"]
+        k_columns = ["columns", "fields"]
+        k_target = ["to_target", "to_object", "to_node"]
+        k_edge = ["via_edge", "via_relation", "via_predicate"]
+        k_properties = ["to_properties"]
+
+        source_t = self.make_node( self.get(k_row) )
+
+        columns = self.get(k_columns)
+        for col_name in columns:
+            column = columns[col_name]
+            target     = self.get(k_target, column)
+            edge       = self.get(k_edge, column)
+            properties = self.get(k_properties, column)
+
+            if target and edge:
+                target_t = self.make_node( target )
+                edge_t   = self.make_edge( edge, source_t, target_t )
+                type_of[col_name] = edge_t # Embeds source and target types.
+
+            if properties:
+                for prop_name in properties:
+                    types = properties[prop_name]
+                    for t in types:
+                        properties_of[t] = properties.get(t, {})
+                        properties_of[t][col_name] = prop_name
+
+        return source_t, type_of, properties_of
 
