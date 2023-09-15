@@ -6,6 +6,9 @@ from typing import Optional
 from enum import Enum
 
 class Element(metaclass = ABSTRACT):
+    """Base class for either Node or Edge.
+
+    Manages allowed properties mechanics."""
 
     def __init__(self,
         id        : Optional[str] = None,
@@ -15,10 +18,10 @@ class Element(metaclass = ABSTRACT):
     ):
         """Instantiate an element.
 
-        :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
-        :param dict[str,str]: All available properties for this instance.
-        :param list[str]: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed.
-        :param str: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param str id: Unique identifier of the element. If id == None, is then set to the empty string.
+        :param dict[str,str] properties: All available properties for this instance.
+        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed.
+        :param str label: The label of the element. If label = None, the lower-case version of the class name is used as a label.
         """
         if not id:
             self._id = ''
@@ -67,6 +70,10 @@ class Element(metaclass = ABSTRACT):
 
     @properties.setter
     def properties(self, properties: dict[str,str]):
+        """Set available properties.
+
+        Asserts that the passed properties are in the declared fields."""
+
         # Sanity checks:
         assert(properties is not None)
         for p in properties:
@@ -92,6 +99,7 @@ class Element(metaclass = ABSTRACT):
 
 
 class Node(Element):
+    """Base class for any Node."""
 
     def __init__(self,
         id        : Optional[str] = None,
@@ -99,10 +107,18 @@ class Node(Element):
         allowed   : Optional[list[str]] = None, # Passed by Adapter.
         label     : Optional[str] = None, # Set from subclass name.
     ):
+        """Instantiate a Node.
+
+        :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
+        :param dict[str,str] properties: All available properties for this instance.
+        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
+        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        """
         super().__init__(id, properties, allowed, label)
 
     Tuple: TypeAlias = tuple[str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
+        """Export the Node as a Biocypher tuple."""
         return (
             self._id,
             self._label,
@@ -111,6 +127,7 @@ class Node(Element):
         )
 
 class Edge(Element):
+    """Base class for any Edge."""
 
     def __init__(self,
         id        : Optional[str] = None,
@@ -120,6 +137,15 @@ class Edge(Element):
         allowed   : Optional[list[str]] = None, # Passed by Adapter.
         label     : Optional[str] = None, # Set from subclass name.
     ):
+        """Instantiate an Edge.
+
+        :param str id: Unique identifier of the edge. If id == None, is then set to the empty string.
+        :param str id_source: Unique identifier of the source Node. If None, is then set to the empty string.
+        :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
+        :param dict[str,str] properties: All available properties for this instance.
+        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
+        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        """
         super().__init__(id, properties, allowed, label)
         self._id_source = str(id_source)
         self._id_target = str(id_target)
@@ -144,6 +170,7 @@ class Edge(Element):
 
     Tuple: TypeAlias = tuple[str,str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
+        """Export the Edge as a Biocypher tuple."""
         return (
             self._id,
             self._id_source,
@@ -156,6 +183,7 @@ class Edge(Element):
 
 class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
+
     def __init__(self,
         node_types : Iterable[Node],
         node_fields: list[str],
@@ -165,10 +193,10 @@ class Adapter(metaclass = ABSTRACT):
         """Allow to indicate which Element subclasses and which property fields
         are allowed to be exported by Biocypher.
 
-        :param Iterable[Node]: Allowed Node subclasses.
-        :param list[str]: Allowed property fields for the Node subclasses.
-        :param Iterable[Edge]: Allowed Edge subclasses.
-        :param list[str]: Allowed property fields for the Edge subclasses.
+        :param Iterable[Node] node_types: Allowed Node subclasses.
+        :param list[str] node_fields: Allowed property fields for the Node subclasses.
+        :param Iterable[Edge] edge_types: Allowed Edge subclasses.
+        :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
         """
         self._node_types  = node_types
         self._node_fields = node_fields
@@ -177,29 +205,25 @@ class Adapter(metaclass = ABSTRACT):
         self._nodes = []
         self._edges = []
 
-    # @abstract
-    # def nodes(self) -> Iterable[Node]:
-    #     raise NotImplementedError
+    def nodes_append(self, node) -> None:
+        """Append an Node to the internal list of nodes."""
+        self._nodes.append(node)
 
-    # @abstract
-    # def edges(self) -> Iterable[Edge]:
-    #     raise NotImplementedError
+    def edges_append(self, edge) -> None:
+        """Append an Edge to the internal list of edges."""
+        self._edges.append(edge)
 
     @property
     def nodes(self) -> Iterable[Node.Tuple]:
+        """Return a generator yielding nodes."""
         for n in self._nodes:
             yield n
 
-    def nodes_append(self, node) -> None:
-        self._nodes.append(node)
-
     @property
     def edges(self) -> Iterable[Edge.Tuple]:
+        """Return a generator yielding edges."""
         for e in self._edges:
             yield e
-
-    def edges_append(self, edge) -> None:
-        self._edges.append(edge)
 
     @property
     def node_types(self) -> Iterable[Node]:
