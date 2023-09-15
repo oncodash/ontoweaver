@@ -209,6 +209,9 @@ class Adapter(metaclass = ABSTRACT):
         :param Iterable[Edge] edge_types: Allowed Edge subclasses.
         :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
         """
+        if not node_types or not edge_types:
+            raise ValueError("You must allow at least one node type and one edge type.")
+
         self._node_types  = node_types
         self._node_fields = node_fields
         self._edge_types  = edge_types
@@ -349,14 +352,14 @@ class All:
         return self.elements(Edge)
 
     def node_fields(self) -> list[str]:
-        names = []
+        names = [] # FIXME use a set?
         for c in self.nodes():
-            names += c.fields()
+            names += c.available()
         return names
 
     def edge_fields(self) -> list[str]:
-        names = []
+        names = [] # FIXME use a set?
         for c in self.edges():
-            names += c.fields()
+            names += c.available()
         return names
 
