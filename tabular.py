@@ -19,6 +19,7 @@ class PandasAdapter(base.Adapter):
         edge_fields: Optional[list[str]] = None,
     ):
         super().__init__(node_types, node_fields, edge_types, edge_fields)
+        print(self._nodes)
 
         logging.info(df.info())
         logging.info("\n"+str(df))
@@ -52,6 +53,7 @@ class PandasAdapter(base.Adapter):
 
     def run(self):
         for i,row in self.df.iterrows():
+            logging.debug(f"Extracting row {i}...")
             if self.allows( self.row_type ):
                 target_id = f"{self.row_type.__name__}_{i}"
                 self.nodes_append( self.make(
@@ -60,23 +62,27 @@ class PandasAdapter(base.Adapter):
                 ))
 
             for c in self.type_of:
+                logging.debug(f"Mapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
                 val = row[c]
                 if self.allows( self.type_of[c] ):
                     # target should always be the target above.
                     assert(issubclass(self.type_of[c].target_type(), self.row_type))
-                    # source:
+                    # source
                     st = self.type_of[c].source_type()
                     source_id = f"{st.__name__}_{val}"
                     self.nodes_append( self.make(
                         st, id=source_id,
                         properties=self.properties(row,st)
                     ))
-                    # relation (simpler without property?)
+                    # relation
                     et = self.type_of[c]
                     self.edges_append( self.make(
                         et, id=None, id_source=source_id, id_target=target_id,
                         properties=self.properties(row,et)
                     ))
+                    logging.debug(f"Append `{st}` via `{et}`")
+                else:
+                    logging.debug(f"Column `{c}` not allowed.")
 

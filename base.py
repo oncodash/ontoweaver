@@ -215,6 +215,7 @@ class Adapter(metaclass = ABSTRACT):
         self._edge_fields = edge_fields
         self._nodes = []
         self._edges = []
+        print(self._nodes)
 
     def nodes_append(self, node) -> None:
         """Append an Node to the internal list of nodes."""
