@@ -33,7 +33,7 @@ class Element(metaclass = ABSTRACT):
 
         # Use the setter to get sanity checks.
         if not allowed:
-            self.allowed = self.fields()
+            self.allowed = self.available()
         else:
             self.allowed = allowed
 
@@ -47,6 +47,16 @@ class Element(metaclass = ABSTRACT):
     def fields() -> list[str]:
         """List of property fields provided by the (sub)class."""
         raise NotImplementedError
+
+    def available(self) -> list[str]:
+        """Enumerate all fields declared by the hierarchy of classes above the current instance."""
+
+        # Loop over parent classes, except for the last two ones,
+        # which are `Element` and `object`.
+        for Parent in type(self).mro()[:-2]:
+            # Call the static method of this class.
+            for field in Parent.fields():
+                yield field
 
     @abstract
     def as_tuple(self):
@@ -77,7 +87,7 @@ class Element(metaclass = ABSTRACT):
         # Sanity checks:
         assert(properties is not None)
         for p in properties:
-            assert(p in self.fields())
+            assert(p in self.available())
         self._properties = properties
 
     @property
