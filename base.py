@@ -52,9 +52,9 @@ class Element(metaclass = ABSTRACT):
     def available(self) -> list[str]:
         """Enumerate all fields declared by the hierarchy of classes above the current instance."""
 
-        # Loop over parent classes, except for the last two ones,
-        # which are `Element` and `object`.
-        for Parent in type(self).mro()[:-2]:
+        # Loop over parent classes, except for the last ones,
+        # which are `Node`/`Edge`, `Element` and `object`.
+        for Parent in type(self).mro()[:-3]:
             # Call the static method of this class,
             # and yield its content.
             for field in Parent.fields():
@@ -88,6 +88,7 @@ class Element(metaclass = ABSTRACT):
 
         # Sanity checks:
         assert(properties is not None)
+        # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
         for p in properties:
             assert(p in self.available())
         self._properties = properties
@@ -295,7 +296,7 @@ class Adapter(metaclass = ABSTRACT):
 
         Automatically filter property fields based on what was passed to the Adapter.
 
-        Warning: for the sake of clarity, only named arguments are allowedafter the Element class.
+        WARNING: for the sake of clarity, only named arguments are allowed after the Element class.
 
         Example:
         .. code-block:: python
@@ -304,16 +305,16 @@ class Adapter(metaclass = ABSTRACT):
 
         :param Element <unnamed>: Class of the element to create.
         :param \**kwargs: Named arguments to pass to instantiate the given class.
-        :returns Element: An Biocypher's tuple representing the element.
+        :returns tuple: A Biocypher's tuple representing the element.
         """
         assert(len(args) == 1)
-        a = args[0]
-        if issubclass(a, Node):
-            return a(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
-        elif issubclass(a, Edge):
-            return a(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
+        this = args[0]
+        if issubclass(this, Node):
+            return this(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
+        elif issubclass(this, Edge):
+            return this(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
         else:
-            raise TypeError("first argument should be a subclass of `Element`")
+            raise TypeError("First argument `{this}` should be a subclass of `Element`")
 
 
 class All:

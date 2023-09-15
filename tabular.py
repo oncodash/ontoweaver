@@ -48,7 +48,7 @@ class PandasAdapter(base.Adapter):
                 matching_class = parent
                 break
         if not matching_class:
-            raise TypeError(f"Type `{type.__name__}` is not (or has no parent) in properties mapping.")
+            return {} # Defaults to no property.
 
         # Exctract and map the values.
         for in_prop in self.properties_of[matching_class]:
@@ -62,34 +62,35 @@ class PandasAdapter(base.Adapter):
         for i,row in self.df.iterrows():
             logging.debug(f"Extracting row {i}...")
             if self.allows( self.row_type ):
-                target_id = f"{self.row_type.__name__}_{i}"
+                source_id = f"{self.row_type.__name__}_{i}"
                 self.nodes_append( self.make(
-                    self.row_type, id=target_id,
+                    self.row_type, id=source_id,
                     properties=self.properties(row,self.row_type)
                 ))
 
             for c in self.type_of:
-                logging.debug(f"Mapping column `{c}`...")
+                logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
                 val = row[c]
                 if self.allows( self.type_of[c] ):
-                    # target should always be the target above.
-                    assert(issubclass(self.type_of[c].target_type(), self.row_type))
-                    # source
-                    st = self.type_of[c].source_type()
-                    source_id = f"{st.__name__}_{val}"
+                    # source should always be the source above.
+                    assert(issubclass(self.type_of[c].source_type(), self.row_type))
+                    # target
+                    target_t = self.type_of[c].target_type()
+                    target_id = f"{target_t.__name__}_{val}"
                     self.nodes_append( self.make(
-                        st, id=source_id,
-                        properties=self.properties(row,st)
+                        target_t, id=target_id,
+                        properties=self.properties(row,target_t)
                     ))
                     # relation
-                    et = self.type_of[c]
+                    edge_t = self.type_of[c]
                     self.edges_append( self.make(
-                        et, id=None, id_source=source_id, id_target=target_id,
-                        properties=self.properties(row,et)
+                        edge_t, id=None, id_source=source_id, id_target=target_id,
+                        properties=self.properties(row,edge_t)
                     ))
-                    logging.debug(f"Append `{st}` via `{et}`")
+                    logging.debug(f"\t\tAdded `{target_t.__name__}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
+                    logging.debug(f"\t\t  via `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
                 else:
                     logging.debug(f"Column `{c}` not allowed.")
 
@@ -117,25 +118,31 @@ class Configure:
         return None
 
     def make_node_class(self, name, base = base.Node):
-        t = type(name, (base,), {"__module__": self.module.__name__})
-        def empty_fields(cls):
+        def empty_fields():
             return []
-        t.fields = staticmethod(pytypes.MethodType(empty_fields, t))
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields": staticmethod(empty_fields),
+        }
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logging.debug(f"Declare Node class `{t}`.")
         setattr(self.module, t.__name__, t)
         return t
 
     def make_edge_class(self, name, source_t, target_t, base = base.Edge):
-        t = type(name, (base,), {"__module__": self.module.__name__})
-        def empty_fields(cls):
+        def empty_fields():
             return []
-        t.fields = staticmethod(pytypes.MethodType(empty_fields, t))
-        def st(cls):
+        def st():
             return source_t
-        def tt(cls):
+        def tt():
             return target_t
-        t.source_type = staticmethod(pytypes.MethodType(st, t))
-        t.target_type = staticmethod(pytypes.MethodType(tt, t))
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields":      staticmethod(empty_fields),
+            "source_type": staticmethod(st),
+            "target_type": staticmethod(tt),
+        }
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logging.debug(f"Declare Edge class `{t}`.")
         setattr(self.module, t.__name__, t)
         return t
@@ -171,6 +178,12 @@ class Configure:
                         t = getattr(self.module, c)
                         properties_of[t] = properties.get(t, {})
                         properties_of[t][col_name] = prop_name
+
+        # Then update properties in classes.
+        for c in properties_of:
+            def defined_fields():
+                return [properties_of[c][p] for p in properties_of[c]]
+            c.fields = staticmethod(defined_fields)
 
         return source_t, type_of, properties_of
 
