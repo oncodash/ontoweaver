@@ -54,7 +54,8 @@ class Element(metaclass = ABSTRACT):
         # Loop over parent classes, except for the last two ones,
         # which are `Element` and `object`.
         for Parent in type(self).mro()[:-2]:
-            # Call the static method of this class.
+            # Call the static method of this class,
+            # and yield its content.
             for field in Parent.fields():
                 yield field
 
