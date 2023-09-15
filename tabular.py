@@ -21,15 +21,20 @@ class PandasAdapter(base.Adapter):
         edge_fields: Optional[list[str]] = None,
     ):
         super().__init__(node_types, node_fields, edge_types, edge_fields)
-        print(self._nodes)
 
-        logging.info(df.info())
+        logging.info("DataFrame info:")
+        # logging.info(df.info()) # FIXME is displayed on stdout after all calls, use a stream with the buf arg here.
+        logging.debug("Columns:")
+        for c in df.columns:
+            logging.debug(f"\t`{c}`")
         logging.info("\n"+str(df))
         self.df = df
 
         self.row_type = row_type
         self.type_of = type_of
         self.properties_of = properties_of
+
+        self.run()
 
 
     def properties(self, row, type):
@@ -43,7 +48,7 @@ class PandasAdapter(base.Adapter):
                 matching_class = parent
                 break
         if not matching_class:
-            raise TypeError(f"Type `{type.__name__}` has no parent in properties mapping.")
+            raise TypeError(f"Type `{type.__name__}` is not (or has no parent) in properties mapping.")
 
         # Exctract and map the values.
         for in_prop in self.properties_of[matching_class]:
@@ -111,7 +116,7 @@ class Configure:
                 return config[k]
         return None
 
-    def make_node(self, name, base = base.Node):
+    def make_node_class(self, name, base = base.Node):
         t = type(name, (base,), {"__module__": self.module.__name__})
         def empty_fields(cls):
             return []
@@ -120,7 +125,7 @@ class Configure:
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_edge(self, name, source_t, target_t, base = base.Edge):
+    def make_edge_class(self, name, source_t, target_t, base = base.Edge):
         t = type(name, (base,), {"__module__": self.module.__name__})
         def empty_fields(cls):
             return []
@@ -145,7 +150,7 @@ class Configure:
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties"]
 
-        source_t = self.make_node( self.get(k_row) )
+        source_t = self.make_node_class( self.get(k_row) )
 
         columns = self.get(k_columns)
         for col_name in columns:
@@ -155,14 +160,15 @@ class Configure:
             properties = self.get(k_properties, column)
 
             if target and edge:
-                target_t = self.make_node( target )
-                edge_t   = self.make_edge( edge, source_t, target_t )
+                target_t = self.make_node_class( target )
+                edge_t   = self.make_edge_class( edge, source_t, target_t )
                 type_of[col_name] = edge_t # Embeds source and target types.
 
             if properties:
                 for prop_name in properties:
-                    types = properties[prop_name]
-                    for t in types:
+                    classes = properties[prop_name]
+                    for c in classes:
+                        t = getattr(self.module, c)
                         properties_of[t] = properties.get(t, {})
                         properties_of[t][col_name] = prop_name
 

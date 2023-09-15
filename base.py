@@ -219,7 +219,6 @@ class Adapter(metaclass = ABSTRACT):
         self._edge_fields = edge_fields
         self._nodes = []
         self._edges = []
-        print(self._nodes)
 
     def nodes_append(self, node) -> None:
         """Append an Node to the internal list of nodes."""
@@ -280,7 +279,6 @@ class Adapter(metaclass = ABSTRACT):
             if allowed_by(elem_type, self._edge_types):
                 if not allowed_by(elem_type.source_type(), self._node_types):
                     logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its source (`{elem_type.source_type().__name__}`) node type.")
-                    logging.info(self._node_types)
                     return False
                 elif not allowed_by(elem_type.target_type(), self._node_types):
                     logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its target (`{elem_type.target_type().__name__}`) node type.")
