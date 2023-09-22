@@ -223,11 +223,21 @@ class Adapter(metaclass = ABSTRACT):
 
     def nodes_append(self, node) -> None:
         """Append an Node to the internal list of nodes."""
-        self._nodes.append(node)
+        if node in self._nodes:
+            # logging.warning(f"Skipped Node already declared: `{node}`")
+            return False
+        else:
+            self._nodes.append(node)
+            return True
 
     def edges_append(self, edge) -> None:
         """Append an Edge to the internal list of edges."""
-        self._edges.append(edge)
+        if edge in self._edges:
+            # logging.warning(f"Skipped Edge already declared: `{edge}`")
+            return False
+        else:
+            self._edges.append(edge)
+            return True
 
     @property
     def nodes(self) -> Iterable[Node.Tuple]:

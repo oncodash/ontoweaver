@@ -126,18 +126,18 @@ class PandasAdapter(base.Adapter):
                     # target
                     target_t = self.type_of[c].target_type()
                     target_id = f"{target_t.__name__}_{val}"
-                    self.nodes_append( self.make(
+                    node_done = self.nodes_append( self.make(
                         target_t, id=target_id,
                         properties=self.properties(row,target_t)
                     ))
                     # relation
                     edge_t = self.type_of[c]
-                    self.edges_append( self.make(
+                    edge_done = self.edges_append( self.make(
                         edge_t, id=None, id_source=source_id, id_target=target_id,
                         properties=self.properties(row,edge_t)
                     ))
-                    logging.debug(f"\t\tAdded `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
-                    logging.debug(f"\t\t  via `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
+                    logging.debug(f"\t\tto  `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
+                    logging.debug(f"\t\tvia `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
                 else:
                     logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
 
