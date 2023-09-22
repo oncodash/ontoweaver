@@ -102,13 +102,15 @@ class PandasAdapter(base.Adapter):
     def run(self):
         """Actually run the configured extraction."""
         for i,row in self.df.iterrows():
-            logging.debug(f"Extracting row {i}...")
+            logging.debug(f"Extracting row {i} of type `{self.row_type.__name__}`...")
             if self.allows( self.row_type ):
                 source_id = f"{self.row_type.__name__}_{i}"
                 self.nodes_append( self.make(
                     self.row_type, id=source_id,
                     properties=self.properties(row,self.row_type)
                 ))
+            else:
+                logging.error(f"Row type `{self.row_type.__name__}` not allowed.")
 
             for c in self.type_of:
                 logging.debug(f"\tMapping column `{c}`...")
@@ -134,10 +136,10 @@ class PandasAdapter(base.Adapter):
                         edge_t, id=None, id_source=source_id, id_target=target_id,
                         properties=self.properties(row,edge_t)
                     ))
-                    logging.debug(f"\t\tAdded `{target_t.__name__}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
+                    logging.debug(f"\t\tAdded `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
                     logging.debug(f"\t\t  via `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
                 else:
-                    logging.debug(f"Column `{c}` not allowed.")
+                    logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
 
     # FIXME see how to declare another constructor taking config and module instead of the mapping.
     @staticmethod
@@ -188,6 +190,11 @@ class PandasAdapter(base.Adapter):
             return None
 
         def make_node_class(name, base = base.Node):
+            # If type already exists, return it.
+            if hasattr(module, name):
+                logging.debug(f"Node class `{name}` already exists, I will not create another one.")
+                return getattr(module, name)
+
             def empty_fields():
                 return []
             attrs = {
@@ -200,6 +207,11 @@ class PandasAdapter(base.Adapter):
             return t
 
         def make_edge_class(name, source_t, target_t, base = base.Edge):
+            # If type already exists, return it.
+            if hasattr(module, name):
+                logging.debug(f"Edge class `{name}` already exists, I will not create another one.")
+                return getattr(module, name)
+
             def empty_fields():
                 return []
             def st():

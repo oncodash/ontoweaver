@@ -273,11 +273,14 @@ class Adapter(metaclass = ABSTRACT):
         def allowed_by(elem,types):
             return any(issubclass(e, elem) or e == elem for e in types)
 
+        # For Nodes: just test.
         if issubclass(elem_type, Node):
             return allowed_by(elem_type, self._node_types)
 
+        # For Edges: double-check target and source Node types as well.
         elif issubclass(elem_type, Edge):
             if allowed_by(elem_type, self._edge_types):
+                # logging.debug(f"Edge type `{elem_type.__name__}` is allowed")
                 if not allowed_by(elem_type.source_type(), self._node_types):
                     logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its source (`{elem_type.source_type().__name__}`) node type.")
                     return False
@@ -285,8 +288,10 @@ class Adapter(metaclass = ABSTRACT):
                     logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its target (`{elem_type.target_type().__name__}`) node type.")
                     return False
                 else:
+                    # logging.debug(f"Both source type `{elem_type.source_type().__name__}` and target type `{elem_type.target_type().__name__}` are allowed.")
                     return True
             else:
+                # logging.debug(f"Edge type `{elem_type.__name__}` is not allowed")
                 return False
         else:
             raise TypeError("`elem_type` should be of type `Element`")
