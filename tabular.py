@@ -1,3 +1,4 @@
+import math
 import types as pytypes
 import logging
 from typing import Optional
@@ -38,6 +39,7 @@ class PandasAdapter(base.Adapter):
         node_fields: Optional[list[str]] = None,
         edge_types : Optional[Iterable[base.Edge]] = None,
         edge_fields: Optional[list[str]] = None,
+        skip_nan = True
     ):
         """
         Instantiate the adapter.
@@ -64,6 +66,7 @@ class PandasAdapter(base.Adapter):
         self.row_type = row_type
         self.type_of = type_of
         self.properties_of = properties_of
+        self.skip_nan = skip_nan
 
         self.run()
 
@@ -88,6 +91,13 @@ class PandasAdapter(base.Adapter):
 
         return properties
 
+    def skip(self, val):
+        if self.skip_nan:
+            if pd.api.types.is_numeric_dtype(val) and (math.isnan(val) or val == float("nan")):
+                return True
+            elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
+                return True
+        return False
 
     def run(self):
         """Actually run the configured extraction."""
@@ -105,6 +115,9 @@ class PandasAdapter(base.Adapter):
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
                 val = row[c]
+                if self.skip(val):
+                    logging.debug(f"\t\tSkip `{val}`")
+                    continue
                 if self.allows( self.type_of[c] ):
                     # source should always be the source above.
                     assert(issubclass(self.type_of[c].source_type(), self.row_type))
