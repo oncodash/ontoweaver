@@ -58,6 +58,7 @@ class Element(metaclass = ABSTRACT):
             # Call the static method of this class,
             # and yield its content.
             for field in Parent.fields():
+                logging.debug(f"##### {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
                 yield field
 
     @abstract
@@ -90,7 +91,9 @@ class Element(metaclass = ABSTRACT):
         assert(properties is not None)
         # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
         for p in properties:
-            assert(p in self.available())
+            if p not in self.available():
+                logging.error(f"Property `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
+                assert(p in self.available())
         self._properties = properties
 
     @property
@@ -359,6 +362,8 @@ class All:
             and issubclass(m[c], asked):
                 classes.append(m[c])
                 logging.debug(f"Found `{asked.__name__}` class: `{m[c]}`.")
+                # t = m[c]
+                # logging.debug(f"##### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
         return classes
 
     def nodes(self) -> list[Node]:

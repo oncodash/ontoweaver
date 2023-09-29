@@ -34,7 +34,7 @@ class PandasAdapter(base.Adapter):
         df: pd.DataFrame,
         row_type: base.Node,
         type_of: dict[str, base.Edge],
-        properties_of: dict[base.Node, dict[str,str]],
+        properties_of: dict[str, dict[str,str]],
         node_types : Optional[Iterable[base.Node]] = None,
         node_fields: Optional[list[str]] = None,
         edge_types : Optional[Iterable[base.Edge]] = None,
@@ -66,6 +66,7 @@ class PandasAdapter(base.Adapter):
         self.row_type = row_type
         self.type_of = type_of
         self.properties_of = properties_of
+        # logging.debug(self.properties_of)
         self.skip_nan = skip_nan
 
         self.run()
@@ -86,7 +87,7 @@ class PandasAdapter(base.Adapter):
 
         # Extract and map the values.
         for in_prop in self.properties_of[matching_class]:
-            out_prop = self.properties_of[type][in_prop]
+            out_prop = self.properties_of[type.__name__][in_prop]
             properties[out_prop] = row[in_prop]
 
         return properties
@@ -105,6 +106,7 @@ class PandasAdapter(base.Adapter):
             logging.debug(f"Extracting row {i} of type `{self.row_type.__name__}`...")
             if self.allows( self.row_type ):
                 source_id = f"{self.row_type.__name__}_{i}"
+                logging.debug(f"{self.row_type} = {self.properties(row,self.row_type)} VS {self.properties_of[self.row_type.__name__]}")
                 self.nodes_append( self.make(
                     self.row_type, id=source_id,
                     properties=self.properties(row,self.row_type)
@@ -189,38 +191,38 @@ class PandasAdapter(base.Adapter):
                     return pconfig[k]
             return None
 
-        def make_node_class(name, base = base.Node):
+        def make_node_class(name, properties = [], base = base.Node):
             # If type already exists, return it.
             if hasattr(module, name):
-                logging.debug(f"Node class `{name}` already exists, I will not create another one.")
+                logging.warning(f"Node class `{name}` already exists, I will not create another one.")
                 return getattr(module, name)
 
-            def empty_fields():
-                return []
+            def fields():
+                return list(properties.values())
             attrs = {
                 "__module__": module.__name__,
-                "fields": staticmethod(empty_fields),
+                "fields": staticmethod(fields),
             }
             t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
             logging.debug(f"Declare Node class `{t}`.")
             setattr(module, t.__name__, t)
             return t
 
-        def make_edge_class(name, source_t, target_t, base = base.Edge):
+        def make_edge_class(name, source_t, target_t, properties = [], base = base.Edge):
             # If type already exists, return it.
             if hasattr(module, name):
-                logging.debug(f"Edge class `{name}` already exists, I will not create another one.")
+                logging.warning(f"Edge class `{name}` already exists, I will not create another one.")
                 return getattr(module, name)
 
-            def empty_fields():
-                return []
+            def fields():
+                return list(properties.values())
             def st():
                 return source_t
             def tt():
                 return target_t
             attrs = {
                 "__module__": module.__name__,
-                "fields":      staticmethod(empty_fields),
+                "fields":      staticmethod(fields),
                 "source_type": staticmethod(st),
                 "target_type": staticmethod(tt),
             }
@@ -240,33 +242,36 @@ class PandasAdapter(base.Adapter):
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties"]
 
-        source_t = make_node_class( get(k_row) )
-
         columns = get(k_columns)
+
+        # First, parse property mappings.
+        # Because we must declare types with every members already ready.
         for col_name in columns:
             column = columns[col_name]
             target     = get(k_target, column)
             edge       = get(k_edge, column)
             properties = get(k_properties, column)
-
-            if target and edge:
-                target_t = make_node_class( target )
-                edge_t   = make_edge_class( edge, source_t, target_t )
-                type_of[col_name] = edge_t # Embeds source and target types.
-
             if properties:
                 for prop_name in properties:
                     classes = properties[prop_name]
                     for c in classes:
-                        t = getattr(module, c)
-                        properties_of[t] = properties.get(t, {})
-                        properties_of[t][col_name] = prop_name
+                        properties_of[c] = properties.get(c, {})
+                        properties_of[c][col_name] = prop_name
+                        logging.debug(f"Declare properties mapping for `{c}`: {properties_of[c]}")
 
-        # Then update the `fields` properties accessor in all classes.
-        for c in properties_of:
-            def defined_fields():
-                return [properties_of[c][p] for p in properties_of[c]]
-            c.fields = staticmethod(defined_fields)
+        source_t = make_node_class( get(k_row), properties_of.get(get(k_row), []) )
+
+        # Then, declare types.
+        for col_name in columns:
+            column = columns[col_name]
+            target     = get(k_target, column)
+            edge       = get(k_edge, column)
+
+            if target and edge:
+                target_t = make_node_class( target, properties_of.get(target, {}) )
+                edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
+                type_of[col_name] = edge_t # Embeds source and target types.
+                logging.debug(f"Declare mapping `{col_name}` => `{edge_t.__name__}`")
 
         logging.debug(f"Source class: {source_t}")
         logging.debug(f"Type_of: {type_of}")
