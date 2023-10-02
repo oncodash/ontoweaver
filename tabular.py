@@ -240,7 +240,7 @@ class PandasAdapter(base.Adapter):
         k_columns = ["columns", "fields"]
         k_target = ["to_target", "to_object", "to_node"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
-        k_properties = ["to_properties"]
+        k_properties = ["to_properties", "to_property"]
 
         columns = get(k_columns)
 
