@@ -69,7 +69,16 @@ class PandasAdapter(base.Adapter):
         # logging.debug(self.properties_of)
         self.skip_nan = skip_nan
 
-        self.run()
+
+    def source_type(self, row):
+        """Accessor to the row type actually used by `run`.
+
+        You may overlad this function if you want
+        to make the row type dependant of some column value.
+
+        By default, just return the default row type defined in the constructor,
+        without taking the row values into account."""
+        return self.row_type
 
 
     def properties(self, row, type):
@@ -92,6 +101,7 @@ class PandasAdapter(base.Adapter):
 
         return properties
 
+
     def skip(self, val):
         if self.skip_nan:
             if pd.api.types.is_numeric_dtype(val) and (math.isnan(val) or val == float("nan")):
@@ -100,19 +110,20 @@ class PandasAdapter(base.Adapter):
                 return True
         return False
 
+
     def run(self):
         """Actually run the configured extraction."""
         for i,row in self.df.iterrows():
-            logging.debug(f"Extracting row {i} of type `{self.row_type.__name__}`...")
-            if self.allows( self.row_type ):
-                source_id = f"{self.row_type.__name__}_{i}"
-                logging.debug(f"{self.row_type} = {self.properties(row,self.row_type)} VS {self.properties_of[self.row_type.__name__]}")
+            row_type = self.source_type(row)
+            logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
+            if self.allows( row_type ):
+                source_id = f"{row_type.__name__}_{i}"
                 self.nodes_append( self.make(
-                    self.row_type, id=source_id,
-                    properties=self.properties(row,self.row_type)
+                    row_type, id=source_id,
+                    properties=self.properties(row,row_type)
                 ))
             else:
-                logging.error(f"Row type `{self.row_type.__name__}` not allowed.")
+                logging.error(f"Row type `{row_type.__name__}` not allowed.")
 
             for c in self.type_of:
                 logging.debug(f"\tMapping column `{c}`...")
@@ -124,7 +135,7 @@ class PandasAdapter(base.Adapter):
                     continue
                 if self.allows( self.type_of[c] ):
                     # source should always be the source above.
-                    assert(issubclass(self.type_of[c].source_type(), self.row_type))
+                    assert(issubclass(row_type, self.type_of[c].source_type()))
                     # target
                     target_t = self.type_of[c].target_type()
                     target_id = f"{target_t.__name__}_{val}"
@@ -142,6 +153,7 @@ class PandasAdapter(base.Adapter):
                     logging.debug(f"\t\tvia `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
                 else:
                     logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
+
 
     # FIXME see how to declare another constructor taking config and module instead of the mapping.
     @staticmethod
@@ -306,6 +318,8 @@ def extract_all(df: pd.DataFrame, config: dict):
         allowed_edge_types,
         allowed_edge_fields,
     )
+
+    adapter.run()
 
     return adapter
 
