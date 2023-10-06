@@ -291,26 +291,26 @@ class PandasAdapter(base.Adapter):
         return source_t, type_of, properties_of
 
 
-def extract_all(df: pd.DataFrame, config: dict):
+def extract_all(df: pd.DataFrame, config: dict, module = types):
     """Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration."""
-    mapping = ontoweaver.tabular.PandasAdapter.configure(config, ontoweaver.types)
+    mapping = PandasAdapter.configure(config, module)
 
-    allowed_node_types  = ontoweaver.types.all.nodes()
+    allowed_node_types  = types.all.nodes()
     logging.debug(f"allowed_node_types: {allowed_node_types}")
 
-    allowed_node_fields = ontoweaver.types.all.node_fields()
+    allowed_node_fields = types.all.node_fields()
     logging.debug(f"allowed_node_fields: {allowed_node_fields}")
 
-    allowed_edge_types  = ontoweaver.types.all.edges()
+    allowed_edge_types  = types.all.edges()
     logging.debug(f"allowed_edge_types: {allowed_edge_types}")
 
-    allowed_edge_fields = ontoweaver.types.all.edge_fields()
+    allowed_edge_fields = types.all.edge_fields()
     logging.debug(f"allowed_edge_fields: {allowed_edge_fields}")
 
     # Using empty list or no argument would also select everything,
     # but explicit is better than implicit.
-    adapter = ontoweaver.tabular.PandasAdapter(
+    adapter = PandasAdapter(
         df,
         *mapping,
         allowed_node_types,
