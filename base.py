@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Generator
 from abc import ABCMeta as ABSTRACT
 from abc import abstractmethod as abstract
 from typing import TypeAlias
@@ -58,7 +58,7 @@ class Element(metaclass = ABSTRACT):
             # Call the static method of this class,
             # and yield its content.
             for field in Parent.fields():
-                logging.debug(f"##### {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
+                # logging.debug(f"##### {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
                 yield field
 
     @abstract
@@ -142,6 +142,7 @@ class Node(Element):
             self.allowed_properties()
         )
 
+
 class Edge(Element):
     """Base class for any Edge."""
 
@@ -197,6 +198,67 @@ class Edge(Element):
         )
 
 
+class NodeGenerator:
+    pass
+
+def node_generator(edge_gen_cls):
+    class Nodes(NodeGenerator):
+        cls = edge_gen_cls
+
+        @staticmethod
+        def mro():
+            return edge_gen_cls.mro()
+    return Nodes
+
+class EdgeGenerator:
+    def __init__(self,
+        id        : Optional[str] = None,
+        id_source : Optional[str] = None,
+        id_target : Optional[str] = None,
+        properties: Optional[dict[str,str]] = {},
+        allowed   : Optional[list[str]] = None, # Passed by Adapter.
+        label     : Optional[str] = None, # Set from subclass name.
+    ):
+        self.id = id
+        self.id_source = id_source
+        self.id_target = id_target
+        self.properties = properties
+        self.allowed = allowed
+        self.label = label
+
+    @abstract
+    def nodes(self):
+        raise NotImplementedError
+
+    @abstract
+    def edges(self):
+        raise NotImplementedError
+
+    @staticmethod
+    @abstract
+    def edge_type():
+        raise NotImplementedError
+
+    @classmethod
+    def target_type(cls):
+       return node_generator(cls)
+
+    @classmethod
+    def source_type(cls):
+       return cls.edge_type().source_type()
+
+    def make_node(self, id):
+        node_t = self.edge_type().target_type()
+        return node_t(id = id,
+            properties = self.properties, allowed = self.allowed, label = self.label)
+
+    def make_edge(self, id_target):
+        edge_t = self.edge_type()
+        return edge_t(id = self.id, id_source = self.id_source,
+            id_target = id_target,
+            properties = self.properties, allowed = self.allowed, label = self.label)
+
+
 class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
 
@@ -224,23 +286,41 @@ class Adapter(metaclass = ABSTRACT):
         self._nodes = []
         self._edges = []
 
-    def nodes_append(self, node) -> None:
-        """Append an Node to the internal list of nodes."""
-        if node in self._nodes:
-            # logging.warning(f"Skipped Node already declared: `{node}`")
-            return False
+    def nodes_append(self, node_s) -> None:
+        """Append an Node (or each Node in a list of nodes) to the internal list of nodes."""
+        if issubclass(type(node_s), Node):
+            nodes = [node_s]
         else:
-            self._nodes.append(node)
-            return True
+            nodes = node_s
 
-    def edges_append(self, edge) -> None:
-        """Append an Edge to the internal list of edges."""
-        if edge in self._edges:
-            # logging.warning(f"Skipped Edge already declared: `{edge}`")
-            return False
+        # logging.debug(f"Nodes: {nodes}.")
+        for node in nodes:
+            # logging.debug(f"Append node {node}.")
+            if node in self._nodes:
+                # logging.warning(f"Skipped Node already declared: `{node}`")
+                # return False
+                pass
+            else:
+                self._nodes.append(node)
+                # return True
+
+    def edges_append(self, edge_s) -> None:
+        """Append an Edge (or each Edge in a list of edges) to the internal list of edges."""
+        if issubclass(type(edge_s), Edge):
+            edges = [edge_s]
         else:
-            self._edges.append(edge)
-            return True
+            edges = edge_s
+
+        # logging.debug(f"Edges: {edges}.")
+        for edge in edges:
+            # logging.debug(f"Append edge {edge}.")
+            if edge in self._edges:
+                # logging.warning(f"Skipped Edge already declared: `{edge}`")
+                # return False
+                pass
+            else:
+                self._edges.append(edge)
+                # return True
 
     @property
     def nodes(self) -> Iterable[Node.Tuple]:
@@ -306,10 +386,14 @@ class Adapter(metaclass = ABSTRACT):
             else:
                 # logging.debug(f"Edge type `{elem_type.__name__}` is not allowed")
                 return False
+
+        # For EdgeGenerators: recursive call to edge. 
+        elif issubclass(elem_type, EdgeGenerator):
+            return self.allows(elem_type.edge_type())
         else:
             raise TypeError("`elem_type` should be of type `Element`")
 
-    def make(self, *args, **kwargs) -> tuple:
+    def make_node(self, *args, **kwargs) -> tuple:
         """Make a Biocypher's tuple of the given class.
 
         Automatically filter property fields based on what was passed to the Adapter.
@@ -321,18 +405,48 @@ class Adapter(metaclass = ABSTRACT):
 
             yield self.make( MyNode, id=my_id, properties={"my_field": my_value} )
 
-        :param Element <unnamed>: Class of the element to create.
+        :param Node <unnamed>: Class of the node to create.
         :param \**kwargs: Named arguments to pass to instantiate the given class.
-        :returns tuple: A Biocypher's tuple representing the element.
+        :returns tuple: A Biocypher's tuple representing the node.
         """
         assert(len(args) == 1)
         this = args[0]
+        # logging.debug(f"##### {this}")
         if issubclass(this, Node):
-            return this(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
-        elif issubclass(this, Edge):
-            return this(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
+            # logging.debug(f"Make node of type `{this}`.")
+            yield this(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
+        elif issubclass(this, NodeGenerator):
+            gen = this.cls(*(args[1:]), allowed=self.edge_fields, **kwargs)
+            for n in gen.nodes():
+                # logging.debug(f"Generate Node `{n}`.")
+                yield n.as_tuple()
         else:
-            raise TypeError("First argument `{this}` should be a subclass of `Element`")
+            raise TypeError("First argument `{this}` should be a subclass of `Node`")
+
+    def make_edge(self, *args, **kwargs) -> tuple:
+        """Make a Biocypher's tuple of the given class.
+
+        Automatically filter property fields based on what was passed to the Adapter.
+
+        WARNING: for the sake of clarity, only named arguments are allowed after the Element class.
+
+        :param Edge <unnamed>: Class of the edge to create.
+        :param \**kwargs: Named arguments to pass to instantiate the given class.
+        :returns tuple: A Biocypher's tuple representing the edge.
+        """
+        assert(len(args) == 1)
+        this = args[0]
+        if issubclass(this, Edge):
+            # logging.debug(f"Make edge of type `{this}`.")
+            yield this(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
+        elif issubclass(this, EdgeGenerator):
+            gen = this(*(args[1:]), allowed=self.edge_fields, **kwargs)
+            for e in gen.edges():
+                # logging.debug(f"Generate Edge `{e}`.")
+                yield e.as_tuple()
+        else:
+            raise TypeError("First argument `{this}` should be a subclass of `Edge`")
+
 
 
 class All:

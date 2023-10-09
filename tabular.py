@@ -1,3 +1,4 @@
+import sys
 import math
 import types as pytypes
 import logging
@@ -8,6 +9,8 @@ import pandas as pd
 
 from . import base
 from . import types
+from . import generators
+
 
 class PandasAdapter(base.Adapter):
     """Interface for extracting data from a Pandas DataFrame with a simple mapping configuration based on declared types.
@@ -117,8 +120,9 @@ class PandasAdapter(base.Adapter):
             row_type = self.source_type(row)
             logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
-                source_id = f"{row_type.__name__}_{i}"
-                self.nodes_append( self.make(
+                # source_id = f"{row_type.__name__}_{i}"
+                source_id = f"{i}"
+                self.nodes_append( self.make_node(
                     row_type, id=source_id,
                     properties=self.properties(row,row_type)
                 ))
@@ -135,21 +139,25 @@ class PandasAdapter(base.Adapter):
                     continue
                 if self.allows( self.type_of[c] ):
                     # source should always be the source above.
-                    assert(issubclass(row_type, self.type_of[c].source_type()))
+                    # assert(issubclass(row_type, self.type_of[c].source_type())) # FIXME handle generators.
+
                     # target
                     target_t = self.type_of[c].target_type()
-                    target_id = f"{target_t.__name__}_{val}"
-                    node_done = self.nodes_append( self.make(
+                    # target_id = f"{target_t.__name__}_{val}"
+                    target_id = f"{val}"
+                    # Append one (or several, if the target_t is a generator) nodes.
+                    self.nodes_append( self.make_node(
                         target_t, id=target_id,
                         properties=self.properties(row,target_t)
                     ))
+                    logging.debug(f"\t\tto  `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
+
                     # relation
                     edge_t = self.type_of[c]
-                    edge_done = self.edges_append( self.make(
+                    self.edges_append( self.make_edge(
                         edge_t, id=None, id_source=source_id, id_target=target_id,
                         properties=self.properties(row,edge_t)
                     ))
-                    logging.debug(f"\t\tto  `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
                     logging.debug(f"\t\tvia `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
                 else:
                     logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
@@ -194,11 +202,19 @@ class PandasAdapter(base.Adapter):
         :param module: the module in which to insert the types declared by the configuration.
         :return tuple: source_t, type_of, properties_of, as needed by PandasAdapter.
         """
-        def get(key, pconfig=None):
-            """Get a dictionary handle matching either of the passed keys."""
+        def get_not(keys, pconfig=None):
+            """Get the first dictionary (key,item) not matching any of the passed keys."""
             if not pconfig:
                 pconfig = config
-            for k in key:
+            for k in pconfig:
+                if k not in keys:
+                    return k,pconfig[k]
+
+        def get(keys, pconfig=None):
+            """Get a dictionary items matching either of the passed keys."""
+            if not pconfig:
+                pconfig = config
+            for k in keys:
                 if k in pconfig:
                     return pconfig[k]
             return None
@@ -243,6 +259,28 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
+        def make_gen_class(name, parent, edge_t, **kwargs):
+            if hasattr(generators, parent):
+                parent_t = getattr(generators, parent)
+                if not issubclass(parent_t, base.EdgeGenerator):
+                    logging.error(f"{parent_t} {parent_t.mro()}")
+                    raise TypeError(f"Object `{parent}` is not an existing generator.")
+            else:
+                # logging.debug(dir(generators))
+                raise TypeError(f"Cannot find a generator of name `{parent}`.")
+
+            def et():
+                return edge_t
+            attrs = {
+                "__module__": module.__name__,
+                "edge_type": staticmethod(et),
+            }
+            attrs.update(kwargs) # Add all passed string arguments as members.
+            t = pytypes.new_class(name, (parent_t,), {}, lambda ns: ns.update(attrs))
+            logging.debug(f"Declare EdgeGenerator class `{t}`.")
+            setattr(module, t.__name__, t)
+            return t
+
         type_of = {}
         properties_of = {}
 
@@ -253,6 +291,7 @@ class PandasAdapter(base.Adapter):
         k_target = ["to_target", "to_object", "to_node"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
+        k_generator = ["into_generator", "into_gen"]
 
         columns = get(k_columns)
 
@@ -260,9 +299,8 @@ class PandasAdapter(base.Adapter):
         # Because we must declare types with every members already ready.
         for col_name in columns:
             column = columns[col_name]
-            target     = get(k_target, column)
-            edge       = get(k_edge, column)
             properties = get(k_properties, column)
+
             if properties:
                 for prop_name in properties:
                     classes = properties[prop_name]
@@ -271,6 +309,7 @@ class PandasAdapter(base.Adapter):
                         properties_of[c][col_name] = prop_name
                         logging.debug(f"Declare properties mapping for `{c}`: {properties_of[c]}")
 
+
         source_t = make_node_class( get(k_row), properties_of.get(get(k_row), []) )
 
         # Then, declare types.
@@ -278,12 +317,30 @@ class PandasAdapter(base.Adapter):
             column = columns[col_name]
             target     = get(k_target, column)
             edge       = get(k_edge, column)
+            generator  = get(k_generator, column)
 
             if target and edge:
                 target_t = make_node_class( target, properties_of.get(target, {}) )
                 edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
                 type_of[col_name] = edge_t # Embeds source and target types.
                 logging.debug(f"Declare mapping `{col_name}` => `{edge_t.__name__}`")
+            elif (target and not edge) or (edge and not target):
+                logging.error(f"Cannot declare the mapping  `{col_name}` => `{edge}` (`{target}`)")
+
+            elif generator:
+                target = get(k_target, generator)
+                edge   = get(k_edge, generator)
+                gen_name,gen_args = get_not(k_target + k_edge, generator)
+                # logging.debug(f"##### {gen_name}: {gen_args} {type(gen_args)}")
+
+                if target and edge:
+                    target_t = make_node_class( target, properties_of.get(target, {}) )
+                    edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
+                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, **gen_args )
+                    type_of[col_name] = gen_t
+                    logging.debug(f"Declare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t.__name__}`))")
+                else:
+                    logging.error(f"Cannot create a generator without an object and a relation.")
 
         logging.debug(f"Source class: {source_t}")
         logging.debug(f"Type_of: {type_of}")
