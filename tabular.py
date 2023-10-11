@@ -291,7 +291,7 @@ class PandasAdapter(base.Adapter):
         k_target = ["to_target", "to_object", "to_node"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
-        k_generator = ["into_generator", "into_gen"]
+        k_generator = ["into_generator", "into_gen", "into_transformer", "into_trans"]
 
         columns = get(k_columns)
 
