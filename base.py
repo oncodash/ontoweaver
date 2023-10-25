@@ -199,18 +199,25 @@ class Edge(Element):
 
 
 class NodeGenerator:
+    """Tag class signaling that what's returned is a list of nodes.
+
+    Data are actually handled from the EdgeGenerator class."""
     pass
 
 def node_generator(edge_gen_cls):
+    """Wrapper signaling that the function returns list of nodes."""
     class Nodes(NodeGenerator):
         cls = edge_gen_cls
 
         @staticmethod
         def mro():
+            """Substitutes the hierarchy of parent classes for the one of the handled class."""
             return edge_gen_cls.mro()
     return Nodes
 
 class EdgeGenerator:
+    """Generates lists of edges."""
+
     def __init__(self,
         id        : Optional[str] = None,
         id_source : Optional[str] = None,

@@ -114,8 +114,35 @@ class PandasAdapter(base.Adapter):
         return False
 
 
+    def make_edge_and_target(self, source_id, target_id, c, row, log_depth = ""):
+
+        # target
+        target_t = self.type_of[c].target_type()
+        # target_id = f"{target_t.__name__}_{target_id}"
+        target_id = f"{target_id}"
+        # Append one (or several, if the target_t is a generator) nodes.
+        self.nodes_append( self.make_node(
+            target_t, id=target_id,
+            properties=self.properties(row,target_t)
+        ))
+        logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row,target_t).keys())}`)")
+
+        # relation
+        edge_t = self.type_of[c]
+        self.edges_append( self.make_edge(
+            edge_t, id=None, id_source=source_id, id_target=target_id,
+            properties=self.properties(row,edge_t)
+        ))
+        logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row,edge_t).keys())}`)")
+
+        return target_id
+
+
     def run(self):
         """Actually run the configured extraction."""
+
+        # FIXME: all the raised exceptions here should be specialized and handled in the executable.
+
         for i,row in self.df.iterrows():
             row_type = self.source_type(row)
             logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
@@ -133,32 +160,50 @@ class PandasAdapter(base.Adapter):
                 logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
-                val = row[c]
-                if self.skip(val):
-                    logging.debug(f"\t\tSkip `{val}`")
+                target_id = row[c]
+                if self.skip(target_id):
+                    logging.debug(f"\t\tSkip `{target_id}`")
                     continue
+
                 if self.allows( self.type_of[c] ):
-                    # source should always be the source above.
-                    # assert(issubclass(row_type, self.type_of[c].source_type())) # FIXME handle generators.
+                    # If the edge is from the row type (i.e. the "source")
+                    # then just create it using the source_id.
+                    if issubclass(row_type, self.type_of[c].source_type()):
+                        self.make_edge_and_target(source_id, target_id, c, row)
 
-                    # target
-                    target_t = self.type_of[c].target_type()
-                    # target_id = f"{target_t.__name__}_{val}"
-                    target_id = f"{val}"
-                    # Append one (or several, if the target_t is a generator) nodes.
-                    self.nodes_append( self.make_node(
-                        target_t, id=target_id,
-                        properties=self.properties(row,target_t)
-                    ))
-                    logging.debug(f"\t\tto  `{target_t.__name__}` `{target_id}` (with: `{', `'.join(self.properties(row,target_t).keys())}`)")
+                    else: # The edge is from a random column to another.
+                        # Try to handle this column first.
+                        subject_type = self.type_of[c].source_type()
+                        logging.debug(f"\t\tfrom `{subject_type.__name__}`")
+                        # First, find the column for which
+                        # the corresponding target type is defined.
+                        matching_columns = []
+                        for col_name, col_type in self.type_of.items():
+                            target_type = col_type.target_type()
+                            if col_name != c and target_type == subject_type:
+                                matching_columns.append(col_name)
+                        # logging.debug(f"\t\tMatching columns: `{matching_columns}`")
 
-                    # relation
-                    edge_t = self.type_of[c]
-                    self.edges_append( self.make_edge(
-                        edge_t, id=None, id_source=source_id, id_target=target_id,
-                        properties=self.properties(row,edge_t)
-                    ))
-                    logging.debug(f"\t\tvia `{edge_t.__name__}` (with: `{', `'.join(self.properties(row,edge_t).keys())}`)")
+                        if len(matching_columns) == 0:
+                            column_types = {k:self.type_of[k].target_type().__name__ for k in self.type_of if k != c}
+                            raise ValueError(f"No column providing the type `{subject_type.__name__}` in `{column_types}`")
+
+                        elif len(matching_columns) > 1:
+                            msg = ", ".join("`"+mc+"`" for mc in matching_columns)
+                            raise ValueError(f"I cannot handle cases when several columns provide the same subject type. Offending columns: {msg}")
+
+                        col_name = matching_columns[0]
+                        if self.type_of[col_name].source_type() != row_type:
+                            raise ValueError(f"Cannot handle detached columns without a primary link to the default row subject")
+
+                        # We now have a valid column.
+                        # Jump to creating the referred subject from the pointed column.
+                        other_id = self.make_edge_and_target(source_id, row[col_name], col_name, row, log_depth="\t")
+                        # Then create the additional edge,
+                        # this time from the previously created target_id
+                        # (i.e. the column's subject).
+                        self.make_edge_and_target(other_id, target_id, c, row)
+
                 else:
                     logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
 
@@ -286,9 +331,10 @@ class PandasAdapter(base.Adapter):
 
         # Various keys are allowed in the config,
         # to allow the user to use their favorite ontology vocabulary.
-        k_row = ["row", "entry", "line", "subject"]
+        k_row = ["row", "entry", "line", "subject", "source"]
         k_columns = ["columns", "fields"]
         k_target = ["to_target", "to_object", "to_node"]
+        k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
         k_generator = ["into_generator", "into_gen", "into_transformer", "into_trans"]
@@ -316,12 +362,17 @@ class PandasAdapter(base.Adapter):
         for col_name in columns:
             column = columns[col_name]
             target     = get(k_target, column)
+            subject    = get(k_subject, column)
             edge       = get(k_edge, column)
             generator  = get(k_generator, column)
 
             if target and edge:
                 target_t = make_node_class( target, properties_of.get(target, {}) )
-                edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
+                if subject:
+                    subject_t = make_node_class( subject, properties_of.get(subject, {}) )
+                    edge_t   = make_edge_class( edge, subject_t, target_t, properties_of.get(edge, {}) )
+                else:
+                    edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
                 type_of[col_name] = edge_t # Embeds source and target types.
                 logging.debug(f"Declare mapping `{col_name}` => `{edge_t.__name__}`")
             elif (target and not edge) or (edge and not target):
