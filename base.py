@@ -482,7 +482,7 @@ class All:
             and m[c].__module__ == self.module.__name__ \
             and issubclass(m[c], asked):
                 classes.append(m[c])
-                logging.debug(f"Found `{asked.__name__}` class: `{m[c]}`.")
+                logging.debug(f"Found `{asked.__name__}` class: `{m[c]}` (prop: `{m[c].fields()}`).")
                 # t = m[c]
                 # logging.debug(f"##### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
         return classes

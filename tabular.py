@@ -84,9 +84,16 @@ class PandasAdapter(base.Adapter):
         return self.row_type
 
 
+    def source_id(self, i, row):
+        # FIXME: allow to configure that within the YAML.
+        # One may imagine something like: "{}_{}".format(self.source_type(row).__name__,i)
+        return "{}".format(i)
+
+
     def properties(self, row, type):
         """Extract properties of `type` from `row`."""
         properties = {}
+        # FIXME HERE properties for source node are not pulled.
 
         # Find first matching parent class.
         matching_class = None
@@ -147,8 +154,7 @@ class PandasAdapter(base.Adapter):
             row_type = self.source_type(row)
             logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
-                # source_id = f"{row_type.__name__}_{i}"
-                source_id = f"{i}"
+                source_id = self.source_id(i,row)
                 self.nodes_append( self.make_node(
                     row_type, id=source_id,
                     properties=self.properties(row,row_type)
@@ -267,8 +273,12 @@ class PandasAdapter(base.Adapter):
         def make_node_class(name, properties = [], base = base.Node):
             # If type already exists, return it.
             if hasattr(module, name):
-                logging.warning(f"Node class `{name}` already exists, I will not create another one.")
-                return getattr(module, name)
+                cls = getattr(module, name)
+                logging.warning(f"Node class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                for p in properties: # FIXME is it the dictionary's keys or items?
+                    if p not in cls.fields():
+                        logging.warning(f"\tProperty `{p}` not found in fields.")
+                return cls
 
             def fields():
                 return list(properties.values())
@@ -277,15 +287,19 @@ class PandasAdapter(base.Adapter):
                 "fields": staticmethod(fields),
             }
             t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare Node class `{t}`.")
+            logging.debug(f"Declare Node class `{t}` (prop: `{properties}`).")
             setattr(module, t.__name__, t)
             return t
 
         def make_edge_class(name, source_t, target_t, properties = [], base = base.Edge):
             # If type already exists, return it.
             if hasattr(module, name):
-                logging.warning(f"Edge class `{name}` already exists, I will not create another one.")
-                return getattr(module, name)
+                cls = getattr(module, name)
+                logging.warning(f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                for p in properties: # FIXME is it the dictionary's keys or items?
+                    if p not in cls.fields():
+                        logging.warning(f"\tProperty `{p}` not found in fields.")
+                return cls
 
             def fields():
                 return list(properties.values())
@@ -300,7 +314,7 @@ class PandasAdapter(base.Adapter):
                 "target_type": staticmethod(tt),
             }
             t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare Edge class `{t}`.")
+            logging.debug(f"Declare Edge class `{t}` (prop: `{properties}`).")
             setattr(module, t.__name__, t)
             return t
 
