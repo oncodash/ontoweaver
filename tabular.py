@@ -213,6 +213,10 @@ class PandasAdapter(base.Adapter):
                 else:
                     logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
 
+        self.end()
+
+    def end(self):
+        pass
 
     # FIXME see how to declare another constructor taking config and module instead of the mapping.
     @staticmethod
@@ -390,7 +394,7 @@ class PandasAdapter(base.Adapter):
                 type_of[col_name] = edge_t # Embeds source and target types.
                 logging.debug(f"Declare mapping `{col_name}` => `{edge_t.__name__}`")
             elif (target and not edge) or (edge and not target):
-                logging.error(f"Cannot declare the mapping  `{col_name}` => `{edge}` (`{target}`)")
+                logging.error(f"Cannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
 
             elif generator:
                 target = get(k_target, generator)
