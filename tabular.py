@@ -278,8 +278,8 @@ class PandasAdapter(base.Adapter):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
-                logging.warning(f"Node class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-                for p in properties: # FIXME is it the dictionary's keys or items?
+                logging.info(f"Node class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                for p in properties.values():
                     if p not in cls.fields():
                         logging.warning(f"\tProperty `{p}` not found in fields.")
                 return cls
@@ -299,7 +299,7 @@ class PandasAdapter(base.Adapter):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
-                logging.warning(f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                logging.info(f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
                 for p in properties: # FIXME is it the dictionary's keys or items?
                     if p not in cls.fields():
                         logging.warning(f"\tProperty `{p}` not found in fields.")
