@@ -274,7 +274,7 @@ class PandasAdapter(base.Adapter):
                     return pconfig[k]
             return None
 
-        def make_node_class(name, properties = [], base = base.Node):
+        def make_node_class(name, properties = {}, base = base.Node):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
@@ -295,12 +295,12 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
-        def make_edge_class(name, source_t, target_t, properties = [], base = base.Edge):
+        def make_edge_class(name, source_t, target_t, properties = {}, base = base.Edge):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
                 logging.info(f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-                for p in properties: # FIXME is it the dictionary's keys or items?
+                for p in properties:
                     if p not in cls.fields():
                         logging.warning(f"\tProperty `{p}` not found in fields.")
                 return cls
@@ -374,7 +374,7 @@ class PandasAdapter(base.Adapter):
                         logging.debug(f"Declare properties mapping for `{c}`: {properties_of[c]}")
 
 
-        source_t = make_node_class( get(k_row), properties_of.get(get(k_row), []) )
+        source_t = make_node_class( get(k_row), properties_of.get(get(k_row), {}) )
 
         # Then, declare types.
         for col_name in columns:
