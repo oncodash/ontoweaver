@@ -1,0 +1,7 @@
+subject: variant # Type for each entry (e.g. line).
+columns:
+    patient: # The column having this label.
+        to_object: patient # The node type to which it is exported.
+        via_relation: patient_has_variant # The edge type with which it is linked to the subject (here, "variant").
+
+    # We do not import "variant_id".

@@ -44,6 +44,17 @@ shell` inside the project directory.
 
 Theoretically, any graph database supported by Biocypher may be used.
 
+### Tests
+
+Run pytest:
+```
+poetry run pytest
+```
+or, alternatively:
+```
+poetry shell
+pytest
+```
 
 ## Usage
 
