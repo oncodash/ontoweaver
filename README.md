@@ -80,12 +80,11 @@ schema configuration.
 The minimal configuration would be to map lines and one column, linked with
 a single edge type.
 
-For example, if you have the following CSV table of 3 patients:
+For example, if you have the following CSV table of phenotypes/patients:
 ```
 phenotype,patient
 0,A
 1,B
-2,C
 ```
 and if you target the Biolink ontology, with the following schema
 (i.e. subset of types):
@@ -112,7 +111,25 @@ columns:
 ```
 
 This configuration will end in creating a node for each phenotype, a node
-for each patient, and an edge for each phenotype-patient pair.
+for each patient, and an edge for each phenotype-patient pair:
+```
+          case to phenotypic
+          feature association
+                    ↓
+           ╭───────────────────╮
+           │              ╔════╪════╗
+           │              ║pati│ent ║
+           │              ╠════╪════╣
+╭──────────┴──────────╮   ║╭───┴───╮║
+│phenotypic feature: 0│   ║│case: A│║
+╰─────────────────────╯   ║╰───────╯║
+                          ╠═════════╣
+╭─────────────────────╮   ║╭───────╮║
+│          1          │   ║│   B   │║
+╰──────────┬──────────╯   ║╰───┬───╯║
+           │              ╚════╪════╝
+           ╰───────────────────╯
+```
 
 
 ### Relation between Columns Nodes
@@ -132,6 +149,23 @@ columns:
         via_relation: disease to entity association mixin
 ```
 
+```
+           ╭───────────────────╮
+           │              ╔════╪════╦════════════════════╗
+           │              ║pati│ent ║      disease       ║
+           │              ╠════╪════╬════════════════════╣
+           │              ║    │    ║disease to          ║
+           │              ║    │    ║entity              ║
+╭──────────┴──────────╮   ║╭───┴───╮║  ↓    ╭───────────╮║
+│phenotypic feature: 0│   ║│case: A├╫───────┤ disease: X│║
+╰─────────────────────╯   ║╰───────╯║       ╰┬──────────╯║
+                          ╠═════════╬════════╪═══════════╣
+╭─────────────────────╮   ║╭───────╮║       ╭┼╌╌╌╌╌╌╌╌╌╌╮║
+│          1          │   ║│   B   ├╫────────╯    X     ┆║
+╰──────────┬──────────╯   ║╰───┬───╯║       ╰╌╌╌╌╌╌╌╌╌╌╌╯║
+           │              ╚════╪════╩════════════════════╝
+           ╰───────────────────╯
+```
 
 ### Properties
 
@@ -166,12 +200,38 @@ and then insert a node for each element of the list.
 For example, if you have a list of treatments separated by a semicolon,
 you may write:
 ```yaml
+subject: phenotype
+columns:
+    variant:
+        to_object: variant
+        via_relation: phenotype to variant
     treatments:
         into_transformer:
             split:
                 separator: ";"
+            from_object: variant
             to_object: drug
-            via_relation: variant_affected_by_drug
+            via_relation: variant_to_drug
+```
+
+```
+     phenotype to variant      variant to drug
+             ↓                       ↓
+       ╭───────────────╮   ╭────────────────╮
+       │         ╔═════╪═══╪═╦══════════════╪═════╗
+       │         ║ vari│ant│ ║  treatments  │     ║
+       │         ╠═════╪═══╪═╬══════════════╪═════╣
+       │         ║     │   │ ║variant       │     ║
+       │         ║     │   │ ║to drug       │     ║
+╭──────┴─────╮   ║╭────┴───┴╮║  ↓    ╭──╮ ╭─┴────╮║
+│phenotype: 0│   ║│variant:A├╫───────┤ X│;│drug:Y│║
+╰────────────╯   ║╰─────────╯║       ╰┬─╯ ╰──────╯║
+                 ╠═══════════╬════════╪═══════════╣
+╭────────────╮   ║╭─────────╮║       ╭│ ╮ ╭──╮    ║
+│      1     │   ║│    B    ├╫────────╯X ;│ Z│    ║
+╰──────┬─────╯   ║╰────┬───┬╯║       ╰  ╯ ╰─┬╯    ║
+       │         ╚═════╪═══╪═╩══════════════╪═════╝
+       ╰───────────────╯   ╰────────────────╯
 ```
 
 It is worth noting that the underlying code is very simple:
