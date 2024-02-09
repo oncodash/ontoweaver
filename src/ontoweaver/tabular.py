@@ -114,8 +114,9 @@ class PandasAdapter(base.Adapter):
 
     def skip(self, val):
         if self.skip_nan:
-            if pd.api.types.is_numeric_dtype(val) and (math.isnan(val) or val == float("nan")):
-                return True
+            if pd.api.types.is_numeric_dtype(type(val)):
+                if (math.isnan(val) or val == float("nan")):
+                    return True
             elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
                 return True
         return False
