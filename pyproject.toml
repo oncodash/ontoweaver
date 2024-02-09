@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "ontoweaver"
+version = "0.1.0"
+description = "Exporter of data from tables to Semantic Knowledge Graphs."
+authors = ["Johann Dreo <johann.dro@pasteur.fr>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+biocypher = "^0.5.4"
+pandas = "^1.5.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
