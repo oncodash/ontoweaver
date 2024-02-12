@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 biocypher = "^0.5.4"
+pooch = "^1.7.0" # Dep of biocypher
 pandas = "^1.5.3"
 
 [tool.poetry.dev-dependencies]
