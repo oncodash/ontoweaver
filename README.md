@@ -45,9 +45,14 @@ shell` inside the project directory.
 
 Theoretically, any graph database supported by Biocypher may be used.
 
+
 ### Tests
 
-Run pytest:
+Tests are located in the `tests/` subdirectory and may be a good starting point
+to see OntoWeaver in practice. You may start with `tests/test_simplest.py` which
+shows the simplest example of mapping tabular data through BioCypher.
+
+To run tests, use `pytest`:
 ```
 poetry run pytest
 ```
@@ -59,6 +64,48 @@ pytest
 
 
 ## Usage
+
+OntoWeaver actually automatically provides a working adapter for BioCypher,
+without you having to do it.
+To actually insert data in a SKG database, you will have to use Biocypher
+export API:
+```python
+    import yaml
+    import logging
+    import pandas as pd
+    import biocypher
+    import ontoweaver
+
+    # Load ontology
+    bc = biocypher.BioCypher(
+        biocypher_config_path = "tests/simplest/biocypher_config.yaml",
+        schema_config_path = "tests/simplest/schema_config.yaml"
+    )
+
+    # Load data
+    table = pd.read_csv("tests/simplest/data.csv")
+
+    # Load mapping
+    with open("tests/simplest/mapping.yaml") as fd:
+        mapping = yaml.full_load(fd)
+
+    # Run the adapter
+    adapter = ontoweaver.tabular.extract_all(table, mapping)
+
+    # Write nodes
+    bc.write_nodes( adapter.nodes )
+
+    # Write edges
+    bc.write_edges( adapter.edges )
+
+    # Write import script
+    bc.write_import_call()
+
+    # Now you have a script that you can run to actually insert data.
+```
+
+
+## Mapping API
 
 OntoWeaver essentially creates a Biocypher adapter from the description of a
 mapping from a table to ontology types.
@@ -308,6 +355,8 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
         from . import types
         mapping = self.configure(config, types)
 
+        # If "None" is passed (the default), then do not filter anything
+        # and just extract all available types.
         if not node_types:
             node_types  = types.all.nodes()
             logging.debug(f"node_types: {node_types}")
