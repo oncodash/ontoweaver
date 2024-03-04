@@ -1,0 +1,9 @@
+subject: JellyfishObservation
+columns:
+    User_ID:
+        to_object: User
+        via_relation: reported_by
+    Location_20_Zones_ID:
+        to_object: named_zone
+        via_relation: has%20for%20location # has_for_location
+

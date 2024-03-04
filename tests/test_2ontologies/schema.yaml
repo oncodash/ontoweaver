@@ -1,0 +1,14 @@
+Entity:
+    represented_as: node
+    label_in_input: Entity
+
+Accuracy:
+    represented_as: node
+    label_in_input: Accuracy
+
+user_is_accurate:
+    is_a: relation
+    represented_as: edge
+    label_in_input: user_is_accurate
+    source: User
+    target: EvaluationCriterion

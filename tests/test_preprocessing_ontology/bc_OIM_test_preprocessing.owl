@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xml:base="http://www.semanticweb.org/u1044/ontologies/2024/3/untitled-ontology-141"
+         xmlns="http://www.semanticweb.org/u1044/ontologies/2024/3/untitled-ontology-141#">
+
+<owl:Ontology rdf:about="http://www.semanticweb.org/u1044/ontologies/2024/3/untitled-ontology-141"/>
+
+<owl:Class rdf:about="http://www.semanticweb.org/u1044/ontologies/2024/3/hasforlocation">
+  <rdfs:subClassOf rdf:resource="#relation"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">hasforlocation</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#relation">
+  <rdfs:subClassOf rdf:resource="#bc_root_class"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">relation</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#Actor">
+  <rdfs:subClassOf rdf:resource="#Entity"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">actor</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#Entity">
+  <rdfs:subClassOf rdf:resource="#bc_root_class"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">entity</rdfs:label>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">entité</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#GoldUser">
+  <rdfs:subClassOf rdf:resource="#User"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">GoldUser</rdfs:label>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">golduser</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#User">
+  <rdfs:subClassOf rdf:resource="#Person"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">user</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#Location">
+  <rdfs:subClassOf rdf:resource="#Entity"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">location</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#Observation_méduse">
+  <rdfs:subClassOf rdf:resource="#observation"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">jellyfishobservation</rdfs:label>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">observationméduse</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#observation">
+  <rdfs:subClassOf rdf:resource="#Entity"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">observation</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#Person">
+  <rdfs:subClassOf rdf:resource="#Actor"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">person</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#namedZone">
+  <rdfs:subClassOf rdf:resource="#Location"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">namedzone</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#reported_by">
+  <rdfs:subClassOf rdf:resource="#relation"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">reportedby</rdfs:label>
+</owl:Class>
+
+<owl:Class rdf:about="#bc_root_class">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">bc_root_class</rdfs:label>
+</owl:Class>
+
+<rdf:Description rdf:about="http://www.w3.org/2002/07/owl#Thing">
+  <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Thing</rdfs:label>
+</rdf:Description>
+
+
+</rdf:RDF>
