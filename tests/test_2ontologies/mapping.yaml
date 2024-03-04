@@ -1,0 +1,5 @@
+subject: Entity
+columns:
+    Gold_User:
+        to_object: Accuracy
+        via_relation: user_is_accurate

@@ -1,0 +1,29 @@
+biocypher:
+    debug: true
+    offline: true
+    schema_config_path: schema.yaml
+
+    # Ontology configuration
+    head_ontology:
+        url: file://test_2ontologies/ontology1.ttl
+        root_node: Thing
+
+    tail_ontologies:
+        urref:
+            url: file://test_2ontologies/ontology2.ttl
+            head_join_node: Entity
+            tail_join_node: EvaluationCriterion
+
+neo4j:
+    database_name: test
+    wipe: true
+    delimiter: ';'
+    array_delimiter: '|'
+    skip_duplicate_nodes: true
+    skip_bad_relationships: true
+
+    # MultiDB functionality
+    # Set to false for using community edition or older versions of Neo4j
+    multi_db: false
+
+    import_call_bin_prefix: ''

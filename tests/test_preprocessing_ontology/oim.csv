@@ -1,0 +1,5 @@
+User_ID,ObsID,datetime_ori,Location_20_Zones_ID,lat,lng,Distance_from_coast,Activity,Quantity_Rank,Quantity,Size_Rank,Jellies_on_the_beach,Species,Gold_User,Photo,Stinging_Water,Survey_transect,AphiaID,Comments_Heb,Comments_Eng,coordinateUncertaintyInMeters
+A,1091,2023-07-03 18:08:00,"נווה ים, הבונים ודור-נחשולים",32.65479846,34.91844483,על החוף,הליכה על החוף,1,1,Nov-30,False,חוטית נודדת,0,-,0,,חוטית נודדת,,,0
+B,6,2023-01-02 17:10:00,"נווה ים, הבונים ודור-נחשולים",32.65479846,34.91844483,על החוף,הליכה על החוף,2,2,Nov-30,False,חוטית נודדת,1,-,0,,חוטית נודדת,סקר,,0
+B,7,2023-01-03 08:06:00,"מכמורת, בית ינאי, נעורים",32.40427239,34.86006344,על החוף,הליכה על החוף,-,-,-,False,-,1,-,0,,-,סקר,,0
+C,8,2023-01-03 08:06:00,"מכמורת, בית ינאי, נעורים",32.40427239,34.86006344,על החוף,הליכה על החוף,-,-,-,False,-,1,-,0,,-,סקר,,0
