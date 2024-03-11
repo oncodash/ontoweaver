@@ -146,8 +146,9 @@ class PandasAdapter(base.Adapter):
         return target_id
 
 
-    def run(self):
-        """Actually run the configured extraction."""
+    def run(self, affix, separator):
+        """Actually run the configured extraction. The user-defined affix and separator variables define the addition and
+         positioning of an ontology type affix and separator to the nodes.  """
 
         # FIXME: all the raised exceptions here should be specialized and handled in the executable.
 
@@ -155,7 +156,12 @@ class PandasAdapter(base.Adapter):
             row_type = self.source_type(row)
             logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
-                source_id = self.source_id(f'{row_type.__name__}:{i}',row)
+                if affix == "prefix":
+                    source_id = self.source_id(f'{row_type.__name__}{separator}{i}',row)
+                elif affix == "suffix":
+                    source_id = self.source_id(f'{i}{separator}{row_type.__name__}',row)
+                elif affix == "none":
+                    source_id = self.source_id(i,row)
                 self.nodes_append( self.make_node(
                     row_type, id=source_id,
                     properties=self.properties(row,row_type)
@@ -167,7 +173,12 @@ class PandasAdapter(base.Adapter):
                 logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
-                target_id = f"{self.type_of[c].target_type().__name__}:{row[c]}"
+                if affix == "prefix":
+                    target_id = f"{self.type_of[c].target_type().__name__}{separator}{row[c]}"
+                elif affix == "suffix":
+                    target_id = f"{row[c]}{separator}{self.type_of[c].target_type().__name__}"
+                elif affix == "none":
+                    target_id = row[c]
                 if self.skip(target_id):
                     logging.debug(f"\t\tSkip `{target_id}`")
                     continue
@@ -205,7 +216,12 @@ class PandasAdapter(base.Adapter):
 
                         # We now have a valid column.
                         # Jump to creating the referred subject from the pointed column.
-                        other_id = self.make_edge_and_target(source_id, f"{self.type_of[col_name].target_type().__name__}:{row[col_name]}", col_name, row, log_depth="\t")
+                        if affix == "prefix":
+                            other_id = self.make_edge_and_target(source_id, f"{self.type_of[col_name].target_type().__name__}{separator}{row[col_name]}", col_name, row, log_depth="\t")
+                        elif affix == "suffix":
+                            other_id = self.make_edge_and_target(source_id, f"{row[col_name]}{separator}{self.type_of[col_name].target_type().__name__}", col_name, row, log_depth="\t")
+                        elif affix == "none":
+                            other_id = self.make_edge_and_target(source_id, row[col_name], col_name, row, log_depth="\t")
                         # Then create the additional edge,
                         # this time from the previously created target_id
                         # (i.e. the column's subject).
@@ -418,9 +434,9 @@ class PandasAdapter(base.Adapter):
         return source_t, type_of, properties_of
 
 
-def extract_all(df: pd.DataFrame, config: dict, module = types):
+def extract_all(df: pd.DataFrame, config: dict, module = types, affix = "prefix", separator = ":"):
     """Proxy function for extracting from a table all nodes, edges and properties
-    that are defined in a PandasAdapter configuration."""
+    that are defined in a PandasAdapter configuration. """
     mapping = PandasAdapter.configure(config, module)
 
     allowed_node_types  = types.all.nodes()
@@ -446,7 +462,7 @@ def extract_all(df: pd.DataFrame, config: dict, module = types):
         allowed_edge_fields,
     )
 
-    adapter.run()
+    adapter.run(affix, separator)
 
     return adapter
 
