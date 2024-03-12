@@ -4,12 +4,19 @@ import types as pytypes
 import logging
 from typing import Optional
 from collections.abc import Iterable
+from enum import Enum
 
 import pandas as pd
 
 from . import base
 from . import types
 from . import generators
+
+
+class TypeAffixes(str, Enum):
+    suffix = "suffix"
+    prefix = "prefix"
+    none = "none"
 
 
 class PandasAdapter(base.Adapter):
@@ -42,7 +49,9 @@ class PandasAdapter(base.Adapter):
         node_fields: Optional[list[str]] = None,
         edge_types : Optional[Iterable[base.Edge]] = None,
         edge_fields: Optional[list[str]] = None,
-        skip_nan = True
+        skip_nan = True,
+        type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+        type_affix_sep: Optional[str] = ":",
     ):
         """
         Instantiate the adapter.
@@ -55,6 +64,8 @@ class PandasAdapter(base.Adapter):
         :param list[str] node_fields: Allowed property fields for the Node subclasses.
         :param Iterable[Edge] edge_types: Allowed Edge subclasses.
         :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
+        :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
+        :param str type_affix_sep: String use to separate a labe from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
         super().__init__(node_types, node_fields, edge_types, edge_fields)
 
@@ -65,6 +76,13 @@ class PandasAdapter(base.Adapter):
             logging.debug(f"\t`{c}`")
         logging.info("\n"+str(df))
         self.df = df
+
+        if not type_affix in TypeAffixes:
+            raise ValueError("`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})")
+        else:
+            self.type_affix = type_affix
+
+        self.type_affix_sep = type_affix_sep
 
         self.row_type = row_type
         self.type_of = type_of
@@ -146,21 +164,38 @@ class PandasAdapter(base.Adapter):
         return target_id
 
 
-    def run(self, affix, separator):
-        """Actually run the configured extraction. The user-defined affix and separator variables define the addition and
-         positioning of an ontology type affix and separator to the nodes.  """
+    def run(self, type_affix = None, type_affix_sep = None):
+        """Actually run the configured extraction.
+
+        If passed, the user-defined type_affix and type_affix_sep variables may override the default configured at instantiation.
+
+        :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none); if None, use the default configured at instantiation.
+        :param str type_affix_sep: String use to separate a labe from the type annotation; if None, use the default configured at instantiation.
+        """
 
         # FIXME: all the raised exceptions here should be specialized and handled in the executable.
 
+        # If no overriding, use the config passed at instantiation.
+        if type_affix == None:
+            affix = self.type_affix
+        else:
+            affix = type_affix
+
+        if type_affix_sep == None:
+            separator = self.type_affix_sep
+        else:
+            separator = type_affix_sep
+
+        # For all rows in the table.
         for i,row in self.df.iterrows():
             row_type = self.source_type(row)
             logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
-                if affix == "prefix":
+                if affix == TypeAffixes.prefix:
                     source_id = self.source_id(f'{row_type.__name__}{separator}{i}',row)
-                elif affix == "suffix":
+                elif affix == TypeAffixes.suffix:
                     source_id = self.source_id(f'{i}{separator}{row_type.__name__}',row)
-                elif affix == "none":
+                elif affix == TypeAffixes.none:
                     source_id = self.source_id(i,row)
                 self.nodes_append( self.make_node(
                     row_type, id=source_id,
@@ -169,27 +204,28 @@ class PandasAdapter(base.Adapter):
             else:
                 logging.error(f"Row type `{row_type.__name__}` not allowed.")
 
+            # For column names.
             for c in self.type_of:
                 logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
-                if affix == "prefix":
+                if affix == TypeAffixes.prefix:
                     target_id = f"{self.type_of[c].target_type().__name__}{separator}{row[c]}"
-                elif affix == "suffix":
+                elif affix == TypeAffixes.suffix:
                     target_id = f"{row[c]}{separator}{self.type_of[c].target_type().__name__}"
-                elif affix == "none":
+                elif affix == TypeAffixes.none:
                     target_id = row[c]
                 if self.skip(target_id):
                     logging.debug(f"\t\tSkip `{target_id}`")
                     continue
 
                 if self.allows( self.type_of[c] ):
-                    # If the edge is from the row type (i.e. the "source")
+                    # If the edge is from the row type (i.e. the "source/subject")
                     # then just create it using the source_id.
                     if issubclass(row_type, self.type_of[c].source_type()):
                         self.make_edge_and_target(source_id, target_id, c, row)
 
-                    else: # The edge is from a random column to another.
+                    else: # The edge is from a random column to another (i.e. "from_subject").
                         # Try to handle this column first.
                         subject_type = self.type_of[c].source_type()
                         logging.debug(f"\t\tfrom `{subject_type.__name__}`")
@@ -216,11 +252,11 @@ class PandasAdapter(base.Adapter):
 
                         # We now have a valid column.
                         # Jump to creating the referred subject from the pointed column.
-                        if affix == "prefix":
+                        if affix == TypeAffixes.prefix:
                             other_id = self.make_edge_and_target(source_id, f"{self.type_of[col_name].target_type().__name__}{separator}{row[col_name]}", col_name, row, log_depth="\t")
-                        elif affix == "suffix":
+                        elif affix == TypeAffixes.suffix:
                             other_id = self.make_edge_and_target(source_id, f"{row[col_name]}{separator}{self.type_of[col_name].target_type().__name__}", col_name, row, log_depth="\t")
-                        elif affix == "none":
+                        elif affix == TypeAffixes.none:
                             other_id = self.make_edge_and_target(source_id, row[col_name], col_name, row, log_depth="\t")
                         # Then create the additional edge,
                         # this time from the previously created target_id
@@ -434,7 +470,7 @@ class PandasAdapter(base.Adapter):
         return source_t, type_of, properties_of
 
 
-def extract_all(df: pd.DataFrame, config: dict, module = types, affix = "prefix", separator = ":"):
+def extract_all(df: pd.DataFrame, config: dict, module = types, affix = None, separator = None):
     """Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration. """
     mapping = PandasAdapter.configure(config, module)
