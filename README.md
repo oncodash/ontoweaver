@@ -103,6 +103,31 @@ export API:
 
     # Now you have a script that you can run to actually insert data.
 ```
+Additionally, you will have to define a strategy for the naming of mapped items when creating nodes, by defining an `affix` and `separator`
+to be used during node creation. The `affix` used will represent the ontology type of the item in question. Unless otherwise defined, 
+the `affix` defaults to `prefix` and `separator` defaults to `:`. This can be modified by changing the variables in the
+`extract_all()` function. `Affix` can be either a `prefix`, `suffix` or `none` - in case you decide not to include the ontology type in 
+the node naming strategy. Special care should be exercised in case there are several types of the same name in the database. There is a 
+possibility that nodes of the same name will be merged together during mapping, so an `affix` should be present. Below are some examples of
+node naming strategies. `NAME` refers to the name of the item in question in your database, and `TYPE` refers to the type of the item 
+in the ontology.
+```python
+...
+
+   # Affix defaults to "prefix", and separator defaults to ":"
+   # Node represented as [TYPE]:[NAME]
+   adapter = ontoweaver.tabular.extract_all(table, mapping)
+   
+   # Node represented as [NAME]-[TYPE]
+   adapter = ontoweaver.tabular.extract_all(table, mapping, prefix = "suffix", separator = "-")
+   
+   # Node represented as [NAME] 
+   adapter = ontoweaver.tabular.extract_all(table, mapping, affix = "none")
+
+...
+```
+
+
 
 
 ## Mapping API
