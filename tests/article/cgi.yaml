@@ -1,0 +1,16 @@
+subject: variant
+columns:
+    patient:
+        to_object: patient
+        via_relation: patient_has_variant
+    gene:
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+    transcript:
+        from_subject: gene_hugo
+        to_object: transcript
+        via_relation: transcript_to_gene_relationship
+    oncogenic_summary:
+        from_subject: variant
+        to_object: disease
+        via_relation: variant_to_disease
