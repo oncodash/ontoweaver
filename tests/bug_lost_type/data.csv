@@ -1,0 +1,5 @@
+"id","patient","highestFdaLevel","highestSensitiveLevel"
+0,patient1,fda1,oncokb1
+1,patient2,fda2,oncokb2
+2,patient3,fda3,oncokb3
+3,patient4,fda3,oncokb3
