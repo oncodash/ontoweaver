@@ -1,0 +1,73 @@
+sequence variant:
+    represented_as: node
+    label_in_input: variant
+
+patient: # Existing in Biolink.
+    represented_as: node
+    label_in_input: patient
+    synonym_for: case
+
+patient has variant: # Not existing in Biolink…
+    # … thus added by Biocypher under:
+    is_a: association
+    represented_as: edge
+    label_in_input: patient_has_variant
+    source: sequence variant
+    target: patient
+
+gene:
+    represented_as: node
+    input_label: gene_hugo
+
+variant to gene association:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_in_gene
+
+disease:
+    represented_as: node
+    label_in_input: disease
+
+variant to disease association:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_disease
+    source: sequence variant
+    target: disease
+
+transcript:
+    is_a: named thing
+    represented_as: node
+    label_in_input: transcript
+
+transcript to gene relationship:
+    is_a: association
+    represented_as: edge
+    source: transcript
+    target: gene
+    label_in_input: transcript_to_gene_relationship
+
+drug:
+  is_a: named thing
+  represented_as: node
+  label_in_input: drug
+
+variant affected by drug:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_affected_by_drug
+    source: sequence variant
+    target: drug
+
+publication_pubmed: # maybe without _ ?
+    is_a: publication
+    represented_as: node
+    label_in_input: publication
+
+variant has citation:
+    is_a: association
+    represented_as: edge
+    label_in_input: published
+    source: publication
+    target: sequence variant
+

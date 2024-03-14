@@ -1,0 +1,4 @@
+patient,gene,transcript,oncogenic_summary
+patient_1,NRG1,ENST00000523534,non-oncogenic
+patient_1,IRF4,ENST00000380956,non-protein-affecting
+patient_1,NOTCH1,ENST00000651671,oncogenic
