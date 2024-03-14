@@ -1,0 +1,4 @@
+id,patient,hugoSymbol,treatments,citationPubMed
+0,patient_1,NRG1,Palbociclib,PM_1
+1,patient_1,IRF4,Tazemetostat,PM_2
+2,patient_1,KLF2,Olaparib,PM_3
