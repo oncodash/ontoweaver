@@ -48,7 +48,6 @@ transcript to gene relationship:
     label_in_input: transcript_to_gene_relationship
 
 drug:
-  is_a: named thing
   represented_as: node
   label_in_input: drug
 
@@ -59,15 +58,14 @@ variant affected by drug:
     source: sequence variant
     target: drug
 
-publication_pubmed: # maybe without _ ?
-    is_a: publication
+publication:
     represented_as: node
     label_in_input: publication
 
-variant has citation:
+treatment has citation:
     is_a: association
     represented_as: edge
-    label_in_input: published
-    source: publication
-    target: sequence variant
+    label_in_input: treatment_has_citation
+    source: drug
+    target: publication
 
