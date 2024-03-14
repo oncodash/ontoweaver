@@ -1,0 +1,85 @@
+subject: variant
+columns:
+    patient_id:
+        to_object: patient
+        via_relation: patient_has_variant
+    referenceGenome:
+        to_object: genome
+        via_relation: reference_genome
+    hugoSymbol:
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+    lastUpdate:
+        to_property:
+            timestamp:
+                - variant
+    dataVersion:
+        to_property:
+            version:
+                - variant
+    entrezGeneId:
+        to_property:
+            entrez_gene_id:
+                - gene_hugo
+    tumorType:
+        to_object: disease
+        via_relation: variant_to_disease
+    oncogenic:
+        to_object: oncogenicity
+        via_relation: variant_to_oncogenicity
+    mutationEffectDescription:
+        to_property:
+            mutation_effect_description:
+                - variant
+    variantSummary:
+        to_property:
+            variant_summary:
+                - variant
+    geneSummary:
+        to_property:
+            gene_summary:
+                - gene_hugo
+    tumorTypeSummary:
+        to_property:
+            tumor_type_summary:
+                - disease
+    citationPMids:
+        into_transformer:
+            split:
+                separator: ","
+            to_object: publication
+            via_relation: published
+    treatments:
+        into_transformer:
+            split:
+                separator: ";"
+            to_object: drug
+            via_relation: variant_affected_by_drug
+    knownEffect:
+        to_object: functional_effect
+        via_relation: variant_has_effect
+    sample_id:
+        to_object: sample
+        via_relation: variant_in_sample
+    alteration:
+        to_object: alteration
+        via_relation: variant_to_alteration
+    consequence:
+        to_property:
+            alteration_consequence:
+                - alteration
+    proteinStart:
+        to_property:
+            protein_start:
+                - alteration
+    proteinEnd:
+        to_property:
+            protein_end:
+                - alteration
+    highestFdaLevel:
+        to_object: fda_evidence_level
+        via_relation: variant_to_fda_evidence
+    highestSensitiveLevel:
+        to_object: oncokb_evidence_level
+        via_relation: variant_to_oncokb_evidence
+
