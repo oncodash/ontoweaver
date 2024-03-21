@@ -67,6 +67,14 @@ pytest
 
 OntoWeaver actually automatically provides a working adapter for BioCypher,
 without you having to do it.
+
+The output of the execution of the adapter is thus what BioCypher is providing
+(see [BioCypher's documentation](https://biocypher.org)).
+In a nutshell, the output is a script file that, when executed, will populate
+the configured database.
+By default, the output script file is saved in a subdirectory of `./biocypher-out/`,
+which name is a timestamp from when the adapter have been executed.
+
 To actually insert data in a SKG database, you will have to use Biocypher
 export API:
 ```python
