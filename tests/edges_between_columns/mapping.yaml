@@ -1,0 +1,8 @@
+subject: variant # Type for each entry (e.g. line).
+columns:
+    patient: # The column having this label.
+        to_object: patient
+        via_relation: patient_has_variant
+    sample:
+        to_object: sample
+        via_relation: variant_in_sample
