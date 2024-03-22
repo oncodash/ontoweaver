@@ -4,6 +4,7 @@ from abc import ABCMeta as ABSTRACT
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
+
 from enum import Enum
 
 class Element(metaclass = ABSTRACT):
@@ -428,7 +429,7 @@ class Adapter(metaclass = ABSTRACT):
                 # logging.debug(f"Generate Node `{n}`.")
                 yield n.as_tuple()
         else:
-            raise TypeError("First argument `{this}` should be a subclass of `Node`")
+            raise TypeError(f"First argument '{this}' should be a subclass of `{Node}`")
 
     def make_edge(self, *args, **kwargs) -> tuple:
         """Make a Biocypher's tuple of the given class.
