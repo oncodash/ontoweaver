@@ -43,7 +43,8 @@ class PandasAdapter(base.Adapter):
     def __init__(self,
         df: pd.DataFrame,
         row_type: base.Node,
-        type_of: dict[str, base.Edge],
+        node_type_of: dict[str, base.Node],
+        edge_type_of: dict[str, base.Edge],
         properties_of: dict[str, dict[str,str]],
         node_types : Optional[Iterable[base.Node]] = None,
         node_fields: Optional[list[str]] = None,
@@ -58,7 +59,8 @@ class PandasAdapter(base.Adapter):
 
         :param pandas.Dataframe df: the table containing the input data.
         :param ontoweaver.base.Node row_type: the source node (or subject, depending on your vocabulary reference) type, mapped for each row.
-        :param dict[str, base.Edge] type_of: a dictionary mapping each column (or field) name to the type of the edge (or relation, predicate).
+        :param dict[str, base.Edge] node_type_of: a dictionary mapping each column (or field) name to the type of the node.
+        :param dict[str, base.Edge] edge_type_of: a dictionary mapping each column (or field) name to the type of the edge.
         :param dict[base.Node, dict[str,str]] properties_of: a dictionary mapping each element (both node or edge) type to a dictionary listing which column is extracted to which property.
         :param Iterable[Node] node_types: Allowed Node subclasses.
         :param list[str] node_fields: Allowed property fields for the Node subclasses.
@@ -85,10 +87,16 @@ class PandasAdapter(base.Adapter):
         self.type_affix_sep = type_affix_sep
 
         self.row_type = row_type
-        self.type_of = type_of
+        self.node_type_of = node_type_of
+        self.edge_type_of = edge_type_of
         self.properties_of = properties_of
         # logging.debug(self.properties_of)
         self.skip_nan = skip_nan
+
+        logging.debug(f"{self.row_type}")
+        logging.debug(f"{self.node_type_of}")
+        logging.debug(f"{self.edge_type_of}")
+        logging.debug(f"{self.properties_of}")
 
 
     def source_type(self, row):
@@ -143,7 +151,7 @@ class PandasAdapter(base.Adapter):
     def make_edge_and_target(self, source_id, target_id, c, row, log_depth = ""):
 
         # target
-        target_t = self.type_of[c].target_type()
+        target_t = self.node_type_of[c]
         # target_id = f"{target_t.__name__}_{target_id}"
         target_id = f"{target_id}"
         # Append one (or several, if the target_t is a generator) nodes.
@@ -154,7 +162,7 @@ class PandasAdapter(base.Adapter):
         logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row,target_t).keys())}`)")
 
         # relation
-        edge_t = self.type_of[c]
+        edge_t = self.edge_type_of[c]
         self.edges_append( self.make_edge(
             edge_t, id=None, id_source=source_id, id_target=target_id,
             properties=self.properties(row,edge_t)
@@ -189,7 +197,7 @@ class PandasAdapter(base.Adapter):
         # For all rows in the table.
         for i,row in self.df.iterrows():
             row_type = self.source_type(row)
-            logging.debug(f"Extracting row {i} of type `{row_type.__name__}`...")
+            logging.debug(f"\tExtracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
                 if affix == TypeAffixes.prefix:
                     source_id = self.source_id(f'{row_type.__name__}{separator}{i}',row)
@@ -199,47 +207,50 @@ class PandasAdapter(base.Adapter):
                     source_id = self.source_id(i,row)
                 self.nodes_append( self.make_node(
                     row_type, id=source_id,
-                    properties=self.properties(row,row_type)
+                    properties=self.properties(row,row_type) #FIXME Possible type problem here
                 ))
             else:
-                logging.error(f"Row type `{row_type.__name__}` not allowed.")
+                logging.error(f"\tRow type `{row_type.__name__}` not allowed.")
 
             # For column names.
-            for c in self.type_of:
+            for c in self.node_type_of:
                 logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
                 if affix == TypeAffixes.prefix:
-                    target_id = f"{self.type_of[c].target_type().__name__}{separator}{row[c]}"
+                    target_id = f"{self.node_type_of[c].__name__}{separator}{row[c]}"
+                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
                 elif affix == TypeAffixes.suffix:
-                    target_id = f"{row[c]}{separator}{self.type_of[c].target_type().__name__}"
+                    target_id = f"{row[c]}{separator}{self.node_type_of[c].__name__}"
+                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
                 elif affix == TypeAffixes.none:
                     target_id = row[c]
+                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
                 if self.skip(target_id):
                     logging.debug(f"\t\tSkip `{target_id}`")
                     continue
-
-                if self.allows( self.type_of[c] ):
+                if self.allows( self.node_type_of[c] ):
                     # If the edge is from the row type (i.e. the "source/subject")
                     # then just create it using the source_id.
-                    if issubclass(row_type, self.type_of[c].source_type()):
+                    if any(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()):
+                        assert (all(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()))
                         self.make_edge_and_target(source_id, target_id, c, row)
 
                     else: # The edge is from a random column to another (i.e. "from_subject").
                         # Try to handle this column first.
-                        subject_type = self.type_of[c].source_type()
+                        subject_type = self.node_type_of[c]
                         logging.debug(f"\t\tfrom `{subject_type.__name__}`")
                         # First, find the column for which
                         # the corresponding target type is defined.
                         matching_columns = []
-                        for col_name, col_type in self.type_of.items():
-                            target_type = col_type.target_type()
+                        for col_name, col_type in self.node_type_of.items():
+                            target_type = col_type
                             if col_name != c and target_type == subject_type:
                                 matching_columns.append(col_name)
                         # logging.debug(f"\t\tMatching columns: `{matching_columns}`")
 
                         if len(matching_columns) == 0:
-                            column_types = {k:self.type_of[k].target_type().__name__ for k in self.type_of if k != c}
+                            column_types = {k:self.node_type_of[k].__name__ for k in self.node_type_of if k != c}
                             raise ValueError(f"No column providing the type `{subject_type.__name__}` in `{column_types}`")
 
                         elif len(matching_columns) > 1:
@@ -247,15 +258,15 @@ class PandasAdapter(base.Adapter):
                             raise ValueError(f"I cannot handle cases when several columns provide the same subject type. Offending columns: {msg}")
 
                         col_name = matching_columns[0]
-                        if self.type_of[col_name].source_type() != row_type:
+                        if self.edge_type_of[col_name].source_type() != row_type:
                             raise ValueError(f"Cannot handle detached columns without a primary link to the default row subject")
 
                         # We now have a valid column.
                         # Jump to creating the referred subject from the pointed column.
                         if affix == TypeAffixes.prefix:
-                            other_id = self.make_edge_and_target(source_id, f"{self.type_of[col_name].target_type().__name__}{separator}{row[col_name]}", col_name, row, log_depth="\t")
+                            other_id = self.make_edge_and_target(source_id, f"{self.node_type_of[col_name].__name__}{separator}{row[col_name]}", col_name, row, log_depth="\t")
                         elif affix == TypeAffixes.suffix:
-                            other_id = self.make_edge_and_target(source_id, f"{row[col_name]}{separator}{self.type_of[col_name].target_type().__name__}", col_name, row, log_depth="\t")
+                            other_id = self.make_edge_and_target(source_id, f"{row[col_name]}{separator}{self.node_type_of[col_name].__name__}", col_name, row, log_depth="\t")
                         elif affix == TypeAffixes.none:
                             other_id = self.make_edge_and_target(source_id, row[col_name], col_name, row, log_depth="\t")
                         # Then create the additional edge,
@@ -264,7 +275,7 @@ class PandasAdapter(base.Adapter):
                         self.make_edge_and_target(other_id, target_id, c, row)
 
                 else:
-                    logging.debug(f"\t\tColumn `{c}` with edge of type `{self.type_of[c]}` not allowed.")
+                    logging.debug(f"\t\tColumn `{c}` with edge of type `{self.edge_type_of[c]}` not allowed.")
 
         self.end()
 
@@ -297,7 +308,7 @@ class PandasAdapter(base.Adapter):
         between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node.
         The data in MY_OTHER_COLUMN is mapped to the MY_PROPERTY property
         of the MY_OBJECT_TYPE node.
-        Note that `to_properties` may effectively maps to an edge type or several
+        Note that `to_properties` may effectively map to an edge type or several
         types.
 
         In order to allow the user to write mappings configurations using their preferred vocabulary, the following keywords are interchangeable:
@@ -308,7 +319,7 @@ class PandasAdapter(base.Adapter):
 
         :param dict config: a configuration dictionary.
         :param module: the module in which to insert the types declared by the configuration.
-        :return tuple: source_t, type_of, properties_of, as needed by PandasAdapter.
+        :return tuple: source_t, node_type_of, edge_type_of, properties_of, as needed by PandasAdapter.
         """
         def get_not(keys, pconfig=None):
             """Get the first dictionary (key,item) not matching any of the passed keys."""
@@ -331,10 +342,10 @@ class PandasAdapter(base.Adapter):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
-                logging.info(f"Node class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                logging.debug(f"\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
                 for p in properties.values():
                     if p not in cls.fields():
-                        logging.warning(f"\tProperty `{p}` not found in fields.")
+                        logging.warning(f"\t\tProperty `{p}` not found in fields.")
                 return cls
 
             def fields():
@@ -348,25 +359,50 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
-        def make_edge_class(name, source_t, target_t, properties = {}, base = base.Edge):
+        def make_edge_class(name, source_t, target_t, properties={}, base=base.Edge,):
             # If type already exists, return it.
             if hasattr(module, name):
                 cls = getattr(module, name)
-                logging.info(f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                logging.info(
+                    f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
                 for p in properties:
                     if p not in cls.fields():
-                        logging.warning(f"\tProperty `{p}` not found in fields.")
+                        logging.warning(f"\t\tProperty `{p}` not found in fields.")
+
+                tt_list = cls.target_type()
+
+                tt_list.append(target_t)
+
+                def tt():
+                    return tt_list
+
+                cls.target_type = staticmethod(tt)
+
+                #TODO meant to allow multiple source types for edge
+
+                #st_list = cls.source_type()
+
+                #st_list.append(source_t)
+
+                #def st():
+                    #return st_list
+
+                #cls.source_type = staticmethod(st)
+
                 return cls
 
             def fields():
                 return list(properties.values())
+
             def st():
                 return source_t
+
             def tt():
-                return target_t
+                return [target_t]
+
             attrs = {
                 "__module__": module.__name__,
-                "fields":      staticmethod(fields),
+                "fields": staticmethod(fields),
                 "source_type": staticmethod(st),
                 "target_type": staticmethod(tt),
             }
@@ -375,11 +411,12 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
+
         def make_gen_class(name, parent, edge_t, **kwargs):
             if hasattr(generators, parent):
                 parent_t = getattr(generators, parent)
                 if not issubclass(parent_t, base.EdgeGenerator):
-                    logging.error(f"{parent_t} {parent_t.mro()}")
+                    logging.error(f"\t\t{parent_t} {parent_t.mro()}")
                     raise TypeError(f"Object `{parent}` is not an existing generator.")
             else:
                 # logging.debug(dir(generators))
@@ -397,8 +434,10 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
-        type_of = {}
+        node_type_of = {}
+        edge_type_of = {}
         properties_of = {}
+
 
         # Various keys are allowed in the config,
         # to allow the user to use their favorite ontology vocabulary.
@@ -439,35 +478,37 @@ class PandasAdapter(base.Adapter):
 
             if target and edge:
                 target_t = make_node_class( target, properties_of.get(target, {}) )
+                logging.debug(f"\tDeclare target for `{target}`: {target_t}")
                 if subject:
                     subject_t = make_node_class( subject, properties_of.get(subject, {}) )
-                    edge_t   = make_edge_class( edge, subject_t, target_t, properties_of.get(edge, {}) )
+                    edge_t   = make_edge_class( edge, subject_t, target_t, properties_of.get(edge, {}))
                 else:
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                type_of[col_name] = edge_t # Embeds source and target types.
-                logging.debug(f"Declare mapping `{col_name}` => `{edge_t.__name__}`")
+                edge_type_of[col_name] = edge_t # Embeds source and target types. #TODO it would probably work if mapped onto .target_type()
+                node_type_of[col_name] = target_t
+                logging.debug(f"\tDeclare mapping `{col_name}` => `{edge_t.__name__}`")
             elif (target and not edge) or (edge and not target):
-                logging.error(f"Cannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
+                logging.error(f"\tCannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
 
             elif generator:
                 target = get(k_target, generator)
                 edge   = get(k_edge, generator)
                 gen_name,gen_args = get_not(k_target + k_edge, generator)
-                # logging.debug(f"##### {gen_name}: {gen_args} {type(gen_args)}")
 
                 if target and edge:
                     target_t = make_node_class( target, properties_of.get(target, {}) )
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
                     gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, **gen_args )
-                    type_of[col_name] = gen_t
-                    logging.debug(f"Declare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t.__name__}`))")
+                    edge_type_of[col_name] = gen_t
+                    logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t.__name__}`))")
                 else:
-                    logging.error(f"Cannot create a generator without an object and a relation.")
+                    logging.error(f"\tCannot create a generator without an object and a relation.")
 
-        logging.debug(f"Source class: {source_t}")
-        logging.debug(f"Type_of: {type_of}")
-        logging.debug(f"Properties_of: {properties_of}")
-        return source_t, type_of, properties_of
+        logging.debug(f"source class: {source_t}")
+        logging.debug(f"node_type_of: {node_type_of}")
+        logging.debug(f"edge_type_of: {edge_type_of}")
+        logging.debug(f"properties_of: {properties_of}")
+        return source_t, node_type_of, edge_type_of, properties_of
 
 
 def extract_all(df: pd.DataFrame, config: dict, module = types, affix = None, separator = None):

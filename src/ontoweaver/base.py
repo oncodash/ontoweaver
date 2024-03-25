@@ -4,6 +4,7 @@ from abc import ABCMeta as ABSTRACT
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
+
 from enum import Enum
 
 class Element(metaclass = ABSTRACT):
@@ -58,7 +59,7 @@ class Element(metaclass = ABSTRACT):
             # Call the static method of this class,
             # and yield its content.
             for field in Parent.fields():
-                # logging.debug(f"##### {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
+                # logging.debug(f"\t\t {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
                 yield field
 
     @abstract
@@ -92,7 +93,7 @@ class Element(metaclass = ABSTRACT):
         # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
         for p in properties:
             if p not in self.available():
-                logging.error(f"Property `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
+                logging.error(f"\t\tProperty `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
                 assert(p in self.available())
         self._properties = properties
 
@@ -302,9 +303,9 @@ class Adapter(metaclass = ABSTRACT):
 
         # logging.debug(f"Nodes: {nodes}.")
         for node in nodes:
-            # logging.debug(f"Append node {node}.")
+            # logging.debug(f"\tAppend node {node}.")
             if node in self._nodes:
-                # logging.warning(f"Skipped Node already declared: `{node}`")
+                # logging.warning(f"\t\tSkipped Node already declared: `{node}`")
                 # return False
                 pass
             else:
@@ -320,9 +321,9 @@ class Adapter(metaclass = ABSTRACT):
 
         # logging.debug(f"Edges: {edges}.")
         for edge in edges:
-            # logging.debug(f"Append edge {edge}.")
+            # logging.debug(f"\tAppend edge {edge}.")
             if edge in self._edges:
-                # logging.warning(f"Skipped Edge already declared: `{edge}`")
+                # logging.warning(f"\t\tSkipped Edge already declared: `{edge}`")
                 # return False
                 pass
             else:
@@ -380,18 +381,18 @@ class Adapter(metaclass = ABSTRACT):
         # For Edges: double-check target and source Node types as well.
         elif issubclass(elem_type, Edge):
             if allowed_by(elem_type, self._edge_types):
-                # logging.debug(f"Edge type `{elem_type.__name__}` is allowed")
+                # logging.debug(f"\tEdge type `{elem_type.__name__}` is allowed")
                 if not allowed_by(elem_type.source_type(), self._node_types):
-                    logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its source (`{elem_type.source_type().__name__}`) node type.")
+                    logging.warning(f"\t\tWARNING: you allowed the `{elem_type.__name__}` edge type, but not its source (`{elem_type.source_type().__name__}`) node type.")
                     return False
                 elif not allowed_by(elem_type.target_type(), self._node_types):
-                    logging.warning(f"WARNING: you allowed the `{elem_type.__name__}` edge type, but not its target (`{elem_type.target_type().__name__}`) node type.")
+                    logging.warning(f"\t\tWARNING: you allowed the `{elem_type.__name__}` edge type, but not its target (`{elem_type.target_type().__name__}`) node type.")
                     return False
                 else:
-                    # logging.debug(f"Both source type `{elem_type.source_type().__name__}` and target type `{elem_type.target_type().__name__}` are allowed.")
+                    # logging.debug(f"\tBoth source type `{elem_type.source_type().__name__}` and target type `{elem_type.target_type().__name__}` are allowed.")
                     return True
             else:
-                # logging.debug(f"Edge type `{elem_type.__name__}` is not allowed")
+                # logging.debug(f"\tEdge type `{elem_type.__name__}` is not allowed")
                 return False
 
         # For EdgeGenerators: recursive call to edge. 
@@ -420,15 +421,15 @@ class Adapter(metaclass = ABSTRACT):
         this = args[0]
         # logging.debug(f"##### {this}")
         if issubclass(this, Node):
-            # logging.debug(f"Make node of type `{this}`.")
+            # logging.debug(f"\tMake node of type `{this}`.")
             yield this(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
         elif issubclass(this, NodeGenerator):
             gen = this.cls(*(args[1:]), allowed=self.edge_fields, **kwargs)
             for n in gen.nodes():
-                # logging.debug(f"Generate Node `{n}`.")
+                # logging.debug(f"\t\tGenerate Node `{n}`.")
                 yield n.as_tuple()
         else:
-            raise TypeError("First argument `{this}` should be a subclass of `Node`")
+            raise TypeError(f"First argument `{this}` should be a subclass of `{Node}`")
 
     def make_edge(self, *args, **kwargs) -> tuple:
         """Make a Biocypher's tuple of the given class.
@@ -444,12 +445,12 @@ class Adapter(metaclass = ABSTRACT):
         assert(len(args) == 1)
         this = args[0]
         if issubclass(this, Edge):
-            # logging.debug(f"Make edge of type `{this}`.")
+            # logging.debug(f"\tMake edge of type `{this}`.")
             yield this(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
         elif issubclass(this, EdgeGenerator):
             gen = this(*(args[1:]), allowed=self.edge_fields, **kwargs)
             for e in gen.edges():
-                # logging.debug(f"Generate Edge `{e}`.")
+                # logging.debug(f"\t\tGenerate Edge `{e}`.")
                 yield e.as_tuple()
         else:
             raise TypeError("First argument `{this}` should be a subclass of `Edge`")
@@ -484,7 +485,7 @@ class All:
                 classes.append(m[c])
                 logging.debug(f"Found `{asked.__name__}` class: `{m[c]}` (prop: `{m[c].fields()}`).")
                 # t = m[c]
-                # logging.debug(f"##### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
+                # logging.debug(f"\t\t#### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
         return classes
 
     def nodes(self) -> list[Node]:
