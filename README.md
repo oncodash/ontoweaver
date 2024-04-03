@@ -383,6 +383,8 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
         node_fields: Optional[list[str]] = None,
         edge_types : Optional[Iterable[ontoweaver.Edge]] = None,
         edge_fields: Optional[list[str]] = None,
+        type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.prefix,
+        type_affix_sep: Optional[str] = "//",
     ):
         # Default mapping as a simple config.
         from . import types
@@ -415,7 +417,20 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
             edge_types,
             edge_fields,
         )
+        
+        self.type_affix = type_affix
+        self.type_affix_sep = type_affix_sep
+
+
 ```
+
+When manually defining adapter classes, be sure to define the affix type and separator you wish to use in the mapping. 
+Unless otherwise defined, affix type defaults to `suffix` and separator defaults to `:`. In the example above, the affix type is defined as `prefix` and
+the separator is defined as `//`. If you wish to define affix as `none`, you should use 
+`type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.none`, and if you wish to define affix type as `suffix`, use 
+`type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.suffix`.
+
+
 
 
 #### Multiple Subjects
@@ -455,13 +470,36 @@ For example:
 ```python
     def end(self):
         from . import types
+        
+        # Manual extraction of an additional edge between sample and patient.
+        
         for i,row in self.df.iterrows():
-            sid = row["sample_id"]
-            pid = row["patient_id"]
-            logging.debug(f"Add a `sample_to_patient` edge between `{sid}` and `{pid}`")
+            
+            # In case of using affixes of types `prefix` or `suffix`, define the separator you declared in the MYADAPTER class (example above)
+            # For example, if the separator is ":" ( type_affix_sep: Optional[str] = ":" )
+            separator = ":"
+            
+            # Define source and target nodes you wish to create relations for, keeping in mind the affix structure you defined in the MYADAPTER class
+            
+            # In case affix is of type `suffix` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.suffix )
+            source_id = f"{row["sample"]}{separator}{self.node_type_of["sample"].__name__}"
+            target_id = f"{row["patient"]}{separator}{self.node_type_of["patient"].__name__}"
+            
+            # In case affix is of type `prefix` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.prefix )
+            source_id = f"{self.node_type_of["sample"].__name__}{separator}{row["sample"]}"
+            target_id = f"{self.node_type_of["patient"].__name__}{separator}{row["patient"]}"
+            
+            # In case affix is of type `none` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.none )
+            source_id = row["sample"]
+            target_id = row["patient"]
+            
+            logging.debug(f"Add a `sample_to_patient` edge between `{source_id}` and `{target_id}`")
             self.edges_append( self.make_edge(
                 types.sample_to_patient, id=None,
-                id_source=sid, id_target=pid
+                id_source=source_id, id_target=target_id
             ))
 ```
 
+Source and target nodes are modified by changing the names inside the `row["NAME_HERE"]` brackets, for both `source_id` and `target_id`, according to the user's specific needs. 
+In this example, the edge was created from sample to patient so the edge is declared from  `source_id` `row["sample"]` to `target_id` `row["patient"]`. In case of using the default
+separator in the `MYADAPTER` class you defined (example above), you still need to define the separator when overloading the `end` method as `:`.
