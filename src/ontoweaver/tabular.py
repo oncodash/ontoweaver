@@ -411,8 +411,7 @@ class PandasAdapter(base.Adapter):
             setattr(module, t.__name__, t)
             return t
 
-
-        def make_gen_class(name, parent, edge_t, **kwargs):
+        def make_gen_class(name, parent, edge_t, target_t, **kwargs): #FIXME add target type as attribude staticf
             if hasattr(generators, parent):
                 parent_t = getattr(generators, parent)
                 if not issubclass(parent_t, base.EdgeGenerator):
@@ -424,9 +423,13 @@ class PandasAdapter(base.Adapter):
 
             def et():
                 return edge_t
+            def tt():
+                return target_t
+
             attrs = {
                 "__module__": module.__name__,
-                "edge_type": staticmethod(et),
+                "edge_type": staticmethod(et), #add target type attribute #FIXME
+                "target_type": staticmethod(tt)
             }
             attrs.update(kwargs) # Add all passed string arguments as members.
             t = pytypes.new_class(name, (parent_t,), {}, lambda ns: ns.update(attrs))
@@ -498,8 +501,9 @@ class PandasAdapter(base.Adapter):
                 if target and edge:
                     target_t = make_node_class( target, properties_of.get(target, {}) )
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, **gen_args )
+                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, **gen_args ) #Pass target type
                     edge_type_of[col_name] = gen_t
+                    node_type_of[col_name] = target_t
                     logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t.__name__}`))")
                 else:
                     logging.error(f"\tCannot create a generator without an object and a relation.")

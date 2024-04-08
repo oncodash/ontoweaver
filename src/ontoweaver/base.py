@@ -247,16 +247,18 @@ class EdgeGenerator:
     def edge_type():
         raise NotImplementedError
 
-    @classmethod
-    def target_type(cls):
-       return node_generator(cls)
+    @staticmethod
+    @abstract
+    def target_type():
+       raise NotImplementedError #FIXME should return NotiMPLEEMNTED
 
     @classmethod
     def source_type(cls):
        return cls.edge_type().source_type()
 
     def make_node(self, id):
-        node_t = self.edge_type().target_type()
+        #we beed to know the node type as well as the edge type, when generating transformers we need to ask user to specify node types
+        node_t = self.target_type()  #FIXME dont call edge type
         return node_t(id = id,
             properties = self.properties, allowed = self.allowed, label = self.label)
 
@@ -431,6 +433,7 @@ class Adapter(metaclass = ABSTRACT):
         else:
             raise TypeError(f"First argument `{this}` should be a subclass of `{Node}`")
 
+
     def make_edge(self, *args, **kwargs) -> tuple:
         """Make a Biocypher's tuple of the given class.
 
@@ -453,7 +456,7 @@ class Adapter(metaclass = ABSTRACT):
                 # logging.debug(f"\t\tGenerate Edge `{e}`.")
                 yield e.as_tuple()
         else:
-            raise TypeError("First argument `{this}` should be a subclass of `Edge`")
+            raise TypeError(f"First argument `{this}` should be a subclass of `Edge`")
 
 
 
