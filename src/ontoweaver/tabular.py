@@ -129,26 +129,18 @@ class PandasAdapter(base.Adapter):
 
 
     def properties(self, row, type):
-        """Extract properties of `type` from `row`."""
+        """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
+
         properties = {}
-        # FIXME HERE properties for source node are not pulled.
 
-        # Find first matching parent class.
-        matching_class = None
-        for parent in type.mro(): # mro is guaranted in resolution order.
-            if parent in self.properties_of:
-                matching_class = parent
-                break
-        if not matching_class:
-            return {} # Defaults to no property.
-
-        # Extract and map the values.
-        for in_prop in self.properties_of[matching_class]:
-            out_prop = self.properties_of[type.__name__][in_prop]
-            properties[out_prop] = row[in_prop]
+        if type.__name__ in self.properties_of:
+            for key, value in self.properties_of[type.__name__].items():
+                if self.skip(row[key]):
+                    continue
+                else:
+                    properties[value] = str(row[key]).replace("'", "`") #FIXME enforce that its a string or replace single quotes... this works but is weird
 
         return properties
-
 
     def skip(self, val):
         if self.skip_nan:
@@ -169,17 +161,17 @@ class PandasAdapter(base.Adapter):
         # Append one (or several, if the target_t is a generator) nodes.
         self.nodes_append( self.make_node(
             target_t, id=target_id,
-            properties=self.properties(row,target_t)
+            properties=self.properties(row, target_t)
         ))
-        logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row,target_t).keys())}`)")
+        logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row, target_t).keys())}`)")
 
         # relation
         edge_t = self.edge_type_of[c]
         self.edges_append( self.make_edge(
             edge_t, id=None, id_source=source_id, id_target=target_id,
-            properties=self.properties(row,edge_t)
+            properties=self.properties(row, edge_t)
         ))
-        logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row,edge_t).keys())}`)")
+        logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row, edge_t).keys())}`)")
 
         return target_id
 
@@ -462,8 +454,9 @@ class PandasAdapter(base.Adapter):
                 for prop_name in properties:
                     classes = properties[prop_name]
                     for c in classes:
-                        properties_of[c] = properties.get(c, {})
-                        properties_of[c][col_name] = prop_name
+                        # In case of an object having multiple declared properties, ensure dictionary is ot overwritten
+                        properties_of.setdefault(c, {})
+                        properties_of[c].setdefault(col_name, prop_name)
                         logging.debug(f"Declare properties mapping for `{c}`: {properties_of[c]}")
 
 
@@ -548,4 +541,5 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
     adapter.run()
 
     return adapter
+
 
