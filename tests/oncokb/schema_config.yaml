@@ -194,7 +194,7 @@ genomic sequence localization:
     source: sequence variant
     target: chromosome
     properties:
-        base coordinate: int
+        base coordinate: str
         strand: str
 
 sequence variant to sequence feature association:
@@ -231,8 +231,8 @@ alteration:
     label_in_input: alteration
     properties:
         alteration_consequence: str
-        protein_start: int
-        protein_end: int
+        protein_start: str
+        protein_end: str
 
 variant to alteration:
     is_a: association
