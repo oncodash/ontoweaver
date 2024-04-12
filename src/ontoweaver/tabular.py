@@ -80,7 +80,7 @@ class PandasAdapter(base.Adapter):
         self.df = df
 
         if not type_affix in TypeAffixes:
-            raise ValueError("`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})")
+            raise ValueError(f"`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})")
         else:
             self.type_affix = type_affix
 
@@ -171,44 +171,42 @@ class PandasAdapter(base.Adapter):
 
         return target_id
 
+    def make_id(self, entry_name, type):
+        """ Create a unique id for the given cell consisting of the entry name and type,
+        taking into account affix and separator configuration."""
+        id = None
 
-    def run(self, type_affix = None, type_affix_sep = None):
+        if self.type_affix == TypeAffixes.prefix:
+            id = f'{type}{self.type_affix_sep}{entry_name}'
+        elif self.type_affix  == TypeAffixes.suffix:
+            id = f'{entry_name}{self.type_affix_sep}{type}'
+        elif self.type_affix  == TypeAffixes.none:
+            id = f'{entry_name}'
+
+        if id:
+            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{type}`: `{id}`")
+            return id
+        else:
+            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
+
+
+    def run(self):
         """Actually run the configured extraction.
 
         If passed, the user-defined type_affix and type_affix_sep variables may override the default configured at instantiation.
-
-        :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none); if None, use the default configured at instantiation.
-        :param str type_affix_sep: String use to separate a labe from the type annotation; if None, use the default configured at instantiation.
         """
-
         # FIXME: all the raised exceptions here should be specialized and handled in the executable.
-
-        # If no overriding, use the config passed at instantiation.
-        if type_affix == None:
-            affix = self.type_affix
-        else:
-            affix = type_affix
-
-        if type_affix_sep == None:
-            separator = self.type_affix_sep
-        else:
-            separator = type_affix_sep
 
         # For all rows in the table.
         for i,row in self.df.iterrows():
             row_type = self.source_type(row)
             logging.debug(f"\tExtracting row {i} of type `{row_type.__name__}`...")
             if self.allows( row_type ):
-                if affix == TypeAffixes.prefix:
-                    source_id = self.source_id(f'{row_type.__name__}{separator}{i}',row)
-                elif affix == TypeAffixes.suffix:
-                    source_id = self.source_id(f'{i}{separator}{row_type.__name__}',row)
-                elif affix == TypeAffixes.none:
-                    source_id = self.source_id(i,row)
-                self.nodes_append( self.make_node(
+                source_id = self.source_id(self.make_id(i, row_type.__name__), row)
+                self.nodes_append(self.make_node(
                     row_type, id=source_id,
-                    properties=self.properties(row,row_type) #FIXME Possible type problem here
-                ))
+                    properties=self.properties(row, row_type))
+                )
             else:
                 logging.error(f"\tRow type `{row_type.__name__}` not allowed.")
 
@@ -217,15 +215,7 @@ class PandasAdapter(base.Adapter):
                 logging.debug(f"\tMapping column `{c}`...")
                 if c not in row:
                     raise ValueError(f"Column `{c}` not found in input data.")
-                if affix == TypeAffixes.prefix:
-                    target_id = f"{self.node_type_of[c].__name__}{separator}{row[c]}"
-                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
-                elif affix == TypeAffixes.suffix:
-                    target_id = f"{row[c]}{separator}{self.node_type_of[c].__name__}"
-                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
-                elif affix == TypeAffixes.none:
-                    target_id = row[c]
-                    logging.debug(f"\t\tCell value: `{row[c]}` mapped as node of type: `{self.node_type_of[c].__name__}` ")
+                target_id = self.make_id(row[c], self.node_type_of[c].__name__)
                 if self.skip(target_id):
                     logging.debug(f"\t\tSkip `{target_id}`")
                     continue
@@ -263,12 +253,7 @@ class PandasAdapter(base.Adapter):
 
                         # We now have a valid column.
                         # Jump to creating the referred subject from the pointed column.
-                        if affix == TypeAffixes.prefix:
-                            other_id = self.make_edge_and_target(source_id, f"{self.node_type_of[col_name].__name__}{separator}{row[col_name]}", col_name, row, log_depth="\t")
-                        elif affix == TypeAffixes.suffix:
-                            other_id = self.make_edge_and_target(source_id, f"{row[col_name]}{separator}{self.node_type_of[col_name].__name__}", col_name, row, log_depth="\t")
-                        elif affix == TypeAffixes.none:
-                            other_id = self.make_edge_and_target(source_id, row[col_name], col_name, row, log_depth="\t")
+                        other_id = self.make_edge_and_target(source_id, self.make_id(row[col_name], self.node_type_of[col_name].__name__), col_name, row, log_depth="\t")
                         # Then create the additional edge,
                         # this time from the previously created target_id
                         # (i.e. the column's subject).
@@ -412,7 +397,7 @@ class PandasAdapter(base.Adapter):
             return t
 
 
-        def make_gen_class(name, parent, edge_t, **kwargs):
+        def make_gen_class(name, parent, edge_t, target_t, **kwargs): #FIXME add target type as attribude staticf
             if hasattr(generators, parent):
                 parent_t = getattr(generators, parent)
                 if not issubclass(parent_t, base.EdgeGenerator):
@@ -424,9 +409,13 @@ class PandasAdapter(base.Adapter):
 
             def et():
                 return edge_t
+            def tt():
+                return target_t
+
             attrs = {
                 "__module__": module.__name__,
-                "edge_type": staticmethod(et),
+                "edge_type": staticmethod(et), #add target type attribute #FIXME
+                "target_type": staticmethod(tt)
             }
             attrs.update(kwargs) # Add all passed string arguments as members.
             t = pytypes.new_class(name, (parent_t,), {}, lambda ns: ns.update(attrs))
@@ -494,13 +483,15 @@ class PandasAdapter(base.Adapter):
                 target = get(k_target, generator)
                 edge   = get(k_edge, generator)
                 gen_name,gen_args = get_not(k_target + k_edge, generator)
+                logging.debug(f"target: {target}, edge: {edge}, gen_name: {gen_name}, gen_args: {gen_args}")
 
                 if target and edge:
                     target_t = make_node_class( target, properties_of.get(target, {}) )
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, **gen_args )
+                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, **gen_args ) #Pass target type
                     edge_type_of[col_name] = gen_t
-                    logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t.__name__}`))")
+                    node_type_of[col_name] = target_t
+                    logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
                 else:
                     logging.error(f"\tCannot create a generator without an object and a relation.")
 
@@ -511,7 +502,7 @@ class PandasAdapter(base.Adapter):
         return source_t, node_type_of, edge_type_of, properties_of
 
 
-def extract_all(df: pd.DataFrame, config: dict, module = types, affix = None, separator = None):
+def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
     """Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration. """
     mapping = PandasAdapter.configure(config, module)
@@ -537,9 +528,12 @@ def extract_all(df: pd.DataFrame, config: dict, module = types, affix = None, se
         allowed_node_fields,
         allowed_edge_types,
         allowed_edge_fields,
+        type_affix=affix,
+        type_affix_sep=separator
+
     )
 
-    adapter.run(affix, separator)
+    adapter.run()
 
     return adapter
 
