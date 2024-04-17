@@ -4,7 +4,7 @@ import types as pytypes
 import logging
 from typing import Optional
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, EnumMeta
 
 import pandas as pd
 
@@ -13,7 +13,19 @@ from . import types
 from . import generators
 
 
-class TypeAffixes(str, Enum):
+
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item):
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True    
+
+class Enumerable(Enum, metaclass=MetaEnum):
+    pass
+
+class TypeAffixes(str, Enumerable):
     suffix = "suffix"
     prefix = "prefix"
     none = "none"
