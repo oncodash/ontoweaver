@@ -198,16 +198,10 @@ class Edge(Element):
             self.allowed_properties()
         )
 
-
-class NodeGenerator:
-    """Tag class signaling that what's returned is a list of nodes.
-
-    Data are actually handled from the EdgeGenerator class."""
-    pass
-
+#TODO check if function below needed
 def node_generator(edge_gen_cls):
     """Wrapper signaling that the function returns list of nodes."""
-    class Nodes(NodeGenerator):
+    class Nodes(Transformer):
         cls = edge_gen_cls
 
         @staticmethod
@@ -215,58 +209,6 @@ def node_generator(edge_gen_cls):
             """Substitutes the hierarchy of parent classes for the one of the handled class."""
             return edge_gen_cls.mro()
     return Nodes
-
-class EdgeGenerator:
-    """Generates lists of edges."""
-
-    def __init__(self,
-        id        : Optional[str] = None,
-        id_source : Optional[str] = None,
-        id_target : Optional[str] = None,
-        properties: Optional[dict[str,str]] = {},
-        allowed   : Optional[list[str]] = None, # Passed by Adapter.
-        label     : Optional[str] = None, # Set from subclass name.
-    ):
-        self.id = id
-        self.id_source = id_source
-        self.id_target = id_target
-        self.properties = properties
-        self.allowed = allowed
-        self.label = label
-
-    @abstract
-    def nodes(self):
-        raise NotImplementedError
-
-    @abstract
-    def edges(self):
-        raise NotImplementedError
-
-    @staticmethod
-    @abstract
-    def edge_type():
-        raise NotImplementedError
-
-    @staticmethod
-    @abstract
-    def target_type():
-       raise NotImplementedError #FIXME should return NotiMPLEEMNTED
-
-    @classmethod
-    def source_type(cls):
-       return cls.edge_type().source_type()
-
-    def make_node(self, id):
-        #we beed to know the node type as well as the edge type, when generating transformers we need to ask user to specify node types
-        node_t = self.target_type()  #FIXME dont call edge type
-        return node_t(id = id,
-            properties = self.properties, allowed = self.allowed, label = self.label)
-
-    def make_edge(self, id_target):
-        edge_t = self.edge_type()
-        return edge_t(id = self.id, id_source = self.id_source,
-            id_target = id_target,
-            properties = self.properties, allowed = self.allowed, label = self.label)
 
 
 class Adapter(metaclass = ABSTRACT):
@@ -398,13 +340,13 @@ class Adapter(metaclass = ABSTRACT):
                 return False
 
         # For EdgeGenerators: recursive call to edge. 
-        elif issubclass(elem_type, EdgeGenerator):
+        elif issubclass(elem_type, Transformer):
             return self.allows(elem_type.edge_type())
         else:
             raise TypeError("`elem_type` should be of type `Element`")
 
     def make_node(self, *args, **kwargs) -> tuple:
-        """Make a Biocypher's tuple of the given class.
+        """Make a Biocypher tuple of the given class.
 
         Automatically filter property fields based on what was passed to the Adapter.
 
@@ -416,8 +358,8 @@ class Adapter(metaclass = ABSTRACT):
             yield self.make( MyNode, id=my_id, properties={"my_field": my_value} )
 
         :param Node <unnamed>: Class of the node to create.
-        :param \**kwargs: Named arguments to pass to instantiate the given class.
-        :returns tuple: A Biocypher's tuple representing the node.
+        :param **kwargs: Named arguments to pass to instantiate the given class.
+        :returns tuple: A Biocypher tuple representing the node.
         """
         assert(len(args) == 1)
         this = args[0]
@@ -425,8 +367,8 @@ class Adapter(metaclass = ABSTRACT):
         if issubclass(this, Node):
             # logging.debug(f"\tMake node of type `{this}`.")
             yield this(*(args[1:]), allowed=self.node_fields, **kwargs).as_tuple()
-        elif issubclass(this, NodeGenerator):
-            gen = this.cls(*(args[1:]), allowed=self.edge_fields, **kwargs)
+        elif issubclass(this, Transformer):
+            gen = this(*(args[1:]), allowed=self.node_fields, **kwargs)
             for n in gen.nodes():
                 # logging.debug(f"\t\tGenerate Node `{n}`.")
                 yield n.as_tuple()
@@ -435,28 +377,96 @@ class Adapter(metaclass = ABSTRACT):
 
 
     def make_edge(self, *args, **kwargs) -> tuple:
-        """Make a Biocypher's tuple of the given class.
+        """Make a Biocypher tuple of the given class.
 
         Automatically filter property fields based on what was passed to the Adapter.
 
         WARNING: for the sake of clarity, only named arguments are allowed after the Element class.
 
         :param Edge <unnamed>: Class of the edge to create.
-        :param \**kwargs: Named arguments to pass to instantiate the given class.
-        :returns tuple: A Biocypher's tuple representing the edge.
+        :param **kwargs: Named arguments to pass to instantiate the given class.
+        :returns tuple: A Biocypher tuple representing the edge.
         """
         assert(len(args) == 1)
         this = args[0]
         if issubclass(this, Edge):
             # logging.debug(f"\tMake edge of type `{this}`.")
             yield this(*(args[1:]), allowed=self.edge_fields, **kwargs).as_tuple()
-        elif issubclass(this, EdgeGenerator):
+        elif issubclass(this, Transformer):
             gen = this(*(args[1:]), allowed=self.edge_fields, **kwargs)
             for e in gen.edges():
-                # logging.debug(f"\t\tGenerate Edge `{e}`.")
+                logging.debug(f"\t\tGenerate Edge `{e}`.")
                 yield e.as_tuple()
         else:
             raise TypeError(f"First argument `{this}` should be a subclass of `Edge`")
+
+
+class Transformer():
+    def __init__(self,
+                 id: Optional[str] = None,
+                 id_source: Optional[str] = None,
+                 id_target: Optional[str] = None,
+                 properties: Optional[dict[str, str]] = {},
+                 allowed: Optional[list[str]] = None,  # Passed by Adapter.
+                 label: Optional[str] = None,  # Set from subclass name.
+                 columns=None
+                 ):
+
+        self.id = id
+        self.id_source = id_source
+        self.id_target = id_target
+        self.properties = properties
+        self.allowed = allowed
+        self.label = label
+        self.columns = columns
+
+    def __call__(self, row, col_name_cell_value=dict, **kwargs):
+
+        if isinstance(self.columns, list):
+            raise NotImplementedError
+        else:
+            raise None
+
+    @abstract
+    def nodes(self):
+        raise NotImplementedError
+
+    @abstract
+    def edges(self):
+        raise NotImplementedError
+
+    @staticmethod
+    @abstract
+    def edge_type():
+        raise NotImplementedError
+
+    @staticmethod
+    @abstract
+    def separator():
+        raise NotImplementedError
+
+    @staticmethod
+    @abstract
+    def target_type():
+       raise NotImplementedError
+
+    @classmethod
+    def source_type(cls):
+       return cls.edge_type().source_type()
+
+    def make_node(self, id):
+        #we beed to know the node type as well as the edge type, when generating transformers we need to ask user to specify node types
+        node_t = self.target_type()
+        return node_t(id = id,
+            properties = self.properties, allowed = self.allowed, label = self.label)
+
+
+    def make_edge(self, id_target):
+        edge_t = self.edge_type()
+        return edge_t(id = self.id, id_source = self.id_source,
+            id_target = id_target,
+            properties = self.properties, allowed = self.allowed, label = self.label)
+
 
 
 
@@ -508,4 +518,11 @@ class All:
         for c in self.edges():
             names += c.fields()
         return names
+
+
+
+
+
+
+
 

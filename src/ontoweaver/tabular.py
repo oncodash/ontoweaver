@@ -58,6 +58,7 @@ class PandasAdapter(base.Adapter):
         node_type_of: dict[str, base.Node],
         edge_type_of: dict[str, base.Edge],
         properties_of: dict[str, dict[str,str]],
+        transformers: dict[str, base.Transformer],
         node_types : Optional[Iterable[base.Node]] = None,
         node_fields: Optional[list[str]] = None,
         edge_types : Optional[Iterable[base.Edge]] = None,
@@ -102,6 +103,7 @@ class PandasAdapter(base.Adapter):
         self.node_type_of = node_type_of
         self.edge_type_of = edge_type_of
         self.properties_of = properties_of
+        self.transformers = transformers
         # logging.debug(self.properties_of)
         self.skip_nan = skip_nan
 
@@ -138,7 +140,7 @@ class PandasAdapter(base.Adapter):
                 if self.skip(row[key]):
                     continue
                 else:
-                    properties[value] = str(row[key]).replace("'", "`") #FIXME enforce that its a string or replace single quotes... this works but is weird
+                    properties[value] = str(row[key]).replace("'", "`") #TODO refine string transformation for Neo4j import
 
         return properties
 
@@ -152,26 +154,41 @@ class PandasAdapter(base.Adapter):
         return False
 
 
-    def make_edge_and_target(self, source_id, target_id, c, row, log_depth = ""):
+    def make_edge_and_target(self, source_id, target_id, c, row, transformer_type = None, log_depth = ""):
 
-        # target
-        target_t = self.node_type_of[c]
-        # target_id = f"{target_t.__name__}_{target_id}"
-        target_id = f"{target_id}"
-        # Append one (or several, if the target_t is a generator) nodes.
-        self.nodes_append( self.make_node(
-            target_t, id=target_id,
-            properties=self.properties(row, target_t)
-        ))
-        logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row, target_t).keys())}`)")
+        if transformer_type is not None:
+            if issubclass(transformer_type[c], base.Transformer):
+                target_t = transformer_type[c]
+                property_t = transformer_type[c].target_type()
+                self.nodes_append( self.make_node(target_t, id=target_id,
+                    properties=self.properties(row, property_t)))
 
-        # relation
-        edge_t = self.edge_type_of[c]
-        self.edges_append( self.make_edge(
-            edge_t, id=None, id_source=source_id, id_target=target_id,
-            properties=self.properties(row, edge_t)
-        ))
-        logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row, edge_t).keys())}`)")
+                edge_t = transformer_type[c]
+                #TODO check if property_t should change for mapping edge properties in transformers
+                self.edges_append( self.make_edge(
+                    edge_t, id=None, id_source=source_id, id_target=target_id,
+                    properties=self.properties(row, edge_t)))
+
+        else:
+
+            # target
+            target_t = self.node_type_of[c]
+            # target_id = f"{target_t.__name__}_{target_id}"
+            target_id = f"{target_id}"
+            # Append one (or several, if the target_t is a generator) nodes.
+            self.nodes_append( self.make_node(
+                target_t, id=target_id,
+                properties=self.properties(row, target_t)
+            ))
+            logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row, target_t).keys())}`)")
+
+            # relation
+            edge_t = self.edge_type_of[c]
+            self.edges_append( self.make_edge(
+                edge_t, id=None, id_source=source_id, id_target=target_id,
+                properties=self.properties(row, edge_t)
+            ))
+            logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row, edge_t).keys())}`)")
 
         return target_id
 
@@ -179,6 +196,7 @@ class PandasAdapter(base.Adapter):
         """ Create a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration."""
         id = None
+
 
         if self.type_affix == TypeAffixes.prefix:
             id = f'{type}{self.type_affix_sep}{entry_name}'
@@ -192,6 +210,18 @@ class PandasAdapter(base.Adapter):
             return id
         else:
             raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
+
+    def split_transformer(self, entry_name, transformer):
+        """ Split the passed entry name into its components and add affix type according to defined settings.
+        Concatenate result into single sequence that will be transformed into individual nodes in base.Transformer. """
+
+        separator = transformer.separator()
+        items = entry_name.split(separator)
+        processed_items = []
+        for item in items:
+            processed_items.append(self.make_id(item, transformer.target_type().__name__))
+        return separator.join(processed_items)
+
 
 
     def run(self):
@@ -214,6 +244,13 @@ class PandasAdapter(base.Adapter):
             else:
                 logging.error(f"\tRow type `{row_type.__name__}` not allowed.")
 
+            for c in self.transformers:
+                if self.skip(row[c]):
+                    continue
+                else:
+                    target_id = self.split_transformer(row[c], self.transformers[c])
+                    self.make_edge_and_target(source_id, target_id, c, row, self.transformers)
+
             # For column names.
             for c in self.node_type_of:
                 logging.debug(f"\tMapping column `{c}`...")
@@ -223,6 +260,7 @@ class PandasAdapter(base.Adapter):
                 if self.skip(target_id):
                     logging.debug(f"\t\tSkip `{target_id}`")
                     continue
+
                 if self.allows( self.node_type_of[c] ):
                     # If the edge is from the row type (i.e. the "source/subject")
                     # then just create it using the source_id.
@@ -367,16 +405,7 @@ class PandasAdapter(base.Adapter):
 
                 cls.target_type = staticmethod(tt)
 
-                #TODO meant to allow multiple source types for edge
-
-                #st_list = cls.source_type()
-
-                #st_list.append(source_t)
-
-                #def st():
-                    #return st_list
-
-                #cls.source_type = staticmethod(st)
+                #TODO allow multiple source types for edge
 
                 return cls
 
@@ -401,10 +430,10 @@ class PandasAdapter(base.Adapter):
             return t
 
 
-        def make_gen_class(name, parent, edge_t, target_t, **kwargs): #FIXME add target type as attribude staticf
+        def make_gen_class(name, parent, edge_t, target_t, separator, **kwargs): #FIXME add target type as attribude staticf
             if hasattr(generators, parent):
                 parent_t = getattr(generators, parent)
-                if not issubclass(parent_t, base.EdgeGenerator):
+                if not issubclass(parent_t, base.Transformer):
                     logging.error(f"\t\t{parent_t} {parent_t.mro()}")
                     raise TypeError(f"Object `{parent}` is not an existing generator.")
             else:
@@ -415,21 +444,25 @@ class PandasAdapter(base.Adapter):
                 return edge_t
             def tt():
                 return target_t
+            def sep():
+                return separator
 
             attrs = {
                 "__module__": module.__name__,
                 "edge_type": staticmethod(et), #add target type attribute #FIXME
-                "target_type": staticmethod(tt)
+                "target_type": staticmethod(tt),
+                "separator": staticmethod(sep)
             }
             attrs.update(kwargs) # Add all passed string arguments as members.
             t = pytypes.new_class(name, (parent_t,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare EdgeGenerator class `{t}`.")
+            logging.debug(f"Declare Transformer class `{t}`.")
             setattr(module, t.__name__, t)
             return t
 
         node_type_of = {}
         edge_type_of = {}
         properties_of = {}
+        transformers = {}
 
 
         # Various keys are allowed in the config,
@@ -440,6 +473,7 @@ class PandasAdapter(base.Adapter):
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
+        #TODO double - check removal of i`nto_generator` option for future uses
         k_generator = ["into_generator", "into_gen", "into_transformer", "into_trans"]
 
         columns = get(k_columns)
@@ -478,7 +512,7 @@ class PandasAdapter(base.Adapter):
                     edge_t   = make_edge_class( edge, subject_t, target_t, properties_of.get(edge, {}))
                 else:
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                edge_type_of[col_name] = edge_t # Embeds source and target types. #TODO it would probably work if mapped onto .target_type()
+                edge_type_of[col_name] = edge_t # Embeds source and target types.
                 node_type_of[col_name] = target_t
                 logging.debug(f"\tDeclare mapping `{col_name}` => `{edge_t.__name__}`")
             elif (target and not edge) or (edge and not target):
@@ -488,14 +522,12 @@ class PandasAdapter(base.Adapter):
                 target = get(k_target, generator)
                 edge   = get(k_edge, generator)
                 gen_name,gen_args = get_not(k_target + k_edge, generator)
-                logging.debug(f"target: {target}, edge: {edge}, gen_name: {gen_name}, gen_args: {gen_args}")
 
                 if target and edge:
                     target_t = make_node_class( target, properties_of.get(target, {}) )
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, **gen_args ) #Pass target type
-                    edge_type_of[col_name] = gen_t
-                    node_type_of[col_name] = target_t
+                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, gen_args["separator"] )
+                    transformers[col_name] = gen_t
                     logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
                 else:
                     logging.error(f"\tCannot create a generator without an object and a relation.")
@@ -504,7 +536,8 @@ class PandasAdapter(base.Adapter):
         logging.debug(f"node_type_of: {node_type_of}")
         logging.debug(f"edge_type_of: {edge_type_of}")
         logging.debug(f"properties_of: {properties_of}")
-        return source_t, node_type_of, edge_type_of, properties_of
+        logging.debug(f"transformers: {transformers}")
+        return source_t, node_type_of, edge_type_of, properties_of, transformers
 
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
