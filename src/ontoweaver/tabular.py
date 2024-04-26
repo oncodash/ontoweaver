@@ -175,7 +175,7 @@ class PandasAdapter(base.Adapter):
             target_t = self.node_type_of[c]
             # target_id = f"{target_t.__name__}_{target_id}"
             target_id = f"{target_id}"
-            # Append one (or several, if the target_t is a generator) nodes.
+            # Append one (or several, if the target_t is a transformer) nodes.
             self.nodes_append( self.make_node(
                 target_t, id=target_id,
                 properties=self.properties(row, target_t)
@@ -435,10 +435,10 @@ class PandasAdapter(base.Adapter):
                 parent_t = getattr(generators, parent)
                 if not issubclass(parent_t, base.Transformer):
                     logging.error(f"\t\t{parent_t} {parent_t.mro()}")
-                    raise TypeError(f"Object `{parent}` is not an existing generator.")
+                    raise TypeError(f"Object `{parent}` is not an existing transformer.")
             else:
                 # logging.debug(dir(generators))
-                raise TypeError(f"Cannot find a generator of name `{parent}`.")
+                raise TypeError(f"Cannot find a transformer of name `{parent}`.")
 
             def et():
                 return edge_t
@@ -473,8 +473,9 @@ class PandasAdapter(base.Adapter):
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
-        #TODO double - check removal of i`nto_generator` option for future uses
-        k_generator = ["into_generator", "into_gen", "into_transformer", "into_trans"]
+        #TODO double - check removal of `into_generator` option for future uses
+        k_transforemr = ["into_generator", "into_gen", "into_transformer", "into_trans"]
+
 
         columns = get(k_columns)
 
@@ -502,7 +503,7 @@ class PandasAdapter(base.Adapter):
             target     = get(k_target, column)
             subject    = get(k_subject, column)
             edge       = get(k_edge, column)
-            generator  = get(k_generator, column)
+            transformer  = get(k_transforemr, column)
 
             if target and edge:
                 target_t = make_node_class( target, properties_of.get(target, {}) )
@@ -518,19 +519,19 @@ class PandasAdapter(base.Adapter):
             elif (target and not edge) or (edge and not target):
                 logging.error(f"\tCannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
 
-            elif generator:
-                target = get(k_target, generator)
-                edge   = get(k_edge, generator)
-                gen_name,gen_args = get_not(k_target + k_edge, generator)
+            elif transformer:
+                target = get(k_target, transformer)
+                edge   = get(k_edge, transformer)
+                gen_name,gen_args = get_not(k_target + k_edge, transformer)
 
                 if target and edge:
                     target_t = make_node_class( target, properties_of.get(target, {}) )
                     edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
                     gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, gen_args["separator"] )
                     transformers[col_name] = gen_t
-                    logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
+                    logging.debug(f"\tDeclare transformer `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
                 else:
-                    logging.error(f"\tCannot create a generator without an object and a relation.")
+                    logging.error(f"\tCannot create a transformer without an object and a relation.")
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"node_type_of: {node_type_of}")

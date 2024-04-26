@@ -420,13 +420,6 @@ class Transformer():
         self.label = label
         self.columns = columns
 
-    def __call__(self, row, col_name_cell_value=dict, **kwargs):
-
-        if isinstance(self.columns, list):
-            raise NotImplementedError
-        else:
-            raise None
-
     @abstract
     def nodes(self):
         raise NotImplementedError
