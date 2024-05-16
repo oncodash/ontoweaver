@@ -435,11 +435,6 @@ class Transformer():
 
     @staticmethod
     @abstract
-    def separator():
-        raise NotImplementedError
-
-    @staticmethod
-    @abstract
     def target_type():
        raise NotImplementedError
 
