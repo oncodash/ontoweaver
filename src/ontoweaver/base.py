@@ -1,4 +1,6 @@
 import logging
+import math
+import pandas as pd
 from collections.abc import Iterable, Generator
 from abc import ABCMeta as ABSTRACT
 from abc import abstractmethod as abstract
@@ -274,6 +276,15 @@ class Adapter(metaclass = ABSTRACT):
                 self._edges.append(edge)
                 # return True
 
+    def skip(self, val):
+        if self.skip_nan:
+            if pd.api.types.is_numeric_dtype(type(val)):
+                if (math.isnan(val) or val == float("nan")):
+                    return True
+            elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
+                return True
+        return False
+
     @property
     def nodes(self) -> Iterable[Node.Tuple]:
         """Return a generator yielding nodes."""
@@ -402,23 +413,84 @@ class Adapter(metaclass = ABSTRACT):
 
 
 class Transformer():
-    def __init__(self,
-                 id: Optional[str] = None,
-                 id_source: Optional[str] = None,
-                 id_target: Optional[str] = None,
-                 properties: Optional[dict[str, str]] = {},
-                 allowed: Optional[list[str]] = None,  # Passed by Adapter.
-                 label: Optional[str] = None,  # Set from subclass name.
-                 columns=None
-                 ):
 
-        self.id = id
-        self.id_source = id_source
-        self.id_target = id_target
-        self.properties = properties
-        self.allowed = allowed
-        self.label = label
+    #needs to inherit Adapter because of functions commonly used in Transformer and Pandasadapter (edges/nodes_append, skip, etc)
+    def __init__(self, columns, properties_of, **kwargs):
+
         self.columns = columns
+        self.properties_of = properties_of
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def get_transformer(self):
+        return self
+
+    #FIXME copy-pasted from tabular, maybe put in Adapter? Needs to access properties_of and skip
+    def properties(self, row, type):
+        """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
+
+        properties = {}
+
+        if type in self.properties_of:
+            for key, value in self.properties_of[type].items():
+                if Adapter.skip(row[key]):
+                    continue
+                else:
+                    properties[value] = str(row[key]).replace("'", "`") #TODO refine string transformation for Neo4j import
+
+        return properties
+
+    def __call__(self, source_id, row):
+        #FIXME needs to differentiate between transformer types in generator.py
+        target_id = self.split_transformer(entry_name = row[self.columns])
+        #below is code from make_edge_and_target, maybe make it a function
+        target_t = self.target_t
+        property_t = self.target_t
+        #FIXME node append not working (and no method of Adapter working), because not inherited
+        Adapter.nodes_append(Adapter.make_node(id=target_id,
+            properties=self.properties(row, property_t))) #TODO properties need to be recognized at level of Adapter ?
+
+        edge_t = self
+        #TODO check if property_t should change for mapping edge properties in transformers
+        Adapter.edges_append( self.make_edge(
+            edge_t, id=None, id_source=source_id, id_target=target_id,
+            properties=self.properties( row, edge_t)))
+
+
+    #FIXME redundant function, repeated in tabular, find way to access type_affix
+    def make_id(self, entry_name, type_affix = "suffix"):
+        """ Create a unique id for the given cell consisting of the entry name and type,
+        taking into account affix and separator configuration."""
+        id = None
+
+        #fixme self separator can't be passed here, need another kwarg or other solution
+
+        if type_affix == "prefix":
+            id = f'{self.target_t.__name__}:{entry_name}'
+        elif type_affix  == "suffix":
+            id = f'{entry_name}:{self.target_t.__name__}'
+        elif type_affix  == "none":
+            id = f'{entry_name}'
+
+        if id:
+            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{self.target_t}`: `{id}`")
+            return id
+        else:
+            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{self.target_t}`")
+
+
+    def split_transformer(self, entry_name):
+        """ Split the passed entry name into its components and add affix type according to defined settings.
+        Concatenate result into single sequence that will be transformed into individual nodes in base.Transformer. """
+
+        separator = self.separator
+        items = entry_name.split(separator)
+        processed_items = []
+        for item in items:
+            processed_items.append(self.make_id(item))
+        return separator.join(processed_items)
+
+    #FIXME abstract functions to be deleted? All replaced with kwarg for now
 
     @abstract
     def nodes(self):
@@ -444,7 +516,7 @@ class Transformer():
 
     def make_node(self, id):
         #we beed to know the node type as well as the edge type, when generating transformers we need to ask user to specify node types
-        node_t = self.target_type()
+        node_t = self.target_t
         return node_t(id = id,
             properties = self.properties, allowed = self.allowed, label = self.label)
 
@@ -453,7 +525,7 @@ class Transformer():
         edge_t = self.edge_type()
         return edge_t(id = self.id, id_source = self.id_source,
             id_target = id_target,
-            properties = self.properties, allowed = self.allowed, label = self.label)
+            properties = self.properties_OF, allowed = self.allowed, label = self.label)
 
 
 

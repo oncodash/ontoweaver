@@ -10,7 +10,7 @@ import pandas as pd
 
 from . import base
 from . import types
-from . import generators
+from . import transformer
 
 
 
@@ -20,7 +20,7 @@ class MetaEnum(EnumMeta):
             cls(item)
         except ValueError:
             return False
-        return True    
+        return True
 
 class Enumerable(Enum, metaclass=MetaEnum):
     pass
@@ -144,15 +144,6 @@ class PandasAdapter(base.Adapter):
 
         return properties
 
-    def skip(self, val):
-        if self.skip_nan:
-            if pd.api.types.is_numeric_dtype(type(val)):
-                if (math.isnan(val) or val == float("nan")):
-                    return True
-            elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
-                return True
-        return False
-
 
     def make_edge_and_target(self, source_id, target_id, c, row, transformer_type = None, log_depth = ""):
 
@@ -224,7 +215,7 @@ class PandasAdapter(base.Adapter):
 
 
 
-    def run(self):
+    def run(self): #populates list of nodes and passes it to Biocypher
         """Actually run the configured extraction.
 
         If passed, the user-defined type_affix and type_affix_sep variables may override the default configured at instantiation.
@@ -244,12 +235,11 @@ class PandasAdapter(base.Adapter):
             else:
                 logging.error(f"\tRow type `{row_type.__name__}` not allowed.")
 
-            for c in self.transformers:
+            for c in self.transformers.keys():
                 if self.skip(row[c]):
                     continue
                 else:
-                    target_id = self.split_transformer(row[c], self.transformers[c])
-                    self.make_edge_and_target(source_id, target_id, c, row, self.transformers)
+                    self.transformers[c].__call__( source_id=source_id, row=row)
 
             # For column names.
             for c in self.node_type_of:
@@ -472,8 +462,7 @@ class PandasAdapter(base.Adapter):
         k_properties = ["to_properties", "to_property"]
         #TODO double - check removal of `into_generator` option for future uses
         k_transformer = ["transformers"]
-        k_split = ["split_columns"]
-
+        k_split = ["split"]
 
         columns = get(k_columns)
         transformer_types = get(k_transformer)
@@ -496,25 +485,31 @@ class PandasAdapter(base.Adapter):
 
         source_t = make_node_class( get(k_row), properties_of.get(get(k_row), {}) )
 
-        if transformer_types:
-            split_columns = get(k_split, transformer_types)
-            if split_columns:
-                for col_name in split_columns:
-                    gen_data = {}
-                    column = split_columns[col_name]
-                    target = get(k_target, column)
-                    edge = get(k_edge, column)
-                    gen_name, gen_args = get_not(k_target + k_edge, column)
-                    gen_data[gen_name] = gen_args
 
-                    if target and edge:
-                        target_t = make_node_class(target, properties_of.get(target, {}))
-                        edge_t = make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
-                        gen_t = make_gen_class(f"split_{col_name}", "split", edge_t, target_t, **gen_data)
-                        transformers[col_name] = gen_t
-                        logging.debug(f"\tDeclare transformer `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
-                    else:
-                        logging.error(f"\tCannot create a transformer without an object and a relation.")
+
+        # if transformer_types:
+        #     split_columns = get(k_split, transformer_types)
+        #     if split_columns:
+        #         transformer_columns = get(k_columns, split_columns)
+        #         target = get(k_target, split_columns)
+        #         edge = get(k_edge, split_columns)
+        #
+        #
+        #         for col_name in transformer_columns:
+        #             gen_data = {}
+        #             gen_name, gen_args = get_not(k_target + k_edge + k_columns, split_columns)
+        #             gen_data[gen_name] = gen_args
+        #
+        #             if target and edge:
+        #                 target_t = make_node_class(target, properties_of.get(target, {}))
+        #                 edge_t = make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+        #                 gen_t = make_gen_class(f"split_{col_name}", "split", edge_t, target_t, **gen_data)
+        #                 transformers[col_name] = gen_t
+        #                 logging.debug(f"\tDeclare transformer `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
+        #             else:
+        #                 logging.error(f"\tCannot create a transformer without an object and a relation.")
+
+
 
         # Then, declare types.
         for col_name in columns:
@@ -536,6 +531,33 @@ class PandasAdapter(base.Adapter):
                 logging.debug(f"\tDeclare mapping `{col_name}` => `{edge_t.__name__}`")
             elif (target and not edge) or (edge and not target):
                 logging.error(f"\tCannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
+
+        if transformer_types:
+            split_columns = get(k_split, transformer_types)
+            if split_columns:
+                transformer_columns = get(k_columns, split_columns)
+                target = get(k_target, split_columns)
+                edge = get(k_edge, split_columns)
+
+                logging.debug(f"name target {target}")
+
+
+                for col_name in transformer_columns:
+                    gen_data = {}
+                    gen_name, gen_args = get_not(k_target + k_edge + k_columns, split_columns)
+                    gen_data[gen_name] = gen_args
+                    logging.debug(f"GEN NAME {gen_name}, GEN ARGD {gen_args}")
+
+                    if target and edge:
+                        target_t = make_node_class(target, properties_of.get(target, {}))
+                        edge_t = make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+                        gen_data["target_t"] = target_t
+                        gen_data["edge_t"] = edge_t
+                        gen_t = base.Transformer( columns=col_name, properties_of= properties_of.get(target, {}), **gen_data)
+                        transformers[col_name] = gen_t.get_transformer()
+                        logging.debug(f"\tDeclare transformer `{col_name}` => `{gen_t}`(`{edge_t.__name__}`(`{target_t}`))")
+                    else:
+                        logging.error(f"\tCannot create a transformer without an object and a relation.")
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"node_type_of: {node_type_of}")

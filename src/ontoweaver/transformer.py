@@ -15,3 +15,6 @@ class split(base.Transformer):
            logging.debug(f"Make edge toward `{i}` in {self.id_target.split(separator)}.")
            yield self.make_edge(id_target = i)
 
+class cat(base.Transformer):
+
+    pass
