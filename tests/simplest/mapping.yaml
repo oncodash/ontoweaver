@@ -1,12 +1,37 @@
-subject: variant # Type for each entry (e.g. line).
-columns:
-    fact:
-        to_property:
-            data:
-                - patient
+row:
+   map:
+      columns:
+        - variant_id
+      to_subject: variant
 transformers:
-    split_columns:
-            patient:
-                separator: ";"
-                to_object: patient
-                via_relation: patient_has_variant
+    - map:
+          columns:
+              - disease
+          to_property:
+              - maladie
+          for_objects:
+              - patient
+    - split:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+        separator: ";"
+    - map:
+        columns:
+            - version
+            - source
+        to_property:
+            - version
+        for_objects:
+            - patient
+            - variant
+#    - map:
+#        columns:
+#          - version
+#        from_subject: patient
+#        to_object: disease
+
+
+
+

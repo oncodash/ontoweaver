@@ -93,10 +93,11 @@ class Element(metaclass = ABSTRACT):
         # Sanity checks:
         assert(properties is not None)
         # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
-        for p in properties:
-            if p not in self.available():
-                logging.error(f"\t\tProperty `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
-                assert(p in self.available())
+        # TODO enable the usage of available() function to disable / enable parts of ontology / certain nodes
+        # for p in properties:
+        #     if p not in self.available():
+        #         logging.error(f"\t\tProperty `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
+        #         assert(p in self.available())
         self._properties = properties
 
     @property
@@ -415,46 +416,61 @@ class Adapter(metaclass = ABSTRACT):
 class Transformer():
 
     #needs to inherit Adapter because of functions commonly used in Transformer and Pandasadapter (edges/nodes_append, skip, etc)
-    def __init__(self, columns, properties_of, **kwargs):
+    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
 
-        self.columns = columns
+        self.target = target
         self.properties_of = properties_of
+        self.edge = edge
+        self.columns = columns
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     def get_transformer(self):
         return self
 
+    def valid(self, val):
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if (math.isnan(val) or val == float("nan")):
+                return False
+        elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
+            return False
+        return True
+
+
     #FIXME copy-pasted from tabular, maybe put in Adapter? Needs to access properties_of and skip
-    def properties(self, row, type):
+    def properties(self, row):
         """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
 
+        # TODO if multiple columns declared for same property, concatenate
         properties = {}
 
-        if type in self.properties_of:
-            for key, value in self.properties_of[type].items():
-                if Adapter.skip(row[key]):
-                    continue
-                else:
-                    properties[value] = str(row[key]).replace("'", "`") #TODO refine string transformation for Neo4j import
+        for col_key, property_name in self.properties_of.items():
+            if self.valid(row[col_key]):
+                # TODO check Neo4j documentation for how strings are handled
+                properties[property_name] = str(row[col_key]).replace("'", "`") #TODO refine string transformation for Neo4j import
 
         return properties
 
-    def __call__(self, source_id, row):
-        #FIXME needs to differentiate between transformer types in generator.py
-        target_id = self.split_transformer(entry_name = row[self.columns])
-        #below is code from make_edge_and_target, maybe make it a function
-        target_t = self.target_t
-        property_t = self.target_t
-        #FIXME node append not working (and no method of Adapter working), because not inherited
-        Adapter.nodes_append(Adapter.make_node(id=target_id,
-            properties=self.properties(row, property_t))) #TODO properties need to be recognized at level of Adapter ?
+    @abstract
+    def __call__(self, row, source_id=None):
 
-        edge_t = self
-        #TODO check if property_t should change for mapping edge properties in transformers
-        Adapter.edges_append( self.make_edge(
-            edge_t, id=None, id_source=source_id, id_target=target_id,
-            properties=self.properties( row, edge_t)))
+        raise NotImplementedError
+
+
+        # #FIXME needs to differentiate between transformer types in generator.py
+        # target_id = self.split_transformer(entry_name = row[self.columns])
+        # #below is code from make_edge_and_target, maybe make it a function
+        # target_t = self.target_t
+        # property_t = self.target_t
+        # #FIXME node append not working (and no method of Adapter working), because not inherited
+        # Adapter.nodes_append(Adapter.make_node(id=target_id,
+        #     properties=self.properties(row, property_t))) #TODO properties need to be recognized at level of Adapter ?
+        #
+        # edge_t = self
+        # #TODO check if property_t should change for mapping edge properties in transformers
+        # Adapter.edges_append( self.make_edge(
+        #     edge_t, id=None, id_source=source_id, id_target=target_id,
+        #     properties=self.properties( row, edge_t)))
 
 
     #FIXME redundant function, repeated in tabular, find way to access type_affix
@@ -466,18 +482,17 @@ class Transformer():
         #fixme self separator can't be passed here, need another kwarg or other solution
 
         if type_affix == "prefix":
-            id = f'{self.target_t.__name__}:{entry_name}'
+            id = f'{self.target.__name__}:{entry_name}'
         elif type_affix  == "suffix":
-            id = f'{entry_name}:{self.target_t.__name__}'
+            id = f'{entry_name}:{self.target.__name__}'
         elif type_affix  == "none":
             id = f'{entry_name}'
 
         if id:
-            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{self.target_t}`: `{id}`")
+            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{self.target.__name__}`: `{id}`")
             return id
         else:
-            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{self.target_t}`")
-
+            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{self.target.__name__}`")
 
     def split_transformer(self, entry_name):
         """ Split the passed entry name into its components and add affix type according to defined settings.
@@ -491,6 +506,61 @@ class Transformer():
         return separator.join(processed_items)
 
     #FIXME abstract functions to be deleted? All replaced with kwarg for now
+    #
+    # def make_node(self, *args, **kwargs) -> tuple:
+    #     """Make a Biocypher tuple of the given class.
+    #
+    #     Automatically filter property fields based on what was passed to the Adapter.
+    #
+    #     WARNING: for the sake of clarity, only named arguments are allowed after the Element class.
+    #
+    #     Example:
+    #     .. code-block:: python
+    #
+    #         yield self.make( MyNode, id=my_id, properties={"my_field": my_value} )
+    #
+    #     :param Node <unnamed>: Class of the node to create.
+    #     :param **kwargs: Named arguments to pass to instantiate the given class.
+    #     :returns tuple: A Biocypher tuple representing the node.
+    #     """
+    #     assert(len(args) == 1)
+    #     this = args[0]
+    #     # logging.debug(f"##### {this}")
+    #     if issubclass(this, Node):
+    #         # logging.debug(f"\tMake node of type `{this}`.")
+    #         yield this(*(args[1:]), **kwargs).as_tuple()
+    #     elif issubclass(this, Transformer):
+    #         gen = this(*(args[1:]),  **kwargs)
+    #         for n in gen.nodes():
+    #             # logging.debug(f"\t\tGenerate Node `{n}`.")
+    #             yield n.as_tuple()
+    #     else:
+    #         raise TypeError(f"First argument `{this}` should be a subclass of `{Node}`")
+    #
+    #
+    # def make_edge(self, *args, **kwargs) -> tuple:
+    #     """Make a Biocypher tuple of the given class.
+    #
+    #     Automatically filter property fields based on what was passed to the Adapter.
+    #
+    #     WARNING: for the sake of clarity, only named arguments are allowed after the Element class.
+    #
+    #     :param Edge <unnamed>: Class of the edge to create.
+    #     :param **kwargs: Named arguments to pass to instantiate the given class.
+    #     :returns tuple: A Biocypher tuple representing the edge.
+    #     """
+    #     assert(len(args) == 1)
+    #     this = args[0]
+    #     if issubclass(this, Edge):
+    #         # logging.debug(f"\tMake edge of type `{this}`.")
+    #         yield this(*(args[1:]), **kwargs).as_tuple()
+    #     elif issubclass(this, Transformer):
+    #         gen = this(*(args[1:]), **kwargs)
+    #         for e in gen.edges():
+    #             logging.debug(f"\t\tGenerate Edge `{e}`.")
+    #             yield e.as_tuple()
+    #     else:
+    #         raise TypeError(f"First argument `{this}` should be a subclass of `Edge`")
 
     @abstract
     def nodes(self):
@@ -514,18 +584,14 @@ class Transformer():
     def source_type(cls):
        return cls.edge_type().source_type()
 
-    def make_node(self, id):
-        #we beed to know the node type as well as the edge type, when generating transformers we need to ask user to specify node types
-        node_t = self.target_t
-        return node_t(id = id,
-            properties = self.properties, allowed = self.allowed, label = self.label)
+    def make_node(self, id, properties):
+        node_t = self.target
+        return node_t(id = id, properties = properties)
 
 
-    def make_edge(self, id_target):
-        edge_t = self.edge_type()
-        return edge_t(id = self.id, id_source = self.id_source,
-            id_target = id_target,
-            properties = self.properties_OF, allowed = self.allowed, label = self.label)
+    def make_edge(self, id_target, id_source, properties):
+        edge_t = self.edge
+        return edge_t(id_source = id_source, id_target = id_target, properties=properties)
 
 
 
