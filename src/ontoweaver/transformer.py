@@ -13,30 +13,12 @@ class split(base.Transformer):
 
     def __call__(self, row, source_id = None):
 
-        elements = []
-
-        if source_id is None:
-            for key in self.columns:
-                if self.valid(row[key]):
-                    source_id = self.make_id(row[key])
-                    elements.append(self.make_node( id=source_id, properties = self.properties(row)))
-            return source_id
-        else:
-            for key in self.columns:
-                if self.valid(row[key]):
-                    # TODO if make id is called within node split_transformer is redundant
-                    # TODO just return list of IDs
-                    target_id = self.split_transformer(row[key])
-                    for i in target_id.split(self.separator):
-                        logging.debug(f"\t\t\t\t\tMake node `{i}` in {target_id.split(self.separator)}.")
-                        elements.append(self.make_node(id = i, properties = self.properties(row)))
-                        logging.debug(f"\t\t\t\t\tMake edge toward `{i}` in {target_id.split(self.separator)}.")
-                        elements.append(self.make_edge(id_target = i, id_source = source_id, properties = self.properties(row)))
-
-        return elements
-
-
-
+        for key in self.columns:
+            if self.valid(row[key]):
+                logging.debug(f"AAAAAAA {row[key]}")
+                # TODO if make id is called within node split_transformer is redundant
+                # TODO just return list of IDs
+                return row[key]
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -65,24 +47,15 @@ class map(base.Transformer):
 
     def __call__(self, row, source_id=None):
 
-        elements = []
-
         # TODO if there is from_subject, change soruce_Id in edge to that id
 
         if source_id is None:
             for key in self.columns:
                 if self.valid(row[key]):
-                    source_id = self.make_id(row[key])
-                    logging.debug(f"\t\t\t\t\tDeclared source id: `{source_id}")
-                    elements.append(self.make_node(id=source_id, properties = self.properties(row)))
-            return source_id
+                    return row[key]
         else:
             for key in self.columns:
                 if self.valid(row[key]):
-                    target_id = self.make_id(row[key])
+                    return row[key]
                     # TODO combine make_id within make_node
-                    elements.append(self.make_node(id=target_id, properties = self.properties(row)))
-                    if target_id:
-                        elements.append(self.make_edge(id_source=source_id, id_target=target_id, properties = self.properties(row)))
 
-            return elements

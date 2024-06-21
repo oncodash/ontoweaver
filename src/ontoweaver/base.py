@@ -428,29 +428,8 @@ class Transformer():
     def get_transformer(self):
         return self
 
-    def valid(self, val):
-        if pd.api.types.is_numeric_dtype(type(val)):
-            if (math.isnan(val) or val == float("nan")):
-                return False
-        elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
-            return False
-        return True
-
 
     #FIXME copy-pasted from tabular, maybe put in Adapter? Needs to access properties_of and skip
-    def properties(self, row):
-        """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
-
-        # TODO if multiple columns declared for same property, concatenate
-        properties = {}
-
-        for col_key, property_name in self.properties_of.items():
-            if self.valid(row[col_key]):
-                # TODO check Neo4j documentation for how strings are handled
-                properties[property_name] = str(row[col_key]).replace("'", "`") #TODO refine string transformation for Neo4j import
-
-        return properties
-
     @abstract
     def __call__(self, row, source_id=None):
 
@@ -474,25 +453,6 @@ class Transformer():
 
 
     #FIXME redundant function, repeated in tabular, find way to access type_affix
-    def make_id(self, entry_name, type_affix = "suffix"):
-        """ Create a unique id for the given cell consisting of the entry name and type,
-        taking into account affix and separator configuration."""
-        id = None
-
-        #fixme self separator can't be passed here, need another kwarg or other solution
-
-        if type_affix == "prefix":
-            id = f'{self.target.__name__}:{entry_name}'
-        elif type_affix  == "suffix":
-            id = f'{entry_name}:{self.target.__name__}'
-        elif type_affix  == "none":
-            id = f'{entry_name}'
-
-        if id:
-            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{self.target.__name__}`: `{id}`")
-            return id
-        else:
-            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{self.target.__name__}`")
 
     def split_transformer(self, entry_name):
         """ Split the passed entry name into its components and add affix type according to defined settings.
@@ -584,14 +544,14 @@ class Transformer():
     def source_type(cls):
        return cls.edge_type().source_type()
 
-    def make_node(self, id, properties):
-        node_t = self.target
-        return node_t(id = id, properties = properties)
+    def valid(self, val):
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if (math.isnan(val) or val == float("nan")):
+                return False
+        elif str(val) == "nan":  # Conversion from Pandas' `object` needs to be explicit.
+            return False
+        return True
 
-
-    def make_edge(self, id_target, id_source, properties):
-        edge_t = self.edge
-        return edge_t(id_source = id_source, id_target = id_target, properties=properties)
 
 
 
@@ -644,6 +604,7 @@ class All:
         for c in self.edges():
             names += c.fields()
         return names
+
 
 
 

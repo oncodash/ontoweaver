@@ -252,7 +252,7 @@ class PandasAdapter(base.Adapter):
                     # If the edge is from the row type (i.e. the "source/subject")
                     # then just create it using the source_id.
                     if any(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()):
-                        assert (all(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()))
+                        assert (any(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()))
                         self.make_edge_and_target(source_id, target_id, c, row)
 
                     else:  # The edge is from a random column to another (i.e. "from_subject").
