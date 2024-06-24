@@ -3,6 +3,8 @@ import logging
 from . import base
 
 # Return dictionary of mappings for both property and node ids
+
+#FIXME loggin warning not displaying correctly.
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
@@ -11,14 +13,17 @@ class split(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, row, source_id = None):
+    def __call__(self, row):
 
         for key in self.columns:
             if self.valid(row[key]):
-                logging.debug(f"AAAAAAA {row[key]}")
-                # TODO if make id is called within node split_transformer is redundant
-                # TODO just return list of IDs
-                return row[key]
+                items = row[key].split(self.separator)
+
+                for item in items:
+                    yield item
+            else:
+                logging.warning(
+                    f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -27,7 +32,38 @@ class cat(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    pass
+    def __call__(self, row):
+
+        formatted_items = ""
+
+        if hasattr(self, "format_string"):
+
+            parts = self.format_string.split('{')
+
+            for part in parts[1:]:
+                column_name, rest_of_string = part.split('}', 1)
+
+                column_value = row.get(column_name, '')
+
+                if self.valid(column_value):
+                    formatted_items += f"{column_value}{rest_of_string}"
+                else:
+                    logging.warning(
+                        f"Invalid mapping for row: `{row}`, column: `{column_name}`. Skipped cell content: `{row[column_name]}`")
+
+            return formatted_items
+
+        else:
+
+            for key in self.columns:
+                if self.valid(row[key]):
+                    formatted_items += str(row[key])
+                else:
+                    logging.warning(
+                        f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
+
+            return formatted_items
+
 
 class rowIndex(base.Transformer):
 
@@ -45,17 +81,15 @@ class map(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, row, source_id=None):
+    def __call__(self, row):
 
         # TODO if there is from_subject, change soruce_Id in edge to that id
 
-        if source_id is None:
-            for key in self.columns:
-                if self.valid(row[key]):
-                    return row[key]
-        else:
-            for key in self.columns:
-                if self.valid(row[key]):
-                    return row[key]
-                    # TODO combine make_id within make_node
+        for key in self.columns:
+            if self.valid(row[key]):
+                return row[key]
+            else:
+                logging.warning(
+                    f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
+                # TODO combine make_id within make_node
 

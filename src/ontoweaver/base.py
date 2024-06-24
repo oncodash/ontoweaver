@@ -431,7 +431,7 @@ class Transformer():
 
     #FIXME copy-pasted from tabular, maybe put in Adapter? Needs to access properties_of and skip
     @abstract
-    def __call__(self, row, source_id=None):
+    def __call__(self, row):
 
         raise NotImplementedError
 
