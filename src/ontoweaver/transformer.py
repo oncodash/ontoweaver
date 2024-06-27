@@ -3,8 +3,6 @@ import logging
 from . import base
 
 # Return dictionary of mappings for both property and node ids
-
-#FIXME loggin warning not displaying correctly.
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
@@ -23,7 +21,7 @@ class split(base.Transformer):
                     yield item
             else:
                 logging.warning(
-                    f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
+                     f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -49,7 +47,7 @@ class cat(base.Transformer):
                     formatted_items += f"{column_value}{rest_of_string}"
                 else:
                     logging.warning(
-                        f"Invalid mapping for row: `{row}`, column: `{column_name}`. Skipped cell content: `{row[column_name]}`")
+                         f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 
             return formatted_items
 
@@ -60,7 +58,7 @@ class cat(base.Transformer):
                     formatted_items += str(row[key])
                 else:
                     logging.warning(
-                        f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
+                        f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 
             return formatted_items
 
@@ -90,6 +88,5 @@ class map(base.Transformer):
                 return row[key]
             else:
                 logging.warning(
-                    f"Invalid mapping for row: `{row}`, column: `{key}`. Skipped cell content: `{row[key]}`")
-                # TODO combine make_id within make_node
+                    f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 

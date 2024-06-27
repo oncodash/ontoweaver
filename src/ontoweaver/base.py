@@ -142,8 +142,8 @@ class Node(Element):
         return (
             self._id,
             self._label,
-            # Only keep properties that are allowed.
-            self.allowed_properties()
+            # Only keep properties that are allowed. FIXME this has been changed to keep ALL properties. No checking if allowed
+            self.properties
         )
 
 
@@ -218,10 +218,6 @@ class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
 
     def __init__(self,
-        node_types : Iterable[Node],
-        node_fields: list[str],
-        edge_types : Iterable[Edge],
-        edge_fields: list[str],
     ):
         """Allow to indicate which Element subclasses and which property fields
         are allowed to be exported by Biocypher.
@@ -231,13 +227,7 @@ class Adapter(metaclass = ABSTRACT):
         :param Iterable[Edge] edge_types: Allowed Edge subclasses.
         :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
         """
-        if not node_types or not edge_types:
-            raise ValueError("You must allow at least one node type and one edge type.")
 
-        self._node_types  = node_types
-        self._node_fields = node_fields
-        self._edge_types  = edge_types
-        self._edge_fields = edge_fields
         self._nodes = []
         self._edges = []
 
@@ -256,7 +246,7 @@ class Adapter(metaclass = ABSTRACT):
                 # return False
                 pass
             else:
-                self._nodes.append(node)
+                self._nodes.append(node.as_tuple())
                 # return True
 
     def edges_append(self, edge_s) -> None:
@@ -274,7 +264,7 @@ class Adapter(metaclass = ABSTRACT):
                 # return False
                 pass
             else:
-                self._edges.append(edge)
+                self._edges.append(edge.as_tuple())
                 # return True
 
     def skip(self, val):
