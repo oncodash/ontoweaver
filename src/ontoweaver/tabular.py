@@ -101,50 +101,6 @@ class PandasAdapter(base.Adapter):
         without taking the row values into account."""
         return self.row_type
 
-    def source_id(self, i, row):
-        # FIXME: allow to configure that within the YAML.
-        # One may imagine something like: "{}_{}".format(self.source_type(row).__name__,i)
-        return "{}".format(i)
-
-    def make_edge_and_target(self, source_id, target_id, c, row, transformer_type=None, log_depth=""):
-
-        if transformer_type is not None:
-            if issubclass(transformer_type[c], base.Transformer):
-                target_t = transformer_type[c]
-                property_t = transformer_type[c].target_type()
-                self.nodes_append(self.make_node(target_t, id=target_id,
-                                                 properties=self.properties(row, property_t)))
-
-                edge_t = transformer_type[c]
-                # TODO check if property_t should change for mapping edge properties in transformers
-                self.edges_append(self.make_edge(
-                    edge_t, id=None, id_source=source_id, id_target=target_id,
-                    properties=self.properties(row, edge_t)))
-
-        else:
-
-            # target
-            target_t = self.node_type_of[c]
-            # target_id = f"{target_t.__name__}_{target_id}"
-            target_id = f"{target_id}"
-            # Append one (or several, if the target_t is a transformer) nodes.
-            self.nodes_append(self.make_node(
-                target_t, id=target_id,
-                properties=self.properties(row, target_t)
-            ))
-            logging.debug(
-                f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row, target_t).keys())}`)")
-
-            # relation
-            edge_t = self.edge_type_of[c]
-            self.edges_append(self.make_edge(
-                edge_t, id=None, id_source=source_id, id_target=target_id,
-                properties=self.properties(row, edge_t)
-            ))
-            logging.debug(
-                f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row, edge_t).keys())}`)")
-
-        return target_id
 
     def make_id(self, type, entry_name):
         """ Create a unique id for the given cell consisting of the entry name and type,
@@ -180,11 +136,14 @@ class PandasAdapter(base.Adapter):
         # TODO if multiple columns declared for same property, concatenate
         properties = {}
 
-        for col_key, property_name in properity_dict.items():
-            if self.valid(row[col_key]):
-                # TODO check Neo4j documentation for how strings are handled
-                properties[property_name] = str(row[col_key]).replace("'",
-                                                                      "`")
+        for prop_transformer, property_name in properity_dict.items():
+            properties[property_name] = str(prop_transformer(row)).replace("'", "`")
+
+
+            # if self.valid(row[col_key]):
+            #     # TODO check Neo4j documentation for how strings are handled
+            #     properties[property_name] = str(row[col_key]).replace("'",
+            #                                                           "`")
 
         return properties
 
@@ -224,27 +183,41 @@ class PandasAdapter(base.Adapter):
                 if isinstance(transformer, ontoweaver.transformer.split):
                     for target_id in transformer(row):
                         if target_id:
-                            node_id = self.make_id(transformer.target.__name__, target_id)
-                            logging.debug(f"\t\t\t\tMake node `{node_id}`.")
-                            self.nodes_append(self.make_node(node_t=transformer.target, id=node_id,
+                            target_node_id = self.make_id(transformer.target.__name__, target_id)
+                            logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
+                            self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
                                                       properties=self.properties(transformer.properties_of, row)))
-                            logging.debug(f"\t\t\t\tMake edge toward `{node_id}`.")
-                            self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=node_id, id_source=source_node_id,
+                            logging.debug(f"\t\t\t\tMake edge toward `{target_node_id}`.")
+                            self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
                                                       properties=self.properties(transformer.properties_of, row)))
                         else:
+                            #raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
 
                 else:
                     target_id = transformer(row)
 
                     if target_id:
-                        node_id = self.make_id(transformer.target.__name__, target_id)
-                        self.nodes_append(self.make_node(node_t=transformer.target, id=node_id,
+                        target_node_id = self.make_id(transformer.target.__name__, target_id)
+                        self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
                                                   properties=self.properties(transformer.properties_of, row)))
+
+                        # if hasattr(transformer, "from_subject"):
+                        #     for t in self.transformers:
+                        #         if transformer.from_subject == t.target:
+                        #             subject_id = t(row)
+                        #             subject_node_id = self.make_id(transformer.target.__name__, subject_id)
+                        #             self.edges_append(
+                        #                 self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                        #                                id_target=target_node_id,
+                        #                                properties=self.properties(transformer.properties_of, row)))
+                        # else:
+
                         self.edges_append(
-                            self.make_edge(edge_t=transformer.edge, id_source=source_node_id, id_target=node_id,
+                            self.make_edge(edge_t=transformer.edge, id_source=source_node_id, id_target=target_node_id,
                                       properties=self.properties(transformer.properties_of, row)))
                     else:
+                        # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                         continue
 
     def add_edge(self, source_type = None, target_type = None, edge_type = None):
@@ -366,7 +339,7 @@ class Declare:
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_transformer_class(self, transformer_type, node_type, properties=None, edge=None, columns=None, **kwargs):
+    def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, **kwargs):
         if hasattr(transformer, transformer_type):
             parent_t = getattr(transformer, transformer_type)
             kwargs.setdefault("subclass", parent_t)
@@ -482,11 +455,11 @@ class YamlParser(Declare):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(k_properties, pconfig=field_dict)
                     column_names = self.get(k_columns, pconfig=field_dict)
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names)
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
-                        for column_name in column_names:
-                            for property_name in property_names:
-                                properties_of[object_type].setdefault(column_name, property_name)
+                        for property_name in property_names:
+                            properties_of[object_type].setdefault(prop_transformer, property_name)
                         logging.debug(f"\t\t\t\tDeclare property mapping for `{object_type}`: {properties_of[object_type]}")
 
 
