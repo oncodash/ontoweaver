@@ -20,7 +20,7 @@ class split(base.Transformer):
                 for item in items:
                     yield item
             else:
-                logging.warning(
+                logging.error(
                      f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
@@ -46,10 +46,10 @@ class cat(base.Transformer):
                 if self.valid(column_value):
                     formatted_items += f"{column_value}{rest_of_string}"
                 else:
-                    logging.warning(
+                    logging.error(
                          f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 
-            return formatted_items
+            yield formatted_items
 
         else:
 
@@ -57,10 +57,10 @@ class cat(base.Transformer):
                 if self.valid(row[key]):
                     formatted_items += str(row[key])
                 else:
-                    logging.warning(
+                    logging.error(
                         f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 
-            return formatted_items
+            yield formatted_items
 
 
 class rowIndex(base.Transformer):
@@ -69,7 +69,13 @@ class rowIndex(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    pass
+    def __call__(self, index):
+        if self.valid(index):
+            yield index
+        else:
+            logging.error(
+                f"Error while mapping by row index. Invalid cell content: `{index}`")
+
 
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
@@ -85,8 +91,8 @@ class map(base.Transformer):
 
         for key in self.columns:
             if self.valid(row[key]):
-                return row[key]
+                yield row[key]
             else:
-                logging.warning(
+                logging.error(
                     f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
 

@@ -134,16 +134,14 @@ class PandasAdapter(base.Adapter):
         """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
 
         # TODO if multiple columns declared for same property, concatenate
+
+        #FIXME exhaust the transforemrs generator (loop and get all strings in a list), and then serialize as string and attach to property
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
-            properties[property_name] = str(prop_transformer(row)).replace("'", "`")
+            for property in prop_transformer(row):
+                properties[property_name] = str(property).replace("'", "`")
 
-
-            # if self.valid(row[col_key]):
-            #     # TODO check Neo4j documentation for how strings are handled
-            #     properties[property_name] = str(row[col_key]).replace("'",
-            #                                                           "`")
 
         return properties
 
@@ -164,8 +162,12 @@ class PandasAdapter(base.Adapter):
             if source_id is None:
 
                 if self.subject_transformer.columns:
-                    source_id = self.subject_transformer(row)
+                    for s_id in self.subject_transformer(row):
+                        source_id =  s_id
                 else:
+
+                    #FIXME should be handled by index transformer
+
                     source_id = i
 
                 source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
@@ -180,7 +182,9 @@ class PandasAdapter(base.Adapter):
 
 
             for transformer in self.transformers:
-                if isinstance(transformer, ontoweaver.transformer.split):
+
+                #FIXME assert that there is no from_subject attribute in the regular transforemrs
+
                     for target_id in transformer(row):
                         if target_id:
                             target_node_id = self.make_id(transformer.target.__name__, target_id)
@@ -191,34 +195,25 @@ class PandasAdapter(base.Adapter):
                             self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
                                                       properties=self.properties(transformer.properties_of, row)))
                         else:
-                            #raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
+                            logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
 
-                else:
-                    target_id = transformer(row)
+                        # FIXME check if two transformers are declaring the same type and raise error
 
-                    if target_id:
-                        target_node_id = self.make_id(transformer.target.__name__, target_id)
-                        self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                  properties=self.properties(transformer.properties_of, row)))
+                        if hasattr(transformer, "from_subject"):
+                            for t in self.transformers:
+                                if transformer.from_subject == t.target.__name__:
+                                    for s_id in t(row):
+                                        subject_id = s_id
+                                    subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                    self.edges_append(
+                                        self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                                       id_target=target_node_id,
+                                                       properties=self.properties(transformer.properties_of, row)))
+                        else:
 
-                        # if hasattr(transformer, "from_subject"):
-                        #     for t in self.transformers:
-                        #         if transformer.from_subject == t.target:
-                        #             subject_id = t(row)
-                        #             subject_node_id = self.make_id(transformer.target.__name__, subject_id)
-                        #             self.edges_append(
-                        #                 self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
-                        #                                id_target=target_node_id,
-                        #                                properties=self.properties(transformer.properties_of, row)))
-                        # else:
-
-                        self.edges_append(
-                            self.make_edge(edge_t=transformer.edge, id_source=source_node_id, id_target=target_node_id,
-                                      properties=self.properties(transformer.properties_of, row)))
-                    else:
-                        # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
-                        continue
+                            # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
+                            continue
 
     def add_edge(self, source_type = None, target_type = None, edge_type = None):
 
@@ -241,6 +236,7 @@ class PandasAdapter(base.Adapter):
                                   properties=self.properties(transformer.properties_of, row)))
         else:
             pass
+
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
     """Proxy function for extracting from a table all nodes, edges and properties
@@ -513,6 +509,7 @@ class YamlParser(Declare):
                         logging.debug(f"\t\t\t\tDeclare mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
+
 
 
         logging.debug(f"source class: {source_t}")
