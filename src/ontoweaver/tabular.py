@@ -193,7 +193,7 @@ class PandasAdapter(base.Adapter):
                                                       properties=self.properties(transformer.properties_of, row)))
                             logging.debug(f"\t\t\t\tMake edge toward `{target_node_id}`.")
                             self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                      properties=self.properties(transformer.properties_of, row)))
+                                                      properties=self.properties(transformer.edge.fields(), row)))
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
@@ -298,7 +298,7 @@ class Declare:
             cls = getattr(self.module, name)
             logging.info(
                 f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-            for p in properties:
+            for t, p in properties.items():
                 if p not in cls.fields():
                     logging.warning(f"\t\tProperty `{p}` not found in fields.")
 
@@ -316,7 +316,7 @@ class Declare:
             return cls
 
         def fields():
-            return list(properties.values())
+            return properties
 
         def st():
             return source_t

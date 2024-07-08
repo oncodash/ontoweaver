@@ -17,7 +17,6 @@ class Element(metaclass = ABSTRACT):
     def __init__(self,
         id        : Optional[str] = None,
         properties: Optional[dict[str,str]] = {},
-        allowed   : Optional[list[str]] = None,
         label     : Optional[str] = None,
     ):
         """Instantiate an element.
@@ -34,12 +33,6 @@ class Element(metaclass = ABSTRACT):
 
         # Use the setter to get sanity checks.
         self.properties = properties
-
-        # Use the setter to get sanity checks.
-        if not allowed:
-            self.allowed = self.available()
-        else:
-            self.allowed = allowed
 
         if not label:
             self._label = self.__class__.__name__.lower()
@@ -100,22 +93,6 @@ class Element(metaclass = ABSTRACT):
         #         assert(p in self.available())
         self._properties = properties
 
-    @property
-    def allowed(self) -> list[str]:
-        return self._allowed
-
-    @allowed.setter
-    def allowed(self, allowed_properties: list[str]):
-        assert(allowed_properties is not None)
-        # May be any name, even for another class,
-        # so there is not much to check.
-        self._allowed = allowed_properties
-
-    def allowed_properties(self):
-        """Filter out properties that are not allowed."""
-        assert(self._properties is not None)
-        assert(self._allowed is not None)
-        return {k:self._properties[k] for k in self._properties if k in self._allowed}
 
 
 class Node(Element):
@@ -124,7 +101,6 @@ class Node(Element):
     def __init__(self,
         id        : Optional[str] = None,
         properties: Optional[dict[str,str]] = {},
-        allowed   : Optional[list[str]] = None, # Passed by Adapter.
         label     : Optional[str] = None, # Set from subclass name.
     ):
         """Instantiate a Node.
@@ -134,7 +110,7 @@ class Node(Element):
         :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         """
-        super().__init__(id, properties, allowed, label)
+        super().__init__(id, properties, label)
 
     Tuple: TypeAlias = tuple[str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
@@ -142,7 +118,7 @@ class Node(Element):
         return (
             self._id,
             self._label,
-            # Only keep properties that are allowed. FIXME this has been changed to keep ALL properties. No checking if allowed
+            # FIXME this has been changed to keep ALL properties. No checking if allowed
             self.properties
         )
 
@@ -155,7 +131,6 @@ class Edge(Element):
         id_source : Optional[str] = None,
         id_target : Optional[str] = None,
         properties: Optional[dict[str,str]] = {},
-        allowed   : Optional[list[str]] = None, # Passed by Adapter.
         label     : Optional[str] = None, # Set from subclass name.
     ):
         """Instantiate an Edge.
@@ -167,7 +142,7 @@ class Edge(Element):
         :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         """
-        super().__init__(id, properties, allowed, label)
+        super().__init__(id, properties, label)
         self._id_source = str(id_source)
         self._id_target = str(id_target)
 
@@ -197,8 +172,8 @@ class Edge(Element):
             self._id_source,
             self._id_target,
             self._label,
-            # Only keep properties that are allowed.
-            self.allowed_properties()
+            #.FIXME no checking if properties are allowed allowed_properties()
+            self.properties
         )
 
 
@@ -266,66 +241,6 @@ class Adapter(metaclass = ABSTRACT):
         """Return a generator yielding edges."""
         for e in self._edges:
             yield e
-
-    @property
-    def node_types(self) -> Iterable[Node]:
-        return self._node_types
-
-    @property
-    def node_fields(self) -> list[str]:
-        return self._node_fields
-
-    @property
-    def edge_types(self) -> Iterable[Edge]:
-        return self._edge_types
-
-    @property
-    def edge_fields(self) -> list[str]:
-        return self._edge_fields
-
-    # def allows(self, elem_type: Element) -> bool:
-    #     """Returns True if the given class is in the allowed list.
-    #
-    #     Example:
-    #     .. code-block:: python
-    #
-    #         if self.allows( MyNode ):
-    #             pass
-    #
-    #     :param Element elem_type: The given class.
-    #     :returns bool: True if a Node is in node_types or an Edge in edge_types.
-    #     """
-    #     # FIXME: double-check if we want strict class equality or issubclass.
-    #     def allowed_by(elem,types):
-    #         return any(issubclass(e, elem) or e == elem for e in types)
-    #
-    #     # For Nodes: just test.
-    #     if issubclass(elem_type, Node):
-    #         return allowed_by(elem_type, self._node_types)
-    #
-    #     # For Edges: double-check target and source Node types as well.
-    #     elif issubclass(elem_type, Edge):
-    #         if allowed_by(elem_type, self._edge_types):
-    #             # logging.debug(f"\tEdge type `{elem_type.__name__}` is allowed")
-    #             if not allowed_by(elem_type.source_type(), self._node_types):
-    #                 logging.warning(f"\t\tWARNING: you allowed the `{elem_type.__name__}` edge type, but not its source (`{elem_type.source_type().__name__}`) node type.")
-    #                 return False
-    #             elif not allowed_by(elem_type.target_type(), self._node_types):
-    #                 logging.warning(f"\t\tWARNING: you allowed the `{elem_type.__name__}` edge type, but not its target (`{elem_type.target_type().__name__}`) node type.")
-    #                 return False
-    #             else:
-    #                 # logging.debug(f"\tBoth source type `{elem_type.source_type().__name__}` and target type `{elem_type.target_type().__name__}` are allowed.")
-    #                 return True
-    #         else:
-    #             # logging.debug(f"\tEdge type `{elem_type.__name__}` is not allowed")
-    #             return False
-    #
-    #     # For EdgeGenerators: recursive call to edge.
-    #     elif issubclass(elem_type, Transformer):
-    #         return self.allows(elem_type.edge_type())
-    #     else:
-    #         raise TypeError("`elem_type` should be of type `Element`")
-
 
 class Transformer:
 
