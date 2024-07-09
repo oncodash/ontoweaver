@@ -225,9 +225,13 @@ class PandasAdapter(base.Adapter):
 
                 for transformer in self.transformers:
                     if transformer.target == source_type:
-                        source_id = self.make_id(transformer.target.__name__, transformer(row))
+                        for source_id in transformer(row):
+                            source_id = source_id
+                            self.make_id(transformer.target.__name__, source_id)
                     if transformer.target == target_type:
-                        target_id = self.make_id(transformer.target.__name__, transformer(row))
+                        for target_id in transformer(row):
+                            target_id = target_id
+                            target_id = self.make_id(transformer.target.__name__, target_id)
 
                 if source_id and target_id:
                     #FIXME How to handle properties here
@@ -246,8 +250,6 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
     mapping = parser()
 
 
-    # Using empty list or no argument would also select everything,
-    # but explicit is better than implicit.
     adapter = PandasAdapter(
         df,
         *mapping,
@@ -262,6 +264,10 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
 
 
 class Declare:
+    """""Declarations of fucntions used to declare and instantiate object classes used by the Adapter for the mapping
+     of the data frame. 
+     
+     :param module: the module in which to insert the types declared by the configuration. """""
 
     def __init__(self,
                  module=types,
@@ -354,22 +360,31 @@ class Declare:
 
 class YamlParser(Declare):
     """Parse a table extraction configuration
-    and returns the three objects needed to configure a PandasAdapter.
+    and returns the three objects needed to configure an Adapter.
 
     The config is a dictionary containing only strings,
     as converted from the following YAML desscription:
 
     .. code-block:: yaml
 
-        subject: <MY_SUBJECT_TYPE>
-        columns:
-            <MY_COLUMN_NAME>:
-                to_object: <MY_OBJECT_TYPE>
-                via_relation: <MY_RELATION_TYPE>
-           <MY_OTHER_COLUMN>:
-                to_properties:
-                    <MY_PROPERTY>:
-                        - <MY_OBJECTS_TYPE>
+            row:
+               map:
+                  columns:
+                    - <MY_COLUMN_NAME>
+                  to_subject: <MY_SUBJECT_TYPE>
+            transformers:
+                - map:
+                    columns:
+                        - <MY_COLUMN_NAME>
+                    to_object: <MY_OBJECT_TYPE>
+                    via_relation: <MY_RELATION_TYPE>
+                - map:
+                    columns:
+                        - <MY_OTHER_COLUMN>
+                    to_property:
+                        - <MY_PROPERTY>
+                    for_objects:
+                        - <MY_OBJECT_TYPE>
 
     This maps the table row to a MY_SUBJECT_TYPE node type,
     adding an edge of type MY_RELATION_TYPE,
@@ -387,7 +402,7 @@ class YamlParser(Declare):
 
     :param dict config: a configuration dictionary.
     :param module: the module in which to insert the types declared by the configuration.
-    :return tuple: source_t, node_type_of, edge_type_of, properties_of, as needed by PandasAdapter.
+    :return tuple: subject_transformer, transformers, as needed by the Adapter.
     """
 
     def __init__(self,
