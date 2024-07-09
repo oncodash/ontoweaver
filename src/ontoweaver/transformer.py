@@ -20,8 +20,8 @@ class split(base.Transformer):
                 for item in items:
                     yield item
             else:
-                logging.error(
-                     f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
+                logging.warning(
+                     f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -46,8 +46,8 @@ class cat(base.Transformer):
                 if self.valid(column_value):
                     formatted_items += f"{column_value}{rest_of_string}"
                 else:
-                    logging.error(
-                         f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
+                    logging.warning(
+                        f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
             yield formatted_items
 
@@ -57,8 +57,8 @@ class cat(base.Transformer):
                 if self.valid(row[key]):
                     formatted_items += str(row[key])
                 else:
-                    logging.error(
-                        f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
+                    logging.warning(
+                        f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
             yield formatted_items
 
@@ -73,7 +73,7 @@ class rowIndex(base.Transformer):
         if self.valid(index):
             yield index
         else:
-            logging.error(
+            logging.warning(
                 f"Error while mapping by row index. Invalid cell content: `{index}`")
 
 
@@ -93,6 +93,6 @@ class map(base.Transformer):
             if self.valid(row[key]):
                 yield row[key]
             else:
-                logging.error(
-                    f"Error while mapping column: `{key}`. Invalid cell content: `{row[key]}`")
+                logging.warning(
+                     f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 

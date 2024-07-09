@@ -222,21 +222,25 @@ class PandasAdapter(base.Adapter):
             for i, row in self.df.iterrows():
                 source_id = None
                 target_id = None
+                source_node_id = None
+                target_node_id = None
 
                 for transformer in self.transformers:
                     if transformer.target == source_type:
-                        for source_id in transformer(row):
-                            source_id = source_id
-                            self.make_id(transformer.target.__name__, source_id)
+                        for s_id in transformer(row):
+                            source_id = s_id
+                            if source_id:
+                                source_node_id = self.make_id(transformer.target.__name__, source_id)
                     if transformer.target == target_type:
-                        for target_id in transformer(row):
-                            target_id = target_id
-                            target_id = self.make_id(transformer.target.__name__, target_id)
+                        for t_id in transformer(row):
+                            target_id = t_id
+                            if target_id:
+                                target_node_id = self.make_id(transformer.target.__name__, target_id)
 
-                if source_id and target_id:
+                if source_node_id and target_node_id:
                     #FIXME How to handle properties here
                     self.edges_append(
-                        self.make_edge(edge_t=edge_type, id_source=target_id, id_target=source_id,
+                        self.make_edge(edge_t=edge_type, id_source=source_node_id, id_target=target_node_id,
                                   properties=self.properties(transformer.properties_of, row)))
         else:
             pass
