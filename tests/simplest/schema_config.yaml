@@ -10,6 +10,9 @@ patient: # Existing in Biolink under another name.
     represented_as: node
     label_in_input: patient
     synonym_for: case # Actual name in Biolink.
+    properties:
+        maladie: str
+        version: str
 
 patient has variant: # Not existing in Biolink…
     # … thus added by Biocypher under:
@@ -18,4 +21,6 @@ patient has variant: # Not existing in Biolink…
     label_in_input: patient_has_variant
     source: sequence variant
     target: patient
+    properties:
+        version: str
 

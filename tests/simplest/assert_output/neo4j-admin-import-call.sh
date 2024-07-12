@@ -1,0 +1,7 @@
+#!/bin/bash
+version=$(bin/neo4j-admin --version | cut -d '.' -f 1)
+if [[ $version -ge 5 ]]; then
+	neo4j-admin database import full --delimiter=";" --array-delimiter="|" --quote="'" --overwrite-destination=true --skip-bad-relationships=true --skip-duplicate-nodes=true --nodes="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/SequenceVariant-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/SequenceVariant-part.*" --nodes="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/Patient-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/Patient-part.*" --relationships="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/PatientHasVariant-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/PatientHasVariant-part.*" test
+else
+	neo4j-admin import --delimiter=";" --array-delimiter="|" --quote="'" --force=true --skip-bad-relationships=true --skip-duplicate-nodes=true --nodes="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/SequenceVariant-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/SequenceVariant-part.*" --nodes="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/Patient-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/Patient-part.*" --relationships="/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/PatientHasVariant-header.csv,/Users/mbaric/ontoweaver1/biocypher-out/20240712142810/PatientHasVariant-part.*" --database=test 
+fi

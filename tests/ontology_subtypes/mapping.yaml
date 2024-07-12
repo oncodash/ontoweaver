@@ -1,0 +1,21 @@
+row:
+   map:
+      to_subject: variant
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+
+    - map:
+        columns:
+            - highestFdaLevel
+        to_object: fda_evidence_level
+        via_relation: variant_to_evidence
+
+    - map:
+        columns:
+            - highestSensitiveLevel
+        to_object: oncokb_evidence_level
+        via_relation: variant_to_evidence

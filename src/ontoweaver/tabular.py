@@ -105,9 +105,6 @@ class PandasAdapter(base.Adapter):
     def make_id(self, type, entry_name):
         """ Create a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration."""
-        id = None
-
-        # fixme self separator can't be passed here, need another kwarg or other solution
 
         if self.type_affix == TypeAffixes.prefix:
             id = f'{type}{self.type_affix_sep}{entry_name}'
@@ -191,29 +188,33 @@ class PandasAdapter(base.Adapter):
                             logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
                             self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
                                                       properties=self.properties(transformer.properties_of, row)))
-                            logging.debug(f"\t\t\t\tMake edge toward `{target_node_id}`.")
-                            self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                      properties=self.properties(transformer.edge.fields(), row)))
+
+                            if hasattr(transformer, "from_subject"):
+                                for t in self.transformers:
+                                    if transformer.from_subject == t.target.__name__:
+                                        for s_id in t(row):
+                                            subject_id = s_id
+                                        subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                        self.edges_append(
+                                            self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                                           id_target=target_node_id,
+                                                           properties=self.properties(transformer.properties_of, row)))
+
+                                    else:
+
+                                        # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
+                                        continue
+                            else:
+                                logging.debug(f"\t\t\t\tMake edge toward `{target_node_id}`.")
+                                self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
+                                                          properties=self.properties(transformer.edge.fields(), row)))
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
 
                         # FIXME check if two transformers are declaring the same type and raise error
 
-                        if hasattr(transformer, "from_subject"):
-                            for t in self.transformers:
-                                if transformer.from_subject == t.target.__name__:
-                                    for s_id in t(row):
-                                        subject_id = s_id
-                                    subject_node_id = self.make_id(t.target.__name__, subject_id)
-                                    self.edges_append(
-                                        self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
-                                                       id_target=target_node_id,
-                                                       properties=self.properties(transformer.properties_of, row)))
-                        else:
 
-                            # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
-                            continue
 
     def add_edge(self, source_type = None, target_type = None, edge_type = None):
 
