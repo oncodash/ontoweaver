@@ -150,6 +150,7 @@ class PandasAdapter(base.Adapter):
 
 
     def run(self):
+        """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
 
 
         for i, row in self.df.iterrows():
@@ -217,6 +218,8 @@ class PandasAdapter(base.Adapter):
 
 
     def add_edge(self, source_type = None, target_type = None, edge_type = None):
+        """"Extract additional edge between two columns of the data frame of type `edge_type`, from the node
+         `source_type` to the node `target_type`."""""
 
         if source_type and target_type and edge_type:
 

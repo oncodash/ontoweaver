@@ -243,6 +243,7 @@ class Adapter(metaclass = ABSTRACT):
             yield e
 
 class Transformer:
+    """"Class used to manipulate cell values and return them in the correct format."""""
 
     def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
 
@@ -252,6 +253,16 @@ class Transformer:
         self.columns = columns
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+        """
+        Instantiate transformers.
+    
+        :param target: the target ontology / node type to map to.
+        :param properties_of: the properties of each node type.
+        :param edge: the edge type to use in the mapping.
+        :param columns: the columns to use in the mapping.
+
+        """
 
     def get_transformer(self):
         return self
