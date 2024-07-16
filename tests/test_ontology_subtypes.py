@@ -1,16 +1,14 @@
-import pytest
-import yaml
-import logging
-import shutil
 
-import pandas as pd
-import biocypher
-from tests.testing_functions import get_latest_directory, compare_csv_files
-import ontoweaver
+def test_ontology_subtypes():
+    import yaml
+    import logging
+    from . import testing_functions
+    import shutil
+    import pandas as pd
+    import biocypher
+    from . import testing_functions
+    import ontoweaver
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def test_bug_lost_type():
 
     directory_name = "ontology_subtypes"
 
@@ -47,14 +45,13 @@ def test_bug_lost_type():
     logging.debug("Write import script...")
     bc.write_import_call()
 
-    output_dir = get_latest_directory("biocypher-out")
+    output_dir = testing_functions.get_latest_directory("biocypher-out")
 
     assert_output_path = "tests/" + directory_name + "/assert_output"
 
-    compare_csv_files(assert_output_path, output_dir)
+    testing_functions.compare_csv_files(assert_output_path, output_dir)
 
     shutil.rmtree(output_dir)
 
-
 if __name__ == "__main__":
-    test_bug_lost_type()
+    test_ontology_subtypes()

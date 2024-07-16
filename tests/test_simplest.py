@@ -1,13 +1,12 @@
-from tests.testing_functions import get_latest_directory, compare_csv_files
-import shutil
+
 
 def test_simplest():
     import yaml
     import logging
-
+    from . import testing_functions
+    import shutil
     import pandas as pd
     import biocypher
-
     import ontoweaver
 
     directory_name = "simplest"
@@ -43,11 +42,11 @@ def test_simplest():
     logging.debug("Write import script...")
     bc.write_import_call()
 
-    output_dir = get_latest_directory("biocypher-out")
+    output_dir = testing_functions.get_latest_directory("biocypher-out")
 
     assert_output_path = "tests/" + directory_name + "/assert_output"
 
-    compare_csv_files(assert_output_path, output_dir)
+    testing_functions.compare_csv_files(assert_output_path, output_dir)
 
     shutil.rmtree(output_dir)
 

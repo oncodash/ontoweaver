@@ -1,11 +1,11 @@
-from tests.testing_functions import get_latest_directory, compare_csv_files
-from tests.edges_between_columns import types
-import shutil
+
 
 def test_edges_between_columns():
     import yaml
     import logging
-
+    from . import testing_functions
+    from tests.edges_between_columns import types
+    import shutil
     import pandas as pd
     import biocypher
     import ontoweaver
@@ -47,11 +47,11 @@ def test_edges_between_columns():
     logging.debug("Write import script...")
     bc.write_import_call()
 
-    output_dir = get_latest_directory("biocypher-out")
+    output_dir = testing_functions.get_latest_directory("biocypher-out")
 
     assert_output_path = "tests/" + directory_name + "/assert_output"
 
-    compare_csv_files(assert_output_path, output_dir)
+    testing_functions.compare_csv_files(assert_output_path, output_dir)
 
     shutil.rmtree(output_dir)
 
