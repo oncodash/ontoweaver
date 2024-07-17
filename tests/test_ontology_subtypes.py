@@ -6,7 +6,6 @@ def test_ontology_subtypes():
     import shutil
     import pandas as pd
     import biocypher
-    from . import testing_functions
     import ontoweaver
 
 

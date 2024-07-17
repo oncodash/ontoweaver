@@ -7,9 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-biocypher = "^0.5.4"
+biocypher = "^0.5.43"
 pooch = "^1.7.0" # Dep of biocypher
-pandas = "^1.5.3"
+pandas = "^2.0.1"
+numpy = "^1.26.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.0"
