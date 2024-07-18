@@ -23,7 +23,6 @@ class Element(metaclass = ABSTRACT):
 
         :param str id: Unique identifier of the element. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed.
         :param str label: The label of the element. If label = None, the lower-case version of the class name is used as a label.
         """
         if not id:
@@ -44,18 +43,6 @@ class Element(metaclass = ABSTRACT):
     def fields() -> list[str]:
         """List of property fields provided by the (sub)class."""
         raise NotImplementedError
-
-    def available(self) -> list[str]:
-        """Enumerate all fields declared by the hierarchy of classes above the current instance."""
-
-        # Loop over parent classes, except for the last ones,
-        # which are `Node`/`Edge`, `Element` and `object`.
-        for Parent in type(self).mro()[:-3]:
-            # Call the static method of this class,
-            # and yield its content.
-            for field in Parent.fields():
-                # logging.debug(f"\t\t {type(self).mro()[:-3]}/{Parent.__name__} => {field}")
-                yield field
 
     @abstract
     def as_tuple(self):
@@ -107,7 +94,6 @@ class Node(Element):
 
         :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         """
         super().__init__(id, properties, label)
@@ -139,7 +125,6 @@ class Edge(Element):
         :param str id_source: Unique identifier of the source Node. If None, is then set to the empty string.
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param list[str] allowed: Allowed property names (the ones that will be exported to the knowledge graph by Biocypher). If allowed == None, all properties are allowed. Note: when instantiating through an Adapter.make, you don't need to pass this argument.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         """
         super().__init__(id, properties, label)
@@ -186,9 +171,7 @@ class Adapter(metaclass = ABSTRACT):
         are allowed to be exported by Biocypher.
 
         :param Iterable[Node] node_types: Allowed Node subclasses.
-        :param list[str] node_fields: Allowed property fields for the Node subclasses.
         :param Iterable[Edge] edge_types: Allowed Edge subclasses.
-        :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
         """
 
         self._nodes = []

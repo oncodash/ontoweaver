@@ -58,7 +58,6 @@ class PandasAdapter(base.Adapter):
                  df: pd.DataFrame,
                  subject_transformer: base.Transformer,
                  transformers: Iterable[base.Transformer],
-                 skip_nan=True, #TODO check if feature needed
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  ):
@@ -66,6 +65,8 @@ class PandasAdapter(base.Adapter):
         Instantiate the adapter.
 
         :param pandas.Dataframe df: the table containing the input data.
+        :param base.Transformer subject_transformer: the transformer that maps the subject node.
+        :param Iterable[base.Transformer] transformers: list of transformer instances that map the data frame to nodes and edges.
         :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
         :param str type_affix_sep: String use to separate a labe from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
@@ -89,7 +90,6 @@ class PandasAdapter(base.Adapter):
         self.subject_transformer = subject_transformer
         self.transformers = transformers
         # logging.debug(self.properties_of)
-        self.skip_nan = skip_nan
 
     def source_type(self, row):
         """Accessor to the row type actually used by `run`.
@@ -120,6 +120,7 @@ class PandasAdapter(base.Adapter):
             raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
 
     def valid(self, val):
+        "Checks if cell value is valid - not a `nan`."
         if pd.api.types.is_numeric_dtype(type(val)):
             if (math.isnan(val) or val == float("nan")):
                 return False
@@ -128,7 +129,8 @@ class PandasAdapter(base.Adapter):
         return True
 
     def properties(self, properity_dict, row):
-        """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
+        """Extract properties of each property category for the given node type.
+        If no properties are found, return an empty dictionary."""
 
         # TODO if multiple columns declared for same property, concatenate
 
@@ -143,20 +145,23 @@ class PandasAdapter(base.Adapter):
         return properties
 
     def make_node(self, node_t, id, properties):
+        "Create nodes of a cartain type."
         return node_t(id=id, properties=properties)
 
     def make_edge(self, edge_t, id_target, id_source, properties):
+        "Create edges of a cartain type."
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
 
     def run(self):
         """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
 
-
+        # Loop over the data frame.
         for i, row in self.df.iterrows():
 
             source_id = None
 
+            # Declare a source id and create corresponding node. If no column defined, create source id from row index.
             if source_id is None:
 
                 if self.subject_transformer.columns:
@@ -178,7 +183,7 @@ class PandasAdapter(base.Adapter):
             else:
                 raise ValueError(f"\t\tDeclaration of subject ID for row `{row}` unsuccessful.")
 
-
+            # Loop over list of transformer instances and create corresponding nodes and edges.
             for transformer in self.transformers:
 
                 #FIXME assert that there is no from_subject attribute in the regular transforemrs
@@ -190,6 +195,9 @@ class PandasAdapter(base.Adapter):
                             self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
                                                       properties=self.properties(transformer.properties_of, row)))
 
+                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                            # list to find the transformer instance mapping to the correct type, and then create new
+                            # subject id.
                             if hasattr(transformer, "from_subject"):
                                 for t in self.transformers:
                                     if transformer.from_subject == t.target.__name__:
@@ -223,6 +231,8 @@ class PandasAdapter(base.Adapter):
 
         if source_type and target_type and edge_type:
 
+            # Loop over data frame and transformer list to find corresponding transformer instances for source and target
+            # and use them to create corresponding edge.
             for i, row in self.df.iterrows():
                 source_id = None
                 target_id = None
@@ -525,7 +535,6 @@ class YamlParser(Declare):
                             edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
                         else:
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
-                        # FIXME: Instantiate a specific transformer instead of base.Transformer
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=target_t,
                             properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
