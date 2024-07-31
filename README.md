@@ -57,15 +57,16 @@ Theoretically, any graph database supported by Biocypher may be used.
 
 Neo4j is a popular graph database management system that offers a flexible and efficient way
 to store, query, and manipulate complex, interconnected data. Cypher is the query language
-used to interact with Neo4j databases. In order to visualize graphs extracted from databases using OntoWeaver 
-BioCypher, you can download the [Neo4j Graph Database Self-Managed version community edition]
-(https://neo4j.com/deployment-center/) for your operating system. 
+used to interact with Neo4j databases. In order to visualize graphs extracted from databases using OntoWeaver and
+BioCypher, you can download the [Neo4j Graph Database Self-Managed]
+(https://neo4j.com/deployment-center/) for your operating system. It has been extensively tested
+with the Community edition.
 
-To create a global variable, add the path to `neo4j-admin` to PATH. In order to use the Neo4j browser, you will
+To create a global variable to Neo4j, add the path to `neo4j-admin` to PATH and `PYTHONPATH`. In order to use the Neo4j browser, you will
 need to install the correct Java version, depending on the Neo4j version you are using, and add the path to `JAVA_HOME`. 
 OntoWeaver and BioCypher  support versions 4 and 5 of Neo4j.
 
-To run Neo4j, use the command `neo4j-admin server start` after importing your results via the neo4j import sequence
+To run Neo4j (version 5+), use the command `neo4j-admin server start` after importing your results via the neo4j import sequence
 provided in the `./biocypher-out/` directory. Use `neo4j-admin server stop` to disconnect the local server.
 
 
@@ -102,7 +103,6 @@ To actually insert data in a SKG database, you will have to use Biocypher
 export API:
 ```python
     import yaml
-    import logging
     import pandas as pd
     import biocypher
     import ontoweaver
@@ -238,7 +238,7 @@ for each patient, and an edge for each phenotype-patient pair:
 ```
 
 
-### How to Add an Eedge Bwtween Columns Nodes
+### How to Add an Edge Between Column Nodes
 
 If you need to add an edge between a column node to another (and not between
 the line node and a column node), you can use the `from_subject` predicate,
@@ -280,7 +280,7 @@ transformers:
            ╰───────────────────╯
 ```
 
-### How to Add Properties to Nodes
+### How to Add Properties to Nodes and Edges
 
 If you do not need to create a new node, but simply attach some data to an existing
 node, use the `to_property` predicate, for example:
@@ -375,29 +375,6 @@ transformers:
        ╰───────────────╯   ╰────────────────╯
 ```
 
-It is worth noting that the underlying code is very simple:
-```python
-class split(base.Transformer):
-    """Transformer subclass used to split cell values at defined separator and create nodes with
-    their respective values as id."""
-
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
-
-        super().__init__(target, properties_of, edge, columns, **kwargs)
-
-    def __call__(self, row):
-
-        for key in self.columns:
-            if self.valid(row[key]):
-                items = row[key].split(self.separator)
-
-                for item in items:
-                    yield item
-            else:
-                logging.warning(
-                     f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
-```
-
 #### `cat`
 
 The *cat* transformer concatenates the values cells of the defined columns and then inserts a single node.
@@ -428,7 +405,7 @@ row:
 ```
 
 Although the examples above all define mapping of cell values to nodes, the transformers are also used to map 
-cell values to properties of nodes. For example:
+cell values to properties of nodes and edges. For example:
 
 ```yaml
     - map:
@@ -437,9 +414,9 @@ cell values to properties of nodes. For example:
         to_property:
             - version
         for_objects:
-            - patient
+            - patient # Node type.
             - variant
-            - patient_has_variant
+            - patient_has_variant # Edge type.
 ```
 
 
@@ -456,7 +433,7 @@ Here is the list of available synonyms:
 - `subject` = `row` = `entry` = `line` = `source`
 - `columns` = `fields`
 - `to_object` = `to_target` = `to_node`
-- `from_subject` = `from_source` #FIXME fix in tabular.run
+- `from_subject` = `from_source`
 - `via_relation` = `via_edge` = `via_predicate`
 - `to_property` = `to_properties`
 
@@ -471,7 +448,7 @@ By default, those classes are dynamically created into the `ontoweaver.types`
 module.
 
 You may manually define your own types, derivating from `ontoweaver.base.Node`
-or `ontoweaver.base.Edge`. 
+or `ontoweaver.base.Edge`.
 
 The `ontoweaver.types` module automatically gathers the list of available types
 in the `ontoweaver.types.all` submodule.
@@ -480,10 +457,6 @@ This allows accessing the list of node and edge types:
 node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
-# FIXME add case of defining own classes and showcase that users only need to define classes that are NOT present in 
-ontoweaver.types after running (ie classes are not instanciated by a present mapping). For the usage of 
-those classes when creating edges, use ontoweaver.types.type_you_want
-
 
 #### User-defined Adapters
 
@@ -512,7 +485,6 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
      
 
 ```
-# FIXME DOUBLE CHECK
 When manually defining adapter classes, be sure to define the affix type and separator you wish to use in the mapping. 
 Unless otherwise defined, affix type defaults to `suffix` and separator defaults to `:`. In the example above, the affix type is defined as `prefix` and
 the separator is defined as `//`. If you wish to define affix as `none`, you should use 
@@ -521,71 +493,15 @@ the separator is defined as `//`. If you wish to define affix as `none`, you sho
 
 
 
-# FIXME DOUBLE CHECK UNTIL MULTIPLE RELATIONS
-#### Multiple Subjects
-
-If you need to change the subject's (line) type depending on the value of
-some field, you will have to declare your own adapter class, and overload
-the `source_type` method.
-
-For example:
-```python
-    def source_type(self, row):
-        from . import types
-        if row["alteration"].lower() == "amplification":
-            return types.amplification
-        elif row["alteration"].lower() == "loss":
-            return types.loss
-        else:
-            logging.debug(f"Source type is `variant`")
-            return types.variant
-```
-
-The same goes for defining the *ID* of the subject, for example:
-```python
-    def source_id(self, i, row):
-        id = "{}".format(row["patient_id"])
-        logging.debug("Source ID is `{}`".format(id))
-        return "{}".format(id)
-```
-
-
 #### How to Extract Additional Edges
 
-If you need to add an additional edge from the current node to another one,
-you will need to use the `add_edge` method.
+Edges can be extracted via the use of the `add_edge()` function.
+The function should be used right after running the `run()` function of the adapter.
 
-For example, if you are using a custom - made adapter:
-```python
-import pandas as pd
-import ontoweaver
-
-class MYADAPTER(ontoweaver.tabular.PandasAdapter):
-
-    def __init__(self,
-        df: pd.DataFrame,
-        config: dict,
-    ):
-        # Default mapping as a simple config.
-        from . import types
-        parser = ontoweaver.tabular.YamlParser(config, types)
-        mapping = parser()
-
-
-        # Declare types defined in the config.
-        super().__init__(
-            df,
-            *mapping,
-        )
-        
-        # Extract additional edge type `sample_to_patient` between nodes `sample` and `patient`. 
-        self.add_edge(types.sample, types.patient, types.sample_to_patient)
-```
-or, if not:
+For example:
 
 ```python
     import yaml
-    import logging
     import pandas as pd
     import biocypher
     import ontoweaver
@@ -618,8 +534,6 @@ or, if not:
 
     # Write import script
     bc.write_import_call()
-
-    # Now you have a script that you can run to actually insert data.
 ```
 Source and target nodes are modified by passing the names to the `add_edge` function. The names should represent ontology types as defined
 in the `label_in_input` field in the `schema_config.yaml` file.

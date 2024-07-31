@@ -23,6 +23,6 @@ transformers:
     - map:
         columns:
             - citationPubMed
-        from_subject: drug
+        from_source: drug
         to_object: publication
         via_relation: treatment_has_citation

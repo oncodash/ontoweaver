@@ -73,7 +73,7 @@ class PandasAdapter(base.Adapter):
         super().__init__()
 
         logging.info("DataFrame info:")
-        # logging.info(df.info()) # FIXME is displayed on stdout after all calls, use a stream with the buf arg here.
+        # logging.info(df.info())
         logging.debug("Columns:")
         for c in df.columns:
             logging.debug(f"\t`{c}`")
@@ -131,10 +131,6 @@ class PandasAdapter(base.Adapter):
     def properties(self, properity_dict, row):
         """Extract properties of each property category for the given node type.
         If no properties are found, return an empty dictionary."""
-
-        # TODO if multiple columns declared for same property, concatenate
-
-        #FIXME exhaust the transforemrs generator (loop and get all strings in a list), and then serialize as string and attach to property
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
@@ -160,6 +156,7 @@ class PandasAdapter(base.Adapter):
         for i, row in self.df.iterrows():
 
             source_id = None
+            source_node_id = None
 
             # Declare a source id and create corresponding node. If no column defined, create source id from row index.
             if source_id is None:
@@ -169,12 +166,11 @@ class PandasAdapter(base.Adapter):
                         source_id =  s_id
                 else:
 
-                    #FIXME should be handled by index transformer
+                    # TODO should be handled by index transformer (issues since either i or row passed).
 
                     source_id = i
 
                 source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
-
 
             if source_node_id:
                 logging.debug(f"\t\tDeclared source id: `{source_node_id}")
@@ -186,7 +182,7 @@ class PandasAdapter(base.Adapter):
             # Loop over list of transformer instances and create corresponding nodes and edges.
             for transformer in self.transformers:
 
-                #FIXME assert that there is no from_subject attribute in the regular transforemrs
+                # TODO assert that there is no from_subject attribute in the regular transforemrs
 
                     for target_id in transformer(row):
                         if target_id:
@@ -204,24 +200,23 @@ class PandasAdapter(base.Adapter):
                                         for s_id in t(row):
                                             subject_id = s_id
                                         subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                        logging.debug(f"\t\t\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
                                         self.edges_append(
                                             self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
                                                            id_target=target_node_id,
                                                            properties=self.properties(transformer.properties_of, row)))
 
                                     else:
-
-                                        # raise ValueError(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                                         continue
                             else:
-                                logging.debug(f"\t\t\t\tMake edge toward `{target_node_id}`.")
+                                logging.debug(f"\t\t\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
                                 self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
                                                           properties=self.properties(transformer.edge.fields(), row)))
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
 
-                        # FIXME check if two transformers are declaring the same type and raise error
+                        # TODO check if two transformers are declaring the same type and raise error
 
 
 
@@ -252,11 +247,12 @@ class PandasAdapter(base.Adapter):
                                 target_node_id = self.make_id(transformer.target.__name__, target_id)
 
                 if source_node_id and target_node_id:
-                    #FIXME How to handle properties here
+                    # FIXME How to handle properties here?
                     self.edges_append(
                         self.make_edge(edge_t=edge_type, id_source=source_node_id, id_target=target_node_id,
                                   properties=self.properties(transformer.properties_of, row)))
         else:
+            logging.warning(f"Failed extraction of additional edge.")
             pass
 
 
@@ -475,8 +471,6 @@ class YamlParser(Declare):
         # First, parse property mappings.
         # Because we must declare types with every member's fields already ready.
 
-        # TODO if there is a property name with multiple porperty columns, make a list
-
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
                 # Check if dictionary has a property key, and map the declared properties for each ontology type.
@@ -526,6 +520,13 @@ class YamlParser(Declare):
                     subject = self.get(k_subject, pconfig=field_dict)
                     edge = self.get(k_edge, pconfig=field_dict)
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
+
+                    # Check if the key 'from_source' exists in the dictionary.
+                    if 'from_source' in gen_data:
+                        # Assign the value of 'from_source' to the new key 'from_subject'.
+                        gen_data['from_subject'] = gen_data['from_source']
+                        # Delete the 'from_source' key from the dictionary.
+                        del gen_data['from_source']
 
                     if target and edge:
                         target_t = self.make_node_class(target, properties_of.get(target, {}))
