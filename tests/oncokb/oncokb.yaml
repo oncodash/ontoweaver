@@ -1,5 +1,5 @@
 row:
-   map:
+   rowIndex:
       to_subject: variant
 transformers:
     - map:

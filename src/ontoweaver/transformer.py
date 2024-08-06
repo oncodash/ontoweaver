@@ -1,8 +1,6 @@
 import logging
 
 from . import base
-
-# Return dictionary of mappings for both property and node ids
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
@@ -11,7 +9,7 @@ class split(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, row):
+    def __call__(self, row, i):
 
         for key in self.columns:
             if self.valid(row[key]):
@@ -30,7 +28,7 @@ class cat(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, row):
+    def __call__(self, row, i):
 
         formatted_items = ""
 
@@ -47,7 +45,7 @@ class cat(base.Transformer):
                     formatted_items += f"{column_value}{rest_of_string}"
                 else:
                     logging.warning(
-                        f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                        f"Encountered invalid content when mapping column: `{column_name}`. Skipping cell value: `{row[column_name]}`")
 
             yield formatted_items
 
@@ -64,17 +62,18 @@ class cat(base.Transformer):
 
 
 class rowIndex(base.Transformer):
+    """Transformer subclass used for the simple mapping of nodes with row index values as id."""
 
     def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, index):
-        if self.valid(index):
-            yield index
+    def __call__(self, row, i):
+        if self.valid(i):
+            yield i
         else:
             logging.warning(
-                f"Error while mapping by row index. Invalid cell content: `{index}`")
+                f"Error while mapping by row index. Invalid cell content: `{i}`")
 
 
 class map(base.Transformer):
@@ -85,7 +84,7 @@ class map(base.Transformer):
 
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
-    def __call__(self, row):
+    def __call__(self, row, i):
 
         # TODO if there is from_subject, change soruce_Id in edge to that id
 

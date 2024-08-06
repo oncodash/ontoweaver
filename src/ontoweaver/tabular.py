@@ -128,13 +128,13 @@ class PandasAdapter(base.Adapter):
             return False
         return True
 
-    def properties(self, properity_dict, row):
+    def properties(self, properity_dict, row, i):
         """Extract properties of each property category for the given node type.
         If no properties are found, return an empty dictionary."""
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
-            for property in prop_transformer(row):
+            for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
 
 
@@ -161,21 +161,16 @@ class PandasAdapter(base.Adapter):
             # Declare a source id and create corresponding node. If no column defined, create source id from row index.
             if source_id is None:
 
-                if self.subject_transformer.columns:
-                    for s_id in self.subject_transformer(row):
-                        source_id =  s_id
-                else:
+                for s_id in self.subject_transformer(row, i):
+                    source_id =  s_id
 
-                    # TODO should be handled by index transformer (issues since either i or row passed).
-
-                    source_id = i
 
                 source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
             if source_node_id:
                 logging.debug(f"\t\tDeclared source id: `{source_node_id}")
                 self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
-                                          properties=self.properties(self.subject_transformer.properties_of, row))))
+                                          properties=self.properties(self.subject_transformer.properties_of, row, i))))
             else:
                 raise ValueError(f"\t\tDeclaration of subject ID for row `{row}` unsuccessful.")
 
@@ -184,12 +179,12 @@ class PandasAdapter(base.Adapter):
 
                 # TODO assert that there is no from_subject attribute in the regular transforemrs
 
-                    for target_id in transformer(row):
+                    for target_id in transformer(row, i):
                         if target_id:
                             target_node_id = self.make_id(transformer.target.__name__, target_id)
                             logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
                             self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                      properties=self.properties(transformer.properties_of, row)))
+                                                      properties=self.properties(transformer.properties_of, row, i)))
 
                             # If a `from_subject` attribute is present in the transformer, loop over the transformer
                             # list to find the transformer instance mapping to the correct type, and then create new
@@ -197,21 +192,21 @@ class PandasAdapter(base.Adapter):
                             if hasattr(transformer, "from_subject"):
                                 for t in self.transformers:
                                     if transformer.from_subject == t.target.__name__:
-                                        for s_id in t(row):
+                                        for s_id in t(row, i):
                                             subject_id = s_id
                                         subject_node_id = self.make_id(t.target.__name__, subject_id)
                                         logging.debug(f"\t\t\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
                                         self.edges_append(
                                             self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
                                                            id_target=target_node_id,
-                                                           properties=self.properties(transformer.properties_of, row)))
+                                                           properties=self.properties(transformer.properties_of, row, i)))
 
                                     else:
                                         continue
                             else:
                                 logging.debug(f"\t\t\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
                                 self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                          properties=self.properties(transformer.edge.fields(), row)))
+                                                          properties=self.properties(transformer.edge.fields(), row, i)))
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
@@ -236,12 +231,12 @@ class PandasAdapter(base.Adapter):
 
                 for transformer in self.transformers:
                     if transformer.target == source_type:
-                        for s_id in transformer(row):
+                        for s_id in transformer(row, i):
                             source_id = s_id
                             if source_id:
                                 source_node_id = self.make_id(transformer.target.__name__, source_id)
                     if transformer.target == target_type:
-                        for t_id in transformer(row):
+                        for t_id in transformer(row, i):
                             target_id = t_id
                             if target_id:
                                 target_node_id = self.make_id(transformer.target.__name__, target_id)
@@ -250,7 +245,7 @@ class PandasAdapter(base.Adapter):
                     # FIXME How to handle properties here?
                     self.edges_append(
                         self.make_edge(edge_t=edge_type, id_source=source_node_id, id_target=target_node_id,
-                                  properties=self.properties(transformer.properties_of, row)))
+                                  properties=self.properties(transformer.properties_of, row, i)))
         else:
             logging.warning(f"Failed extraction of additional edge.")
             pass

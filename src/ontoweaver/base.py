@@ -252,7 +252,7 @@ class Transformer:
 
 
     @abstract
-    def __call__(self, row):
+    def __call__(self, row, i):
 
         raise NotImplementedError
 
