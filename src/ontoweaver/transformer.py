@@ -5,70 +5,154 @@ class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the split transformer.
 
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
     def __call__(self, row, i):
+        """
+        Process a row and yield split items as node IDs.
 
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: Each split item from the cell value.
+        """
         for key in self.columns:
             if self.valid(row[key]):
                 items = row[key].split(self.separator)
-
                 for item in items:
                     yield item
             else:
                 logging.warning(
-                     f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                    f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the cat transformer.
 
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
     def __call__(self, row, i):
+        """
+        Process a row and yield concatenated items as node IDs.
 
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The concatenated string from the cell values.
+        """
         formatted_items = ""
 
+        for key in self.columns:
+            if self.valid(row[key]):
+                formatted_items += str(row[key])
+            else:
+                logging.warning(
+                    f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+
+        yield formatted_items
+class cat_format(base.Transformer):
+    """Transformer subclass used to concatenate cell values of defined columns and create nodes with
+    their respective values as id."""
+
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the cat_format transformer.
+
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__(target, properties_of, edge, columns, **kwargs)
+
+    def __call__(self, row, i):
+        """
+        Process a row and yield a formatted string as node ID.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The formatted string from the cell values.
+
+        Raises:
+            Exception: If the format string is not defined or if invalid content is encountered.
+        """
         if hasattr(self, "format_string"):
-
-            parts = self.format_string.split('{')
-
-            for part in parts[1:]:
-                column_name, rest_of_string = part.split('}', 1)
-
+            for column_name in self.columns:
                 column_value = row.get(column_name, '')
-
                 if self.valid(column_value):
-                    formatted_items += f"{column_value}{rest_of_string}"
+                    continue
                 else:
-                    logging.warning(
-                        f"Encountered invalid content when mapping column: `{column_name}`. Skipping cell value: `{row[column_name]}`")
+                    raise Exception(
+                        f"Encountered invalid content when mapping column: `{column_name}` in `format_cat` transformer. "
+                        f"Try using another transformer type.")
 
-            yield formatted_items
+            formatted_string = self.format_string.format_map(row)
+            yield formatted_string
 
         else:
-
-            for key in self.columns:
-                if self.valid(row[key]):
-                    formatted_items += str(row[key])
-                else:
-                    logging.warning(
-                        f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
-
-            yield formatted_items
-
+            raise Exception(
+                f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.")
 
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the rowIndex transformer.
 
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
     def __call__(self, row, i):
+        """
+        Process a row and yield the row index as node ID.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            int: The row index if valid.
+
+        Raises:
+            Warning: If the row index is invalid.
+        """
         if self.valid(i):
             yield i
         else:
@@ -80,14 +164,33 @@ class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the map transformer.
 
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
     def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs.
 
-        # TODO if there is from_subject, change soruce_Id in edge to that id
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
 
+        Yields:
+            str: The cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
         for key in self.columns:
             if self.valid(row[key]):
                 yield row[key]

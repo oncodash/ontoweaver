@@ -13,8 +13,11 @@ from . import base
 from . import types
 from . import transformer
 
-
 class MetaEnum(EnumMeta):
+    """
+    Metaclass for Enum to allow checking if an item is in the Enum.
+    """
+
     def __contains__(cls, item):
         try:
             cls(item)
@@ -24,10 +27,16 @@ class MetaEnum(EnumMeta):
 
 
 class Enumerable(Enum, metaclass=MetaEnum):
+    """
+    Base class for Enums with MetaEnum metaclass.
+    """
     pass
 
 
 class TypeAffixes(str, Enumerable):
+    """
+    Enum for type affixes used in ID creation.
+    """
     suffix = "suffix"
     prefix = "prefix"
     none = "none"
@@ -64,11 +73,12 @@ class PandasAdapter(base.Adapter):
         """
         Instantiate the adapter.
 
-        :param pandas.Dataframe df: the table containing the input data.
-        :param base.Transformer subject_transformer: the transformer that maps the subject node.
-        :param Iterable[base.Transformer] transformers: list of transformer instances that map the data frame to nodes and edges.
-        :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
-        :param str type_affix_sep: String use to separate a labe from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
+        Args:
+            df (pd.DataFrame): The table containing the input data.
+            subject_transformer (base.Transformer): The transformer that maps the subject node.
+            transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
+            type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
+            type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
         super().__init__()
 
@@ -92,20 +102,40 @@ class PandasAdapter(base.Adapter):
         # logging.debug(self.properties_of)
 
     def source_type(self, row):
-        """Accessor to the row type actually used by `run`.
+        """
+        Accessor to the row type actually used by `run`.
 
-        You may overlad this function if you want
-        to make the row type dependant of some column value.
+        You may overload this function if you want
+        to make the row type dependent on some column value.
 
         By default, just return the default row type defined in the constructor,
-        without taking the row values into account."""
+        without taking the row values into account.
+
+        Args:
+            row: The current row of the DataFrame.
+
+        Returns:
+            The row type.
+        """
         return self.row_type
 
 
-    def make_id(self, type, entry_name):
-        """ Create a unique id for the given cell consisting of the entry name and type,
-        taking into account affix and separator configuration."""
 
+    def make_id(self, type, entry_name):
+        """
+        Create a unique id for the given cell consisting of the entry name and type,
+        taking into account affix and separator configuration.
+
+        Args:
+            type: The type of the entry.
+            entry_name: The name of the entry.
+
+        Returns:
+            str: The created ID.
+
+        Raises:
+            ValueError: If the ID creation fails.
+        """
         if self.type_affix == TypeAffixes.prefix:
             id = f'{type}{self.type_affix_sep}{entry_name}'
         elif self.type_affix == TypeAffixes.suffix:
@@ -120,7 +150,15 @@ class PandasAdapter(base.Adapter):
             raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
 
     def valid(self, val):
-        "Checks if cell value is valid - not a `nan`."
+        """
+        Checks if cell value is valid - not a `nan`.
+
+        Args:
+            val: The value to check.
+
+        Returns:
+            bool: True if the value is valid, False otherwise.
+        """
         if pd.api.types.is_numeric_dtype(type(val)):
             if (math.isnan(val) or val == float("nan")):
                 return False
@@ -129,25 +167,54 @@ class PandasAdapter(base.Adapter):
         return True
 
     def properties(self, properity_dict, row, i):
-        """Extract properties of each property category for the given node type.
-        If no properties are found, return an empty dictionary."""
+        """
+        Extract properties of each property category for the given node type.
+        If no properties are found, return an empty dictionary.
+
+        Args:
+            properity_dict: Dictionary of property mappings.
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Returns:
+            dict: Extracted properties.
+        """
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
             for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
 
-
         return properties
 
     def make_node(self, node_t, id, properties):
-        "Create nodes of a cartain type."
+        """
+        Create nodes of a certain type.
+
+        Args:
+            node_t: The type of the node.
+            id: The ID of the node.
+            properties: The properties of the node.
+
+        Returns:
+            The created node.
+        """
         return node_t(id=id, properties=properties)
 
     def make_edge(self, edge_t, id_target, id_source, properties):
-        "Create edges of a cartain type."
-        return edge_t(id_source=id_source, id_target=id_target, properties=properties)
+        """
+        Create edges of a certain type.
 
+        Args:
+            edge_t: The type of the edge.
+            id_target: The ID of the target node.
+            id_source: The ID of the source node.
+            properties: The properties of the edge.
+
+        Returns:
+            The created edge.
+        """
+        return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
     def run(self):
         """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
@@ -189,6 +256,11 @@ class PandasAdapter(base.Adapter):
                             # If a `from_subject` attribute is present in the transformer, loop over the transformer
                             # list to find the transformer instance mapping to the correct type, and then create new
                             # subject id.
+
+                            # FIXME add hook functions to be overloaded.
+
+                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
+
                             if hasattr(transformer, "from_subject"):
                                 for t in self.transformers:
                                     if transformer.from_subject == t.target.__name__:
@@ -213,14 +285,25 @@ class PandasAdapter(base.Adapter):
 
                         # TODO check if two transformers are declaring the same type and raise error
 
+    def add_edge(self, source_type, target_type, edge_type):
+        """
+        Extract additional edge between two columns of the data frame of type `edge_type`, from the node
+        `source_type` to the node `target_type`.
 
+        Args:
+            source_type: The type of the source node.
+            target_type: The type of the target node.
+            edge_type: The type of the edge.
 
-    def add_edge(self, source_type = None, target_type = None, edge_type = None):
-        """"Extract additional edge between two columns of the data frame of type `edge_type`, from the node
-         `source_type` to the node `target_type`."""""
+        Raises:
+            ValueError: If any of the parameters `source_type`, `target_type`, or `edge_type` are None.
+        """
 
-        if source_type and target_type and edge_type:
+        if source_type is None or target_type is None or edge_type is None:
+            raise ValueError("Failed extraction of additional edge. "
+                             "source_type, target_type, and edge_type must not be None.")
 
+        else:
             # Loop over data frame and transformer list to find corresponding transformer instances for source and target
             # and use them to create corresponding edge.
             for i, row in self.df.iterrows():
@@ -245,26 +328,32 @@ class PandasAdapter(base.Adapter):
                     # FIXME How to handle properties here?
                     self.edges_append(
                         self.make_edge(edge_t=edge_type, id_source=source_node_id, id_target=target_node_id,
-                                  properties=self.properties(transformer.properties_of, row, i)))
-        else:
-            logging.warning(f"Failed extraction of additional edge.")
-            pass
+                                       properties=self.properties(transformer.properties_of, row, i)))
 
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
-    """Proxy function for extracting from a table all nodes, edges and properties
-    that are defined in a PandasAdapter configuration. """
+    """
+    Proxy function for extracting from a table all nodes, edges and properties
+    that are defined in a PandasAdapter configuration.
 
+    Args:
+        df (pd.DataFrame): The DataFrame containing the input data.
+        config (dict): The configuration dictionary.
+        module: The module in which to insert the types declared by the configuration.
+        affix (str): The type affix to use (default is "suffix").
+        separator (str): The separator to use between labels and type annotations (default is ":").
+
+    Returns:
+        PandasAdapter: The configured adapter.
+    """
     parser = ontoweaver.tabular.YamlParser(config, module)
     mapping = parser()
-
 
     adapter = PandasAdapter(
         df,
         *mapping,
         type_affix=affix,
         type_affix_sep=separator
-
     )
 
     adapter.run()
@@ -273,18 +362,31 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
 
 
 class Declare:
-    """""Declarations of fucntions used to declare and instantiate object classes used by the Adapter for the mapping
-     of the data frame. 
-     
-     :param module: the module in which to insert the types declared by the configuration. """""
+    """
+    Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
+    of the data frame.
+
+    Args:
+        module: The module in which to insert the types declared by the configuration.
+    """
 
     def __init__(self,
                  module=types,
                  ):
-
         self.module = module
 
     def make_node_class(self, name, properties={}, base=base.Node):
+        """
+        Create a node class with the given name and properties.
+
+        Args:
+            name: The name of the node class.
+            properties (dict): The properties of the node class.
+            base: The base class for the node class.
+
+        Returns:
+            The created node class.
+        """
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
@@ -308,6 +410,19 @@ class Declare:
         return t
 
     def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge, ):
+        """
+        Create an edge class with the given name, source type, target type, and properties.
+
+        Args:
+            name: The name of the edge class.
+            source_t: The source type of the edge.
+            target_t: The target type of the edge.
+            properties (dict): The properties of the edge class.
+            base: The base class for the edge class.
+
+        Returns:
+            The created edge class.
+        """
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
@@ -351,6 +466,23 @@ class Declare:
         return t
 
     def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, **kwargs):
+        """
+        Create a transformer class with the given parameters.
+
+        Args:
+            transformer_type: The type of the transformer.
+            node_type: The type of the node.
+            properties: The properties of the transformer.
+            edge: The edge type of the transformer.
+            columns: The columns to be processed by the transformer.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The created transformer class.
+
+        Raises:
+            TypeError: If the transformer type is not an existing transformer.
+        """
         if hasattr(transformer, transformer_type):
             parent_t = getattr(transformer, transformer_type)
             kwargs.setdefault("subclass", parent_t)
@@ -365,14 +497,11 @@ class Declare:
             raise TypeError(f"Cannot find a transformer of name `{transformer_type}`.")
 
 
-
-
 class YamlParser(Declare):
-    """Parse a table extraction configuration
-    and returns the three objects needed to configure an Adapter.
+    """
+    Parse a table extraction configuration and return the three objects needed to configure an Adapter.
 
-    The config is a dictionary containing only strings,
-    as converted from the following YAML desscription:
+    The config is a dictionary containing only strings, as converted from the following YAML description:
 
     .. code-block:: yaml
 
@@ -395,37 +524,47 @@ class YamlParser(Declare):
                     for_objects:
                         - <MY_OBJECT_TYPE>
 
-    This maps the table row to a MY_SUBJECT_TYPE node type,
-    adding an edge of type MY_RELATION_TYPE,
-    between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node.
-    The data in MY_OTHER_COLUMN is mapped to the MY_PROPERTY property
-    of the MY_OBJECT_TYPE node.
-    Note that `to_properties` may effectively map to an edge type or several
-    types.
+    This maps the table row to a MY_SUBJECT_TYPE node type, adding an edge of type MY_RELATION_TYPE,
+    between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node. The data in MY_OTHER_COLUMN is mapped
+    to the MY_PROPERTY property of the MY_OBJECT_TYPE node. Note that `to_properties` may effectively map to
+    an edge type or several types.
 
-    In order to allow the user to write mappings configurations using their preferred vocabulary, the following keywords are interchangeable:
+    In order to allow the user to write mappings configurations using their preferred vocabulary, the following
+    keywords are interchangeable:
         - subject = row = entry = line,
         - columns = fields,
         - to_target = to_object = to_node
         - via_edge = via_relation = via_predicate.
 
-    :param dict config: a configuration dictionary.
-    :param module: the module in which to insert the types declared by the configuration.
+    :param dict config: A configuration dictionary.
+    :param module: The module in which to insert the types declared by the configuration.
     :return tuple: subject_transformer, transformers, as needed by the Adapter.
     """
 
-    def __init__(self,
-                 config: dict,
-                 module=types,
-                 ):
+    def __init__(self, config: dict, module=types):
+        """
+        Initialize the YamlParser.
 
+        Args:
+            config (dict): The configuration dictionary.
+            module: The module in which to insert the types declared by the configuration.
+        """
         super().__init__(module)
         self.config = config
 
         logging.debug(f"Classes created in module '{self.module}'")
 
     def get_not(self, keys, pconfig=None):
-        """Get the first dictionary (key,item) not matching any of the passed keys."""
+        """
+        Get the first dictionary (key, item) not matching any of the passed keys.
+
+        Args:
+            keys: The keys to exclude.
+            pconfig: The configuration dictionary to search in (default is self.config).
+
+        Returns:
+            dict: The first dictionary not matching any of the passed keys.
+        """
         res = {}
         if not pconfig:
             pconfig = self.config
@@ -435,7 +574,16 @@ class YamlParser(Declare):
         return res
 
     def get(self, keys, pconfig=None):
-        """Get a dictionary items matching either of the passed keys."""
+        """
+        Get a dictionary item matching any of the passed keys.
+
+        Args:
+            keys: The keys to search for.
+            pconfig: The configuration dictionary to search in (default is self.config).
+
+        Returns:
+            The first item matching any of the passed keys, or None if no match is found.
+        """
         if not pconfig:
             pconfig = self.config
         for k in keys:
@@ -444,13 +592,16 @@ class YamlParser(Declare):
         return None
 
     def __call__(self):
+        """
+        Parse the configuration and return the subject transformer and transformers.
 
+        Returns:
+            tuple: The subject transformer and a list of transformers.
+        """
         properties_of = {}
         transformers = []
 
-        # Various keys are allowed in the config,
-        # to allow the user to use their favorite ontology vocabulary.
-        # TODO: Catch wrongly used keywords and output errors.
+        # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
         k_subject_type = ["to_subject"]
         k_columns = ["columns", "fields"]
@@ -464,11 +615,8 @@ class YamlParser(Declare):
         transformers_list = self.get(k_transformer)
 
         # First, parse property mappings.
-        # Because we must declare types with every member's fields already ready.
-
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
-                # Check if dictionary has a property key, and map the declared properties for each ontology type.
                 if any(field in field_dict.keys() for field in k_properties):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(k_properties, pconfig=field_dict)
@@ -480,28 +628,22 @@ class YamlParser(Declare):
                             properties_of[object_type].setdefault(prop_transformer, property_name)
                         logging.debug(f"\t\t\t\tDeclare property mapping for `{object_type}`: {properties_of[object_type]}")
 
-
-
         subject_dict = self.get(k_row)
         subject_transformer_class = list(subject_dict.keys())[0]
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
         subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
         logging.debug(f"Declare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
-                      f"subject kwargs '{subject_kwargs}', subject columns '{subject_columns}")
-
+                      f"subject kwargs '{subject_kwargs}', subject columns '{subject_columns}'")
 
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
 
-
-
         # Then, declare types.
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
-                # Only take into consideration fields that are not property mappings.
                 if any(field in field_dict.keys() for field in k_properties):
                     if any(field in field_dict.keys() for field in k_target):
                         prop = self.get(k_properties, field_dict)
@@ -516,11 +658,10 @@ class YamlParser(Declare):
                     edge = self.get(k_edge, pconfig=field_dict)
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
 
-                    # Check if the key 'from_source' exists in the dictionary.
+                    # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
+                    # from_subject` is used in the transformer class to refer to the source node type.
                     if 'from_source' in gen_data:
-                        # Assign the value of 'from_source' to the new key 'from_subject'.
                         gen_data['from_subject'] = gen_data['from_source']
-                        # Delete the 'from_source' key from the dictionary.
                         del gen_data['from_source']
 
                     if target and edge:
@@ -537,8 +678,6 @@ class YamlParser(Declare):
                         logging.debug(f"\t\t\t\tDeclare mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
-
-
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
