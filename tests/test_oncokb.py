@@ -32,7 +32,6 @@ def test_oncokb():
     from tests.oncokb import types
 
     adapter = ontoweaver.tabular.extract_all(table, mapping)
-    adapter.add_edge(types.sample, types.patient, types.sample_to_patient)
 
     assert (adapter)
 

@@ -104,6 +104,12 @@ transformers:
         to_object: alteration
         via_relation: variant_to_alteration
     - map:
+          columns:
+              - patient_id
+          from_subject: sample
+          to_object: patient
+          via_relation: sample_to_patient
+    - map:
         columns:
             - consequence
         to_property:

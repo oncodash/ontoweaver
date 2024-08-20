@@ -14,6 +14,13 @@ transformers:
               - sample
           to_object: sample
           via_relation: variant_in_sample
+    - map:
+        columns:
+          - patient
+        from_subject: sample
+        to_object: patient
+        via_relation: sample_to_patient
+
 
 
 

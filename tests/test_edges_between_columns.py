@@ -32,7 +32,6 @@ def test_edges_between_columns():
     logging.debug("Run the adapter...")
 
     adapter = ontoweaver.tabular.extract_all(table, mapping)
-    adapter.add_edge(ontoweaver.types.sample, ontoweaver.types.patient, types.sample_to_patient)
 
     assert (adapter)
 

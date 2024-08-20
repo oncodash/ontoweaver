@@ -120,7 +120,6 @@ class PandasAdapter(base.Adapter):
         return self.row_type
 
 
-
     def make_id(self, type, entry_name):
         """
         Create a unique id for the given cell consisting of the entry name and type,
@@ -284,52 +283,6 @@ class PandasAdapter(base.Adapter):
                             continue
 
                         # TODO check if two transformers are declaring the same type and raise error
-
-    def add_edge(self, source_type, target_type, edge_type):
-        """
-        Extract additional edge between two columns of the data frame of type `edge_type`, from the node
-        `source_type` to the node `target_type`.
-
-        Args:
-            source_type: The type of the source node.
-            target_type: The type of the target node.
-            edge_type: The type of the edge.
-
-        Raises:
-            ValueError: If any of the parameters `source_type`, `target_type`, or `edge_type` are None.
-        """
-
-        if source_type is None or target_type is None or edge_type is None:
-            raise ValueError("Failed extraction of additional edge. "
-                             "source_type, target_type, and edge_type must not be None.")
-
-        else:
-            # Loop over data frame and transformer list to find corresponding transformer instances for source and target
-            # and use them to create corresponding edge.
-            for i, row in self.df.iterrows():
-                source_id = None
-                target_id = None
-                source_node_id = None
-                target_node_id = None
-
-                for transformer in self.transformers:
-                    if transformer.target == source_type:
-                        for s_id in transformer(row, i):
-                            source_id = s_id
-                            if source_id:
-                                source_node_id = self.make_id(transformer.target.__name__, source_id)
-                    if transformer.target == target_type:
-                        for t_id in transformer(row, i):
-                            target_id = t_id
-                            if target_id:
-                                target_node_id = self.make_id(transformer.target.__name__, target_id)
-
-                if source_node_id and target_node_id:
-                    # FIXME How to handle properties here?
-                    self.edges_append(
-                        self.make_edge(edge_t=edge_type, id_source=source_node_id, id_target=target_node_id,
-                                       properties=self.properties(transformer.properties_of, row, i)))
-
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
     """
