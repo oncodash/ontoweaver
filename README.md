@@ -495,45 +495,45 @@ the separator is defined as `//`. If you wish to define affix as `none`, you sho
 
 #### How to Extract Additional Edges
 
-Edges can be extracted via the use of the `add_edge()` function.
-The function should be used right after running the `run()` function of the adapter.
+Edges can be extracted from the mapping configuration, by defining a `from_subject` and `to_object` in the mapping configuration,
+where the `from_subject` is the node type from which the edge will start, and the `to_object` is the node type to which the edge will end.
 
-For example:
+For example, consider the following mapping configuration for the sample dataset below:
 
-```python
-    import yaml
-    import pandas as pd
-    import biocypher
-    import ontoweaver
-    
-
-    # Load ontology
-    bc = biocypher.BioCypher(
-        biocypher_config_path = "PATH_TO/biocypher_config.yaml",
-        schema_config_path = "PATH_TO/schema_config.yaml"
-    )
-
-    # Load data
-    table = pd.read_csv("PATH_TO/data.csv")
-
-    # Load mapping
-    with open("PATH_TO/mapping.yaml") as fd:
-        mapping = yaml.full_load(fd)
-
-    # Run the adapter
-    adapter = ontoweaver.tabular.extract_all(table, mapping)
-    
-    # Extract additional edge of type `sample_to_patient` from `sample` to `patient` node types. 
-    adapter.add_edge(ontoweaver.types.sample, ontoweaver.types.patient, ontoweaver.types.sample_to_patient)
-
-    # Write nodes
-    bc.write_nodes( adapter.nodes )
-
-    # Write edges
-    bc.write_edges( adapter.edges )
-
-    # Write import script
-    bc.write_import_call()
 ```
-Source and target nodes are modified by passing the names to the `add_edge` function. The names should represent ontology types as defined
-in the `label_in_input` field in the `schema_config.yaml` file.
+id	patient	        sample
+0	patient1	sample1
+1	patient2	sample2
+2	patient3	sample3
+3	patient4	sample4
+```
+
+```yaml
+row:
+    map:
+        columns:
+            - id
+        to_subject: variant
+transformers:
+    - map:
+          columns:
+              - patient
+          to_object: patient
+          via_relation: patient_has_variant
+    - map:
+          columns:
+              - sample
+          to_object: sample
+          via_relation: variant_in_sample
+```
+If the user would like to extract an additional edge from the node type `patient` to the node type `sample`, they would
+need to add the following section to the transformers in the mapping configuration:
+
+```yaml
+    - map:
+        columns:
+          - patient
+        from_subject: sample
+        to_object: patient
+        via_relation: sample_to_patient
+```
