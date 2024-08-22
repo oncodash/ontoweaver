@@ -398,7 +398,7 @@ the format of the concatenation. For example:
 
 ```yaml
 row:
-   cat:
+   cat_format:
       columns: # List of columns whose cell values to be concatenated
         - variant_id
         - disease
