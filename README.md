@@ -391,6 +391,8 @@ row:
       to_subject: variant # The ontology type to map to
 ```
 
+#### `cat_format`
+
 The user can also define the order and format of concatenation by creating a `format_string` field, which defines
 the format of the concatenation. For example:
 
@@ -401,7 +403,7 @@ row:
         - variant_id
         - disease
       to_subject: variant # The ontology type to map to
-      format_string: "{disease}_____{variant_id}" # An optional format string
+      format_string: "{disease}_____{variant_id}"
 ```
 
 Although the examples above all define mapping of cell values to nodes, the transformers are also used to map 
