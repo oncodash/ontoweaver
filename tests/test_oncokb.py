@@ -1,8 +1,9 @@
-import pytest
+
 def test_oncokb():
     import yaml
     import logging
-
+    from . import testing_functions
+    import shutil
     import pandas as pd
     import biocypher
 
@@ -28,7 +29,10 @@ def test_oncokb():
         mapping = yaml.full_load(fd)
 
     logging.debug("Run the adapter...")
+    from tests.oncokb import types
+
     adapter = ontoweaver.tabular.extract_all(table, mapping)
+
     assert (adapter)
 
     logging.debug("Write nodes...")
@@ -41,6 +45,14 @@ def test_oncokb():
 
     logging.debug("Write import script...")
     bc.write_import_call()
+
+    output_dir = testing_functions.get_latest_directory("biocypher-out")
+
+    assert_output_path = "tests/" + directory_name + "/assert_output"
+
+    testing_functions.compare_csv_files(assert_output_path, output_dir)
+
+    shutil.rmtree(output_dir)
 
 
 if __name__ == "__main__":

@@ -1,85 +1,142 @@
-subject: variant
-columns:
-    patient_id:
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        columns:
+            - patient_id
         to_object: patient
         via_relation: patient_has_variant
-    referenceGenome:
+    - map:
+        columns:
+            - referenceGenome
         to_object: genome
         via_relation: reference_genome
-    hugoSymbol:
+    - map:
+        columns:
+            - hugoSymbol
         to_object: gene_hugo
         via_relation: variant_in_gene
-    lastUpdate:
+    - map:
+        columns:
+            - lastUpdate
         to_property:
-            timestamp:
-                - variant
-    dataVersion:
+            - timestamp
+        for_objects:
+            - variant
+    - map:
+        columns:
+            - dataVersion
         to_property:
-            version:
-                - variant
-    entrezGeneId:
+            - version
+        for_objects:
+            - variant
+    - map:
+        columns:
+            - entrezGeneId
         to_property:
-            entrez_gene_id:
-                - gene_hugo
-    tumorType:
+            - entrez_gene_id
+        for_objects:
+            - gene_hugo
+    - map:
+        columns:
+            - tumorType
         to_object: disease
         via_relation: variant_to_disease
-    oncogenic:
+    - map:
+        columns:
+            - oncogenic
         to_object: oncogenicity
         via_relation: variant_to_oncogenicity
-    mutationEffectDescription:
+    - map:
+        columns:
+            - mutationEffectDescription
         to_property:
-            mutation_effect_description:
-                - variant
-    variantSummary:
+            - mutation_effect_description
+        for_objects:
+            - variant
+    - map:
+        columns:
+            - variantSummary
         to_property:
-            variant_summary:
-                - variant
-    geneSummary:
+            - variant_summary
+        for_objects:
+            - variant
+    - map:
+        columns:
+            - geneSummary
         to_property:
-            gene_summary:
-                - gene_hugo
-    tumorTypeSummary:
+            - gene_summary
+        for_objects:
+            - gene_hugo
+    - map:
+        columns:
+            - tumorTypeSummary
         to_property:
-            tumor_type_summary:
-                - disease
-    citationPMids:
-        into_transformer:
-            split:
-                separator: ","
-            to_object: publication
-            via_relation: published
-    treatments:
-        into_transformer:
-            split:
-                separator: ";"
-            to_object: drug
-            via_relation: variant_affected_by_drug
-    knownEffect:
+            - tumor_type_summary
+        for_objects:
+            - disease
+    - split:
+        columns:
+            - citationPMids
+        to_object: publication
+        via_relation: published
+        separator: ","
+    - split:
+        columns:
+            - treatments
+        to_object: drug
+        via_relation: variant_affected_by_drug
+        separator: ";"
+    - map:
+        columns:
+            - knownEffect
         to_object: functional_effect
         via_relation: variant_has_effect
-    sample_id:
+    - map:
+        columns:
+            - sample_id
         to_object: sample
         via_relation: variant_in_sample
-    alteration:
+    - map:
+        columns:
+            - alteration
         to_object: alteration
         via_relation: variant_to_alteration
-    consequence:
+    - map:
+          columns:
+              - patient_id
+          from_subject: sample
+          to_object: patient
+          via_relation: sample_to_patient
+    - map:
+        columns:
+            - consequence
         to_property:
-            alteration_consequence:
-                - alteration
-    proteinStart:
+            - alteration_consequence
+        for_objects:
+            - alteration
+    - map:
+        columns:
+            - proteinStart
         to_property:
-            protein_start:
-                - alteration
-    proteinEnd:
+            - protein_start
+        for_objects:
+            - alteration
+    - map:
+        columns:
+            - proteinEnd
         to_property:
-            protein_end:
-                - alteration
-    highestFdaLevel:
+            - protein_end
+        for_objects:
+            - alteration
+    - map:
+        columns:
+            - highestFdaLevel
         to_object: fda_evidence_level
         via_relation: variant_to_fda_evidence
-    highestSensitiveLevel:
+    - map:
+        columns:
+            - highestSensitiveLevel
         to_object: oncokb_evidence_level
         via_relation: variant_to_oncokb_evidence
-

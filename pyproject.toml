@@ -7,12 +7,13 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-biocypher = "^0.5.41"
+biocypher = "^0.5.44"
 pooch = "^1.7.0" # Dep of biocypher
 pandas = "^2.0.1"
+numpy = "^1.26.3"
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.4.0"
+pytest = "^8.3.2"
 
 [build-system]
 requires = ["poetry-core"]

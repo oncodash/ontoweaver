@@ -5,27 +5,38 @@ import logging
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
+import ontoweaver
 
 import pandas as pd
 
 from . import base
 from . import types
-from . import generators
-
-
+from . import transformer
 
 class MetaEnum(EnumMeta):
+    """
+    Metaclass for Enum to allow checking if an item is in the Enum.
+    """
+
     def __contains__(cls, item):
         try:
             cls(item)
         except ValueError:
             return False
-        return True    
+        return True
+
 
 class Enumerable(Enum, metaclass=MetaEnum):
+    """
+    Base class for Enums with MetaEnum metaclass.
+    """
     pass
 
+
 class TypeAffixes(str, Enumerable):
+    """
+    Enum for type affixes used in ID creation.
+    """
     suffix = "suffix"
     prefix = "prefix"
     none = "none"
@@ -53,42 +64,30 @@ class PandasAdapter(base.Adapter):
     """
 
     def __init__(self,
-        df: pd.DataFrame,
-        row_type: base.Node,
-        node_type_of: dict[str, base.Node],
-        edge_type_of: dict[str, base.Edge],
-        properties_of: dict[str, dict[str,str]],
-        node_types : Optional[Iterable[base.Node]] = None,
-        node_fields: Optional[list[str]] = None,
-        edge_types : Optional[Iterable[base.Edge]] = None,
-        edge_fields: Optional[list[str]] = None,
-        skip_nan = True,
-        type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
-        type_affix_sep: Optional[str] = ":",
-    ):
+                 df: pd.DataFrame,
+                 subject_transformer: base.Transformer,
+                 transformers: Iterable[base.Transformer],
+                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+                 type_affix_sep: Optional[str] = ":",
+                 ):
         """
         Instantiate the adapter.
 
-        :param pandas.Dataframe df: the table containing the input data.
-        :param ontoweaver.base.Node row_type: the source node (or subject, depending on your vocabulary reference) type, mapped for each row.
-        :param dict[str, base.Edge] node_type_of: a dictionary mapping each column (or field) name to the type of the node.
-        :param dict[str, base.Edge] edge_type_of: a dictionary mapping each column (or field) name to the type of the edge.
-        :param dict[base.Node, dict[str,str]] properties_of: a dictionary mapping each element (both node or edge) type to a dictionary listing which column is extracted to which property.
-        :param Iterable[Node] node_types: Allowed Node subclasses.
-        :param list[str] node_fields: Allowed property fields for the Node subclasses.
-        :param Iterable[Edge] edge_types: Allowed Edge subclasses.
-        :param list[str] edge_fields: Allowed property fields for the Edge subclasses.
-        :param TypeAffixes type_affix: Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
-        :param str type_affix_sep: String use to separate a labe from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
+        Args:
+            df (pd.DataFrame): The table containing the input data.
+            subject_transformer (base.Transformer): The transformer that maps the subject node.
+            transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
+            type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
+            type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
-        super().__init__(node_types, node_fields, edge_types, edge_fields)
+        super().__init__()
 
         logging.info("DataFrame info:")
-        # logging.info(df.info()) # FIXME is displayed on stdout after all calls, use a stream with the buf arg here.
+        # logging.info(df.info())
         logging.debug("Columns:")
         for c in df.columns:
             logging.debug(f"\t`{c}`")
-        logging.info("\n"+str(df))
+        logging.info("\n" + str(df))
         self.df = df
 
         if not type_affix in TypeAffixes:
@@ -98,93 +97,49 @@ class PandasAdapter(base.Adapter):
 
         self.type_affix_sep = type_affix_sep
 
-        self.row_type = row_type
-        self.node_type_of = node_type_of
-        self.edge_type_of = edge_type_of
-        self.properties_of = properties_of
+        self.subject_transformer = subject_transformer
+        self.transformers = transformers
         # logging.debug(self.properties_of)
-        self.skip_nan = skip_nan
-
-        logging.debug(f"{self.row_type}")
-        logging.debug(f"{self.node_type_of}")
-        logging.debug(f"{self.edge_type_of}")
-        logging.debug(f"{self.properties_of}")
-
 
     def source_type(self, row):
-        """Accessor to the row type actually used by `run`.
+        """
+        Accessor to the row type actually used by `run`.
 
-        You may overlad this function if you want
-        to make the row type dependant of some column value.
+        You may overload this function if you want
+        to make the row type dependent on some column value.
 
         By default, just return the default row type defined in the constructor,
-        without taking the row values into account."""
+        without taking the row values into account.
+
+        Args:
+            row: The current row of the DataFrame.
+
+        Returns:
+            The row type.
+        """
         return self.row_type
 
 
-    def source_id(self, i, row):
-        # FIXME: allow to configure that within the YAML.
-        # One may imagine something like: "{}_{}".format(self.source_type(row).__name__,i)
-        return "{}".format(i)
+    def make_id(self, type, entry_name):
+        """
+        Create a unique id for the given cell consisting of the entry name and type,
+        taking into account affix and separator configuration.
 
+        Args:
+            type: The type of the entry.
+            entry_name: The name of the entry.
 
-    def properties(self, row, type):
-        """Extract properties of each property category for the given node type. If no properties are found, return an empty dictionary."""
+        Returns:
+            str: The created ID.
 
-        properties = {}
-
-        if type.__name__ in self.properties_of:
-            for key, value in self.properties_of[type.__name__].items():
-                if self.skip(row[key]):
-                    continue
-                else:
-                    properties[value] = str(row[key]).replace("'", "`") #FIXME enforce that its a string or replace single quotes... this works but is weird
-
-        return properties
-
-    def skip(self, val):
-        if self.skip_nan:
-            if pd.api.types.is_numeric_dtype(type(val)):
-                if (math.isnan(val) or val == float("nan")):
-                    return True
-            elif str(val) == "nan": # Conversion from Pandas' `object` needs to be explicit.
-                return True
-        return False
-
-
-    def make_edge_and_target(self, source_id, target_id, c, row, log_depth = ""):
-
-        # target
-        target_t = self.node_type_of[c]
-        # target_id = f"{target_t.__name__}_{target_id}"
-        target_id = f"{target_id}"
-        # Append one (or several, if the target_t is a generator) nodes.
-        self.nodes_append( self.make_node(
-            target_t, id=target_id,
-            properties=self.properties(row, target_t)
-        ))
-        logging.debug(f"{log_depth}\t\tto  `{target_t.__name__}` `{target_id}` (prop: `{', `'.join(self.properties(row, target_t).keys())}`)")
-
-        # relation
-        edge_t = self.edge_type_of[c]
-        self.edges_append( self.make_edge(
-            edge_t, id=None, id_source=source_id, id_target=target_id,
-            properties=self.properties(row, edge_t)
-        ))
-        logging.debug(f"{log_depth}\t\tvia `{edge_t.__name__}` (prop: `{', `'.join(self.properties(row, edge_t).keys())}`)")
-
-        return target_id
-
-    def make_id(self, entry_name, type):
-        """ Create a unique id for the given cell consisting of the entry name and type,
-        taking into account affix and separator configuration."""
-        id = None
-
+        Raises:
+            ValueError: If the ID creation fails.
+        """
         if self.type_affix == TypeAffixes.prefix:
             id = f'{type}{self.type_affix_sep}{entry_name}'
-        elif self.type_affix  == TypeAffixes.suffix:
+        elif self.type_affix == TypeAffixes.suffix:
             id = f'{entry_name}{self.type_affix_sep}{type}'
-        elif self.type_affix  == TypeAffixes.none:
+        elif self.type_affix == TypeAffixes.none:
             id = f'{entry_name}'
 
         if id:
@@ -193,349 +148,165 @@ class PandasAdapter(base.Adapter):
         else:
             raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
 
+    def valid(self, val):
+        """
+        Checks if cell value is valid - not a `nan`.
+
+        Args:
+            val: The value to check.
+
+        Returns:
+            bool: True if the value is valid, False otherwise.
+        """
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if (math.isnan(val) or val == float("nan")):
+                return False
+        elif str(val) == "nan":  # Conversion from Pandas' `object` needs to be explicit.
+            return False
+        return True
+
+    def properties(self, properity_dict, row, i):
+        """
+        Extract properties of each property category for the given node type.
+        If no properties are found, return an empty dictionary.
+
+        Args:
+            properity_dict: Dictionary of property mappings.
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Returns:
+            dict: Extracted properties.
+        """
+        properties = {}
+
+        for prop_transformer, property_name in properity_dict.items():
+            for property in prop_transformer(row, i):
+                properties[property_name] = str(property).replace("'", "`")
+
+        return properties
+
+    def make_node(self, node_t, id, properties):
+        """
+        Create nodes of a certain type.
+
+        Args:
+            node_t: The type of the node.
+            id: The ID of the node.
+            properties: The properties of the node.
+
+        Returns:
+            The created node.
+        """
+        return node_t(id=id, properties=properties)
+
+    def make_edge(self, edge_t, id_target, id_source, properties):
+        """
+        Create edges of a certain type.
+
+        Args:
+            edge_t: The type of the edge.
+            id_target: The ID of the target node.
+            id_source: The ID of the source node.
+            properties: The properties of the edge.
+
+        Returns:
+            The created edge.
+        """
+        return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
     def run(self):
-        """Actually run the configured extraction.
+        """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
 
-        If passed, the user-defined type_affix and type_affix_sep variables may override the default configured at instantiation.
-        """
-        # FIXME: all the raised exceptions here should be specialized and handled in the executable.
+        # Loop over the data frame.
+        for i, row in self.df.iterrows():
 
-        # For all rows in the table.
-        for i,row in self.df.iterrows():
-            row_type = self.source_type(row)
-            logging.debug(f"\tExtracting row {i} of type `{row_type.__name__}`...")
-            if self.allows( row_type ):
-                source_id = self.source_id(self.make_id(i, row_type.__name__), row)
-                self.nodes_append(self.make_node(
-                    row_type, id=source_id,
-                    properties=self.properties(row, row_type))
-                )
+            source_id = None
+            source_node_id = None
+
+            # Declare a source id and create corresponding node. If no column defined, create source id from row index.
+            if source_id is None:
+
+                for s_id in self.subject_transformer(row, i):
+                    source_id =  s_id
+
+
+                source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
+
+            if source_node_id:
+                logging.debug(f"\t\tDeclared source id: `{source_node_id}")
+                self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
+                                          properties=self.properties(self.subject_transformer.properties_of, row, i))))
             else:
-                logging.error(f"\tRow type `{row_type.__name__}` not allowed.")
+                raise ValueError(f"\t\tDeclaration of subject ID for row `{row}` unsuccessful.")
 
-            # For column names.
-            for c in self.node_type_of:
-                logging.debug(f"\tMapping column `{c}`...")
-                if c not in row:
-                    raise ValueError(f"Column `{c}` not found in input data.")
-                target_id = self.make_id(row[c], self.node_type_of[c].__name__)
-                if self.skip(target_id):
-                    logging.debug(f"\t\tSkip `{target_id}`")
-                    continue
-                if self.allows( self.node_type_of[c] ):
-                    # If the edge is from the row type (i.e. the "source/subject")
-                    # then just create it using the source_id.
-                    if any(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()):
-                        assert (all(issubclass(row_type, t.source_type()) for t in self.edge_type_of.values()))
-                        self.make_edge_and_target(source_id, target_id, c, row)
+            # Loop over list of transformer instances and create corresponding nodes and edges.
+            for transformer in self.transformers:
 
-                    else: # The edge is from a random column to another (i.e. "from_subject").
-                        # Try to handle this column first.
-                        subject_type = self.node_type_of[c]
-                        logging.debug(f"\t\tfrom `{subject_type.__name__}`")
-                        # First, find the column for which
-                        # the corresponding target type is defined.
-                        matching_columns = []
-                        for col_name, col_type in self.node_type_of.items():
-                            target_type = col_type
-                            if col_name != c and target_type == subject_type:
-                                matching_columns.append(col_name)
-                        # logging.debug(f"\t\tMatching columns: `{matching_columns}`")
+                # TODO assert that there is no from_subject attribute in the regular transforemrs
 
-                        if len(matching_columns) == 0:
-                            column_types = {k:self.node_type_of[k].__name__ for k in self.node_type_of if k != c}
-                            raise ValueError(f"No column providing the type `{subject_type.__name__}` in `{column_types}`")
+                    for target_id in transformer(row, i):
+                        if target_id:
+                            target_node_id = self.make_id(transformer.target.__name__, target_id)
+                            logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
+                            self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
+                                                      properties=self.properties(transformer.properties_of, row, i)))
 
-                        elif len(matching_columns) > 1:
-                            msg = ", ".join("`"+mc+"`" for mc in matching_columns)
-                            raise ValueError(f"I cannot handle cases when several columns provide the same subject type. Offending columns: {msg}")
+                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                            # list to find the transformer instance mapping to the correct type, and then create new
+                            # subject id.
 
-                        col_name = matching_columns[0]
-                        if self.edge_type_of[col_name].source_type() != row_type:
-                            raise ValueError(f"Cannot handle detached columns without a primary link to the default row subject")
+                            # FIXME add hook functions to be overloaded.
 
-                        # We now have a valid column.
-                        # Jump to creating the referred subject from the pointed column.
-                        other_id = self.make_edge_and_target(source_id, self.make_id(row[col_name], self.node_type_of[col_name].__name__), col_name, row, log_depth="\t")
-                        # Then create the additional edge,
-                        # this time from the previously created target_id
-                        # (i.e. the column's subject).
-                        self.make_edge_and_target(other_id, target_id, c, row)
+                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
-                else:
-                    logging.debug(f"\t\tColumn `{c}` with edge of type `{self.edge_type_of[c]}` not allowed.")
+                            if hasattr(transformer, "from_subject"):
+                                for t in self.transformers:
+                                    if transformer.from_subject == t.target.__name__:
+                                        for s_id in t(row, i):
+                                            subject_id = s_id
+                                        subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                        logging.debug(f"\t\t\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
+                                        self.edges_append(
+                                            self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                                           id_target=target_node_id,
+                                                           properties=self.properties(transformer.properties_of, row, i)))
 
-        self.end()
+                                    else:
+                                        continue
+                            else:
+                                logging.debug(f"\t\t\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
+                                self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
+                                                          properties=self.properties(transformer.edge.fields(), row, i)))
+                        else:
+                            logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
+                            continue
 
-    def end(self):
-        pass
-
-    # FIXME see how to declare another constructor taking config and module instead of the mapping.
-    @staticmethod
-    def configure(config: dict, module = types):
-        """Parse a table extraction configuration
-        and returns the three objects needed to configure a PandasAdapter.
-
-        The config is a dictionary containing only strings,
-        as converted from the following YAML desscription:
-
-        .. code-block:: yaml
-
-            subject: <MY_SUBJECT_TYPE>
-            columns:
-                <MY_COLUMN_NAME>:
-                    to_object: <MY_OBJECT_TYPE>
-                    via_relation: <MY_RELATION_TYPE>
-               <MY_OTHER_COLUMN>:
-                    to_properties:
-                        <MY_PROPERTY>:
-                            - <MY_OBJECTS_TYPE>
-
-        This maps the table row to a MY_SUBJECT_TYPE node type,
-        adding an edge of type MY_RELATION_TYPE,
-        between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node.
-        The data in MY_OTHER_COLUMN is mapped to the MY_PROPERTY property
-        of the MY_OBJECT_TYPE node.
-        Note that `to_properties` may effectively map to an edge type or several
-        types.
-
-        In order to allow the user to write mappings configurations using their preferred vocabulary, the following keywords are interchangeable:
-            - subject = row = entry = line,
-            - columns = fields,
-            - to_target = to_object = to_node
-            - via_edge = via_relation = via_predicate.
-
-        :param dict config: a configuration dictionary.
-        :param module: the module in which to insert the types declared by the configuration.
-        :return tuple: source_t, node_type_of, edge_type_of, properties_of, as needed by PandasAdapter.
-        """
-        def get_not(keys, pconfig=None):
-            """Get the first dictionary (key,item) not matching any of the passed keys."""
-            if not pconfig:
-                pconfig = config
-            for k in pconfig:
-                if k not in keys:
-                    return k,pconfig[k]
-
-        def get(keys, pconfig=None):
-            """Get a dictionary items matching either of the passed keys."""
-            if not pconfig:
-                pconfig = config
-            for k in keys:
-                if k in pconfig:
-                    return pconfig[k]
-            return None
-
-        def make_node_class(name, properties = {}, base = base.Node):
-            # If type already exists, return it.
-            if hasattr(module, name):
-                cls = getattr(module, name)
-                logging.debug(f"\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-                for p in properties.values():
-                    if p not in cls.fields():
-                        logging.warning(f"\t\tProperty `{p}` not found in fields.")
-                return cls
-
-            def fields():
-                return list(properties.values())
-            attrs = {
-                "__module__": module.__name__,
-                "fields": staticmethod(fields),
-            }
-            t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare Node class `{t}` (prop: `{properties}`).")
-            setattr(module, t.__name__, t)
-            return t
-
-        def make_edge_class(name, source_t, target_t, properties={}, base=base.Edge,):
-            # If type already exists, return it.
-            if hasattr(module, name):
-                cls = getattr(module, name)
-                logging.info(
-                    f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-                for p in properties:
-                    if p not in cls.fields():
-                        logging.warning(f"\t\tProperty `{p}` not found in fields.")
-
-                tt_list = cls.target_type()
-
-                tt_list.append(target_t)
-
-                def tt():
-                    return tt_list
-
-                cls.target_type = staticmethod(tt)
-
-                #TODO meant to allow multiple source types for edge
-
-                #st_list = cls.source_type()
-
-                #st_list.append(source_t)
-
-                #def st():
-                    #return st_list
-
-                #cls.source_type = staticmethod(st)
-
-                return cls
-
-            def fields():
-                return list(properties.values())
-
-            def st():
-                return source_t
-
-            def tt():
-                return [target_t]
-
-            attrs = {
-                "__module__": module.__name__,
-                "fields": staticmethod(fields),
-                "source_type": staticmethod(st),
-                "target_type": staticmethod(tt),
-            }
-            t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare Edge class `{t}` (prop: `{properties}`).")
-            setattr(module, t.__name__, t)
-            return t
-
-
-        def make_gen_class(name, parent, edge_t, target_t, **kwargs): #FIXME add target type as attribude staticf
-            if hasattr(generators, parent):
-                parent_t = getattr(generators, parent)
-                if not issubclass(parent_t, base.EdgeGenerator):
-                    logging.error(f"\t\t{parent_t} {parent_t.mro()}")
-                    raise TypeError(f"Object `{parent}` is not an existing generator.")
-            else:
-                # logging.debug(dir(generators))
-                raise TypeError(f"Cannot find a generator of name `{parent}`.")
-
-            def et():
-                return edge_t
-            def tt():
-                return target_t
-
-            attrs = {
-                "__module__": module.__name__,
-                "edge_type": staticmethod(et), #add target type attribute #FIXME
-                "target_type": staticmethod(tt)
-            }
-            attrs.update(kwargs) # Add all passed string arguments as members.
-            t = pytypes.new_class(name, (parent_t,), {}, lambda ns: ns.update(attrs))
-            logging.debug(f"Declare EdgeGenerator class `{t}`.")
-            setattr(module, t.__name__, t)
-            return t
-
-        node_type_of = {}
-        edge_type_of = {}
-        properties_of = {}
-
-
-        # Various keys are allowed in the config,
-        # to allow the user to use their favorite ontology vocabulary.
-        k_row = ["row", "entry", "line", "subject", "source"]
-        k_columns = ["columns", "fields"]
-        k_target = ["to_target", "to_object", "to_node"]
-        k_subject = ["from_subject", "from_source"]
-        k_edge = ["via_edge", "via_relation", "via_predicate"]
-        k_properties = ["to_properties", "to_property"]
-        k_generator = ["into_generator", "into_gen", "into_transformer", "into_trans"]
-
-        columns = get(k_columns)
-
-        # First, parse property mappings.
-        # Because we must declare types with every members already ready.
-        for col_name in columns:
-            column = columns[col_name]
-            properties = get(k_properties, column)
-
-            if properties:
-                for prop_name in properties:
-                    classes = properties[prop_name]
-                    for c in classes:
-                        # In case of an object having multiple declared properties, ensure dictionary is ot overwritten
-                        properties_of.setdefault(c, {})
-                        properties_of[c].setdefault(col_name, prop_name)
-                        logging.debug(f"Declare properties mapping for `{c}`: {properties_of[c]}")
-
-
-        source_t = make_node_class( get(k_row), properties_of.get(get(k_row), {}) )
-
-        # Then, declare types.
-        for col_name in columns:
-            column = columns[col_name]
-            target     = get(k_target, column)
-            subject    = get(k_subject, column)
-            edge       = get(k_edge, column)
-            generator  = get(k_generator, column)
-
-            if target and edge:
-                target_t = make_node_class( target, properties_of.get(target, {}) )
-                logging.debug(f"\tDeclare target for `{target}`: {target_t}")
-                if subject:
-                    subject_t = make_node_class( subject, properties_of.get(subject, {}) )
-                    edge_t   = make_edge_class( edge, subject_t, target_t, properties_of.get(edge, {}))
-                else:
-                    edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                edge_type_of[col_name] = edge_t # Embeds source and target types. #TODO it would probably work if mapped onto .target_type()
-                node_type_of[col_name] = target_t
-                logging.debug(f"\tDeclare mapping `{col_name}` => `{edge_t.__name__}`")
-            elif (target and not edge) or (edge and not target):
-                logging.error(f"\tCannot declare the mapping  `{col_name}` => `{edge}` (target: `{target}`)")
-
-            elif generator:
-                target = get(k_target, generator)
-                edge   = get(k_edge, generator)
-                gen_name,gen_args = get_not(k_target + k_edge, generator)
-                logging.debug(f"target: {target}, edge: {edge}, gen_name: {gen_name}, gen_args: {gen_args}")
-
-                if target and edge:
-                    target_t = make_node_class( target, properties_of.get(target, {}) )
-                    edge_t   = make_edge_class( edge, source_t, target_t, properties_of.get(edge, {}) )
-                    gen_t    = make_gen_class( f"{gen_name}_{col_name}", gen_name, edge_t, target_t, **gen_args ) #Pass target type
-                    edge_type_of[col_name] = gen_t
-                    node_type_of[col_name] = target_t
-                    logging.debug(f"\tDeclare generator `{col_name}` => `{gen_t.__name__}`(`{edge_t.__name__}`(`{target_t}`))")
-                else:
-                    logging.error(f"\tCannot create a generator without an object and a relation.")
-
-        logging.debug(f"source class: {source_t}")
-        logging.debug(f"node_type_of: {node_type_of}")
-        logging.debug(f"edge_type_of: {edge_type_of}")
-        logging.debug(f"properties_of: {properties_of}")
-        return source_t, node_type_of, edge_type_of, properties_of
-
+                        # TODO check if two transformers are declaring the same type and raise error
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
-    """Proxy function for extracting from a table all nodes, edges and properties
-    that are defined in a PandasAdapter configuration. """
-    mapping = PandasAdapter.configure(config, module)
+    """
+    Proxy function for extracting from a table all nodes, edges and properties
+    that are defined in a PandasAdapter configuration.
 
-    allowed_node_types  = types.all.nodes()
-    logging.debug(f"allowed_node_types: {allowed_node_types}")
+    Args:
+        df (pd.DataFrame): The DataFrame containing the input data.
+        config (dict): The configuration dictionary.
+        module: The module in which to insert the types declared by the configuration.
+        affix (str): The type affix to use (default is "suffix").
+        separator (str): The separator to use between labels and type annotations (default is ":").
 
-    allowed_node_fields = types.all.node_fields()
-    logging.debug(f"allowed_node_fields: {allowed_node_fields}")
+    Returns:
+        PandasAdapter: The configured adapter.
+    """
+    parser = ontoweaver.tabular.YamlParser(config, module)
+    mapping = parser()
 
-    allowed_edge_types  = types.all.edges()
-    logging.debug(f"allowed_edge_types: {allowed_edge_types}")
-
-    allowed_edge_fields = types.all.edge_fields()
-    logging.debug(f"allowed_edge_fields: {allowed_edge_fields}")
-
-    # Using empty list or no argument would also select everything,
-    # but explicit is better than implicit.
     adapter = PandasAdapter(
         df,
         *mapping,
-        allowed_node_types,
-        allowed_node_fields,
-        allowed_edge_types,
-        allowed_edge_fields,
         type_affix=affix,
         type_affix_sep=separator
-
     )
 
     adapter.run()
@@ -543,3 +314,325 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
     return adapter
 
 
+class Declare:
+    """
+    Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
+    of the data frame.
+
+    Args:
+        module: The module in which to insert the types declared by the configuration.
+    """
+
+    def __init__(self,
+                 module=types,
+                 ):
+        self.module = module
+
+    def make_node_class(self, name, properties={}, base=base.Node):
+        """
+        Create a node class with the given name and properties.
+
+        Args:
+            name: The name of the node class.
+            properties (dict): The properties of the node class.
+            base: The base class for the node class.
+
+        Returns:
+            The created node class.
+        """
+        # If type already exists, return it.
+        if hasattr(self.module, name):
+            cls = getattr(self.module, name)
+            logging.debug(
+                f"\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+            for p in properties.values():
+                if p not in cls.fields():
+                    logging.warning(f"\t\tProperty `{p}` not found in fields.")
+            return cls
+
+        def fields():
+            return list(properties.values())
+
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields": staticmethod(fields),
+        }
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        logging.debug(f"Declare Node class `{t}` (prop: `{properties}`).")
+        setattr(self.module, t.__name__, t)
+        return t
+
+    def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge, ):
+        """
+        Create an edge class with the given name, source type, target type, and properties.
+
+        Args:
+            name: The name of the edge class.
+            source_t: The source type of the edge.
+            target_t: The target type of the edge.
+            properties (dict): The properties of the edge class.
+            base: The base class for the edge class.
+
+        Returns:
+            The created edge class.
+        """
+        # If type already exists, return it.
+        if hasattr(self.module, name):
+            cls = getattr(self.module, name)
+            logging.info(
+                f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+            for t, p in properties.items():
+                if p not in cls.fields():
+                    logging.warning(f"\t\tProperty `{p}` not found in fields.")
+
+            tt_list = cls.target_type()
+
+            tt_list.append(target_t)
+
+            def tt():
+                return tt_list
+
+            cls.target_type = staticmethod(tt)
+
+            # TODO allow multiple source types for edge
+
+            return cls
+
+        def fields():
+            return properties
+
+        def st():
+            return source_t
+
+        def tt():
+            return [target_t]
+
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields": staticmethod(fields),
+            "source_type": staticmethod(st),
+            "target_type": staticmethod(tt),
+        }
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        logging.debug(f"Declare Edge class `{t}` (prop: `{properties}`).")
+        setattr(self.module, t.__name__, t)
+        return t
+
+    def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, **kwargs):
+        """
+        Create a transformer class with the given parameters.
+
+        Args:
+            transformer_type: The type of the transformer.
+            node_type: The type of the node.
+            properties: The properties of the transformer.
+            edge: The edge type of the transformer.
+            columns: The columns to be processed by the transformer.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The created transformer class.
+
+        Raises:
+            TypeError: If the transformer type is not an existing transformer.
+        """
+        if hasattr(transformer, transformer_type):
+            parent_t = getattr(transformer, transformer_type)
+            kwargs.setdefault("subclass", parent_t)
+            if not issubclass(parent_t, base.Transformer):
+                raise TypeError(f"Object `{transformer_type}` is not an existing transformer.")
+            else:
+                logging.debug(f"Declare transformer type '{transformer_type}' for node type '{node_type}'")
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns,
+                                        **kwargs)
+        else:
+            # logging.debug(dir(generators))
+            raise TypeError(f"Cannot find a transformer of name `{transformer_type}`.")
+
+
+class YamlParser(Declare):
+    """
+    Parse a table extraction configuration and return the three objects needed to configure an Adapter.
+
+    The config is a dictionary containing only strings, as converted from the following YAML description:
+
+    .. code-block:: yaml
+
+            row:
+               map:
+                  columns:
+                    - <MY_COLUMN_NAME>
+                  to_subject: <MY_SUBJECT_TYPE>
+            transformers:
+                - map:
+                    columns:
+                        - <MY_COLUMN_NAME>
+                    to_object: <MY_OBJECT_TYPE>
+                    via_relation: <MY_RELATION_TYPE>
+                - map:
+                    columns:
+                        - <MY_OTHER_COLUMN>
+                    to_property:
+                        - <MY_PROPERTY>
+                    for_objects:
+                        - <MY_OBJECT_TYPE>
+
+    This maps the table row to a MY_SUBJECT_TYPE node type, adding an edge of type MY_RELATION_TYPE,
+    between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node. The data in MY_OTHER_COLUMN is mapped
+    to the MY_PROPERTY property of the MY_OBJECT_TYPE node. Note that `to_properties` may effectively map to
+    an edge type or several types.
+
+    In order to allow the user to write mappings configurations using their preferred vocabulary, the following
+    keywords are interchangeable:
+        - subject = row = entry = line,
+        - columns = fields,
+        - to_target = to_object = to_node
+        - via_edge = via_relation = via_predicate.
+
+    :param dict config: A configuration dictionary.
+    :param module: The module in which to insert the types declared by the configuration.
+    :return tuple: subject_transformer, transformers, as needed by the Adapter.
+    """
+
+    def __init__(self, config: dict, module=types):
+        """
+        Initialize the YamlParser.
+
+        Args:
+            config (dict): The configuration dictionary.
+            module: The module in which to insert the types declared by the configuration.
+        """
+        super().__init__(module)
+        self.config = config
+
+        logging.debug(f"Classes created in module '{self.module}'")
+
+    def get_not(self, keys, pconfig=None):
+        """
+        Get the first dictionary (key, item) not matching any of the passed keys.
+
+        Args:
+            keys: The keys to exclude.
+            pconfig: The configuration dictionary to search in (default is self.config).
+
+        Returns:
+            dict: The first dictionary not matching any of the passed keys.
+        """
+        res = {}
+        if not pconfig:
+            pconfig = self.config
+        for k in pconfig:
+            if k not in keys:
+                res[k] = pconfig[k]
+        return res
+
+    def get(self, keys, pconfig=None):
+        """
+        Get a dictionary item matching any of the passed keys.
+
+        Args:
+            keys: The keys to search for.
+            pconfig: The configuration dictionary to search in (default is self.config).
+
+        Returns:
+            The first item matching any of the passed keys, or None if no match is found.
+        """
+        if not pconfig:
+            pconfig = self.config
+        for k in keys:
+            if k in pconfig:
+                return pconfig[k]
+        return None
+
+    def __call__(self):
+        """
+        Parse the configuration and return the subject transformer and transformers.
+
+        Returns:
+            tuple: The subject transformer and a list of transformers.
+        """
+        properties_of = {}
+        transformers = []
+
+        # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
+        k_row = ["row", "entry", "line", "subject", "source"]
+        k_subject_type = ["to_subject"]
+        k_columns = ["columns", "fields"]
+        k_target = ["to_target", "to_object", "to_node"]
+        k_subject = ["from_subject", "from_source"]
+        k_edge = ["via_edge", "via_relation", "via_predicate"]
+        k_properties = ["to_properties", "to_property"]
+        k_prop_to_object = ["for_objects"]
+        k_transformer = ["transformers"]
+
+        transformers_list = self.get(k_transformer)
+
+        # First, parse property mappings.
+        for transformer_types in transformers_list:
+            for transformer_type, field_dict in transformer_types.items():
+                if any(field in field_dict.keys() for field in k_properties):
+                    object_types = self.get(k_prop_to_object, pconfig=field_dict)
+                    property_names = self.get(k_properties, pconfig=field_dict)
+                    column_names = self.get(k_columns, pconfig=field_dict)
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names)
+                    for object_type in object_types:
+                        properties_of.setdefault(object_type, {})
+                        for property_name in property_names:
+                            properties_of[object_type].setdefault(prop_transformer, property_name)
+                        logging.debug(f"\t\t\t\tDeclare property mapping for `{object_type}`: {properties_of[object_type]}")
+
+        subject_dict = self.get(k_row)
+        subject_transformer_class = list(subject_dict.keys())[0]
+        subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
+        subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
+        subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
+        logging.debug(f"Declare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
+                      f"subject kwargs '{subject_kwargs}', subject columns '{subject_columns}'")
+
+        source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+        subject_transformer = self.make_transformer_class(
+            columns=subject_columns, transformer_type=subject_transformer_class,
+            node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
+
+        # Then, declare types.
+        for transformer_types in transformers_list:
+            for transformer_type, field_dict in transformer_types.items():
+                if any(field in field_dict.keys() for field in k_properties):
+                    if any(field in field_dict.keys() for field in k_target):
+                        prop = self.get(k_properties, field_dict)
+                        target = self.get(k_target, field_dict)
+                        logging.error(f"ERROR in transformer '{transformer_type}': one cannot "
+                                      f"declare a mapping to both properties '{prop}' and object type '{target}'.")
+                    continue
+                else:
+                    columns = self.get(k_columns, pconfig=field_dict)
+                    target = self.get(k_target, pconfig=field_dict)
+                    subject = self.get(k_subject, pconfig=field_dict)
+                    edge = self.get(k_edge, pconfig=field_dict)
+                    gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
+
+                    # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
+                    # from_subject` is used in the transformer class to refer to the source node type.
+                    if 'from_source' in gen_data:
+                        gen_data['from_subject'] = gen_data['from_source']
+                        del gen_data['from_source']
+
+                    if target and edge:
+                        target_t = self.make_node_class(target, properties_of.get(target, {}))
+                        logging.debug(f"\t\t\t\tDeclare target for `{target}`: {target_t}")
+                        if subject:
+                            subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
+                            edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
+                        else:
+                            edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+                        transformers.append(self.make_transformer_class(
+                            transformer_type=transformer_type, node_type=target_t,
+                            properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
+                        logging.debug(f"\t\t\t\tDeclare mapping `{columns}` => `{edge_t.__name__}`")
+                    elif (target and not edge) or (edge and not target):
+                        logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
+
+        logging.debug(f"source class: {source_t}")
+        logging.debug(f"properties_of: {properties_of}")
+        logging.debug(f"transformers: {transformers}")
+        return subject_transformer, transformers

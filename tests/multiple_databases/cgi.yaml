@@ -1,0 +1,28 @@
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+
+    - map:
+        columns:
+            - gene
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+
+    - map:
+        columns:
+            - transcript
+        from_subject: gene_hugo
+        to_object: transcript
+        via_relation: transcript_to_gene_relationship
+
+    - map:
+        columns:
+            - oncogenic_summary
+        to_object: disease
+        via_relation: variant_to_disease

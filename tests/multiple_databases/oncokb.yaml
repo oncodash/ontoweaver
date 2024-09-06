@@ -1,0 +1,28 @@
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+
+    - map:
+        columns:
+            - hugoSymbol
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+
+    - map:
+        columns:
+            - treatments
+        to_object: drug
+        via_relation: variant_affected_by_drug
+
+    - map:
+        columns:
+            - citationPubMed
+        from_source: drug
+        to_object: publication
+        via_relation: treatment_has_citation

@@ -19,14 +19,21 @@ and allowing reproducible & configurable builds.
 With a pure Biocypher approach, you would have to write a whole adapter by hand,
 with OntoWeaver, you just have to express a mapping in YAML, looking like:
 ```yaml
-subject: <line_node_type>
-columns:
-    <column_name>:
+row:
+   map:
+      columns: # Optional, you can also only write to_subject: 
+        - <column_name> # which then uses indexes instead of cell values.
+      to_subject: <line_node_type>
+transformers:
+    - map:
+        columns:
+            - <column_name>
         to_object: <col_node_type>
         via_relation: <edge_type>
+
 ```
 
-## Installation
+## Installation and quick setup guide
 
 ### Python Module
 
@@ -42,10 +49,25 @@ Poetry will create a virtual environment according to your configuration (either
 centrally or in the project folder). You can activate it by running `poetry
 shell` inside the project directory.
 
-
 ### Database
 
 Theoretically, any graph database supported by Biocypher may be used.
+
+### Graph visualization
+
+Neo4j is a popular graph database management system that offers a flexible and efficient way
+to store, query, and manipulate complex, interconnected data. Cypher is the query language
+used to interact with Neo4j databases. In order to visualize graphs extracted from databases using OntoWeaver and
+BioCypher, you can download the [Neo4j Graph Database Self-Managed]
+(https://neo4j.com/deployment-center/) for your operating system. It has been extensively tested
+with the Community edition.
+
+To create a global variable to Neo4j, add the path to `neo4j-admin` to PATH and `PYTHONPATH`. In order to use the Neo4j browser, you will
+need to install the correct Java version, depending on the Neo4j version you are using, and add the path to `JAVA_HOME`. 
+OntoWeaver and BioCypher  support versions 4 and 5 of Neo4j.
+
+To run Neo4j (version 5+), use the command `neo4j-admin server start` after importing your results via the neo4j import sequence
+provided in the `./biocypher-out/` directory. Use `neo4j-admin server stop` to disconnect the local server.
 
 
 ### Tests
@@ -81,7 +103,6 @@ To actually insert data in a SKG database, you will have to use Biocypher
 export API:
 ```python
     import yaml
-    import logging
     import pandas as pd
     import biocypher
     import ontoweaver
@@ -138,8 +159,6 @@ in the ontology.
 ```
 
 
-
-
 ## Mapping API
 
 OntoWeaver essentially creates a Biocypher adapter from the description of a
@@ -147,9 +166,9 @@ mapping from a table to ontology types.
 As such, its core input is a dictionary, that takes the form of a YAML file.
 This configuration file indicates:
 
-- to which (node) type are mapped each line of the table,
-- to which (node) type are mapped columns of the table,
-- with which (edge) type are mapped relationships between nodes.
+- to which (node) type to map each line of the table,
+- to which (node) type to map columns of the table,
+- with which (edge) types to map relationships between nodes.
 
 The following explanations assume that you are familiar with
 [Biocypher's configuration](https://biocypher.org/tutorial-ontology.html),
@@ -168,8 +187,8 @@ phenotype,patient
 0,A
 1,B
 ```
-and if you target the Biolink ontology, with the following schema
-(i.e. subset of types):
+and if you target the Biolink ontology, using a schema configuration(i.e. subset of types), 
+defined in your `shcema_config.yaml` file, as below:
 ```yaml
 phenotypic feature:
     represented_as: node
@@ -185,11 +204,16 @@ case to phenotypic feature association:
 ```
 you may write the following mapping:
 ```yaml
-subject: phenotype
-columns:
-    patient: # Name of the column in the table.
-        to_object: case # Node type to export to (most probably the same than in the ontology).
+row:
+   map:
+      to_subject: phenotype
+transformers:
+    - map:
+        columns: 
+            - patient # Name of the column in the table.
+        to_object: case # Node type to export to (most probably the same as in the ontology).
         via_relation: case_to_phenotype # Edge type to export to.
+
 ```
 
 This configuration will end in creating a node for each phenotype, a node
@@ -214,21 +238,28 @@ for each patient, and an edge for each phenotype-patient pair:
 ```
 
 
-### Relation between Columns Nodes
+### How to Add an Edge Between Column Nodes
 
 If you need to add an edge between a column node to another (and not between
 the line node and a column node), you can use the `from_subject` predicate,
 for example:
 ```yaml
-subject: phenotype
-columns:
-    patient:
+row:
+   map:
+      to_subject: phenotype
+transformers:
+    - map:
+        columns:
+            - patient
         to_object: case
         via_relation: case_to_phenotype
-    disease:
+    - map:
+        columns:
+            - disease
         from_subject: case # The edge will start from this node type...
         to_object: disease # ... to this node type.
-        via_relation: disease to entity association mixin
+        via_relation: disease_to_entity_association_mixin
+
 ```
 
 ```
@@ -249,51 +280,79 @@ columns:
            ╰───────────────────╯
 ```
 
-### Properties
+### How to Add Properties to Nodes and Edges
 
 If you do not need to create a new node, but simply attach some data to an existing
 node, use the `to_property` predicate, for example:
 ```yaml
-subject: phenotype
-columns:
-    patient:
+row:
+   map:
+      to_subject: phenotype
+transformers:
+    - map:
+        columns:
+            - patient
         to_object: case
         via_relation: case_to_phenotype
-    age: # Name of the column.
-        to_property:
-            patient_age: # Name of the property.
-                - case # Type(s) in which to add the property.
+    - map:
+        columns:
+            - age
+        to_property: 
+            - patient_age
+        for_objects:
+            - case
+
 ```
-This will add an "age" property to nodes of type "case".
+This will add a "patient_age" property to nodes of type "case".
 
 Note that you can add the same property to several types.
 
 
-### Transformers
+### How to Use Transformers
 
 If you want to transform a data cell before exporting it as one or several
 nodes, you will use *transformers*.
 
+
+#### `map`
+
+The *mqp* transformer simply extracts the value of the cell defined, and is the most common way of mapping cell values.
+
+For ecxample:
+
+```yaml
+    - map:
+        columns:
+            - patient
+        to_object: case
+```
+
+
 #### `split`
 
 The *split* transformer separates a string on a separator, into several items,
-and then insert a node for each element of the list.
+and then inserts a node for each element of the list.
 
 For example, if you have a list of treatments separated by a semicolon,
 you may write:
 ```yaml
-subject: phenotype
-columns:
-    variant:
+row:
+   map:
+      to_subject: phenotype
+transformers:
+    - map:
+        columns:
+            - variant
         to_object: variant
-        via_relation: phenotype to variant
-    treatments:
-        into_transformer:
-            split:
-                separator: ";"
-            from_object: variant
-            to_object: drug
-            via_relation: variant_to_drug
+        via_relation: phenotype_to_variant
+    - split:
+        columns:
+            - treatments
+        from_subject: variant
+        to_object: drug
+        via_relation: variant_to_drug
+        separator: ";"
+
 ```
 
 ```
@@ -316,16 +375,50 @@ columns:
        ╰───────────────╯   ╰────────────────╯
 ```
 
-It is worth noting that the underlying code is very simple:
-```python
-class split(base.EdgeGenerator):
-    def nodes(self):
-       for i in self.id.split(self.separator):
-           yield self.make_node(id = i)
+#### `cat`
 
-    def edges(self):
-       for i in self.id_target.split(self.separator):
-           yield self.make_edge(id_target = i)
+The *cat* transformer concatenates the values cells of the defined columns and then inserts a single node.
+For example, the mapping below would result in the concatenation of cell values from the columns `variant_id`,
+and `disease`, to the node type `variant`. The values are concatenated in the order written in the `columns`
+section.
+
+```yaml
+row:
+   cat:
+      columns: # List of columns whose cell values to be concatenated
+        - variant_id
+        - disease
+      to_subject: variant # The ontology type to map to
+```
+
+#### `cat_format`
+
+The user can also define the order and format of concatenation by creating a `format_string` field, which defines
+the format of the concatenation. For example:
+
+```yaml
+row:
+   cat_format:
+      columns: # List of columns whose cell values to be concatenated
+        - variant_id
+        - disease
+      to_subject: variant # The ontology type to map to
+      format_string: "{disease}_____{variant_id}"
+```
+
+Although the examples above all define mapping of cell values to nodes, the transformers are also used to map 
+cell values to properties of nodes and edges. For example:
+
+```yaml
+    - map:
+        columns:
+            - version
+        to_property:
+            - version
+        for_objects:
+            - patient # Node type.
+            - variant
+            - patient_has_variant # Edge type.
 ```
 
 
@@ -345,10 +438,9 @@ Here is the list of available synonyms:
 - `from_subject` = `from_source`
 - `via_relation` = `via_edge` = `via_predicate`
 - `to_property` = `to_properties`
-- `into_transformer` = `into_generator` = `into_gen`, `into_trans`
 
 
-### User-defined Classes
+### How to Create User-defined Classes
 
 #### Dynamic Node and Edge Types
 
@@ -360,14 +452,13 @@ module.
 You may manually define your own types, derivating from `ontoweaver.base.Node`
 or `ontoweaver.base.Edge`.
 
-The `ontoweaver.types` module automatically gather the list of available types
+The `ontoweaver.types` module automatically gathers the list of available types
 in the `ontoweaver.types.all` submodule.
 This allows accessing the list of node and edge types:
 ```python
 node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
-
 
 #### User-defined Adapters
 
@@ -381,51 +472,21 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
     def __init__(self,
         df: pd.DataFrame,
         config: dict,
-        node_types : Optional[Iterable[ontoweaver.Node]] = None,
-        node_fields: Optional[list[str]] = None,
-        edge_types : Optional[Iterable[ontoweaver.Edge]] = None,
-        edge_fields: Optional[list[str]] = None,
         type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.prefix,
         type_affix_sep: Optional[str] = "//",
     ):
         # Default mapping as a simple config.
         from . import types
-        mapping = self.configure(config, types)
+        parser = ontoweaver.tabular.YamlParser(config, types)
+        mapping = parser()
 
-        # If "None" is passed (the default), then do not filter anything
-        # and just extract all available types.
-        if not node_types:
-            node_types  = types.all.nodes()
-            logging.debug(f"node_types: {node_types}")
-
-        if not node_fields:
-            node_fields = types.all.node_fields()
-            logging.debug(f"node_fields: {node_fields}")
-
-        if not edge_types:
-            edge_types  = types.all.edges()
-            logging.debug(f"edge_types: {edge_types}")
-
-        if not edge_fields:
-            edge_fields = types.all.edge_fields()
-            logging.debug(f"edge_fields: {edge_fields}")
-
-        # Declare types defined in the config.
         super().__init__(
             df,
             *mapping,
-            node_types,
-            node_fields,
-            edge_types,
-            edge_fields,
         )
-        
-        self.type_affix = type_affix
-        self.type_affix_sep = type_affix_sep
-
+     
 
 ```
-
 When manually defining adapter classes, be sure to define the affix type and separator you wish to use in the mapping. 
 Unless otherwise defined, affix type defaults to `suffix` and separator defaults to `:`. In the example above, the affix type is defined as `prefix` and
 the separator is defined as `//`. If you wish to define affix as `none`, you should use 
@@ -434,74 +495,47 @@ the separator is defined as `//`. If you wish to define affix as `none`, you sho
 
 
 
+#### How to Extract Additional Edges
 
-#### Multiple Subjects
+Edges can be extracted from the mapping configuration, by defining a `from_subject` and `to_object` in the mapping configuration,
+where the `from_subject` is the node type from which the edge will start, and the `to_object` is the node type to which the edge will end.
 
-If you need to change the subject's (line) type depending on the value of
-some field, you will have to declare your own adapter class, and overload
-the `source_type` method.
+For example, consider the following mapping configuration for the sample dataset below:
 
-For example:
-```python
-    def source_type(self, row):
-        from . import types
-        if row["alteration"].lower() == "amplification":
-            return types.amplification
-        elif row["alteration"].lower() == "loss":
-            return types.loss
-        else:
-            logging.debug(f"Source type is `variant`")
-            return types.variant
+```
+id	patient	        sample
+0	patient1	sample1
+1	patient2	sample2
+2	patient3	sample3
+3	patient4	sample4
 ```
 
-The same goes for defining the *ID* of the subject, for example:
-```python
-    def source_id(self, i, row):
-        id = "{}".format(row["patient_id"])
-        logging.debug("Source ID is `{}`".format(id))
-        return "{}".format(id)
+```yaml
+row:
+    map:
+        columns:
+            - id
+        to_subject: variant
+transformers:
+    - map:
+          columns:
+              - patient
+          to_object: patient
+          via_relation: patient_has_variant
+    - map:
+          columns:
+              - sample
+          to_object: sample
+          via_relation: variant_in_sample
 ```
+If the user would like to extract an additional edge from the node type `patient` to the node type `sample`, they would
+need to add the following section to the transformers in the mapping configuration:
 
-
-#### Multiple Relations
-
-If you need to add an additional edge from the current node to another one,
-you will need to overload the `end` method.
-
-For example:
-```python
-    def end(self):
-        from . import types
-        
-        # Manual extraction of an additional edge between sample and patient.
-        
-        for i,row in self.df.iterrows():
-            
-            # In case of using affixes of types `prefix` or `suffix`, define the separator you declared in the MYADAPTER class (example above)
-            # For example, if the separator is ":" ( type_affix_sep: Optional[str] = ":" )
-            separator = ":"
-            
-            # Define source and target nodes you wish to create relations for, keeping in mind the affix structure you defined in the MYADAPTER class
-            
-            # In case affix is of type `suffix` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.suffix )
-            source_id = f"{row["sample"]}{separator}{self.node_type_of["sample"].__name__}"
-            target_id = f"{row["patient"]}{separator}{self.node_type_of["patient"].__name__}"
-            
-            # In case affix is of type `prefix` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.prefix )
-            source_id = f"{self.node_type_of["sample"].__name__}{separator}{row["sample"]}"
-            target_id = f"{self.node_type_of["patient"].__name__}{separator}{row["patient"]}"
-            
-            # In case affix is of type `none` ( type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.none )
-            source_id = row["sample"]
-            target_id = row["patient"]
-            
-            logging.debug(f"Add a `sample_to_patient` edge between `{source_id}` and `{target_id}`")
-            self.edges_append( self.make_edge(
-                types.sample_to_patient, id=None,
-                id_source=source_id, id_target=target_id
-            ))
+```yaml
+    - map:
+        columns:
+          - patient
+        from_subject: sample
+        to_object: patient
+        via_relation: sample_to_patient
 ```
-
-Source and target nodes are modified by changing the names inside the `row["NAME_HERE"]` brackets, for both `source_id` and `target_id`, according to the user's specific needs. 
-In this example, the edge was created from sample to patient so the edge is declared from  `source_id` `row["sample"]` to `target_id` `row["patient"]`. In case of using the default
-separator in the `MYADAPTER` class you defined (example above), you still need to define the separator when overloading the `end` method as `:`.

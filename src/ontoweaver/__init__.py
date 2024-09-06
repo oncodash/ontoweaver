@@ -2,12 +2,12 @@
 from . import base
 Node = base.Node
 Edge = base.Edge
-EdgeGenerator = base.EdgeGenerator
+Transformer = base.Transformer
 Adapter = base.Adapter
 All = base.All
 
 from . import types
-from . import generators
+from . import transformer
 from . import tabular
 
-__all__ = ['Node', 'Edge', 'EdgeGenerator', 'Adapter', 'All', 'tabular', 'types']
+__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types']

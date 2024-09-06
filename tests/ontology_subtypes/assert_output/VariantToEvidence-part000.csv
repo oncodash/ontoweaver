@@ -1,0 +1,8 @@
+0:variant;;fda1:fda_evidence_level;VariantToEvidence
+0:variant;;oncokb1:oncokb_evidence_level;VariantToEvidence
+1:variant;;fda2:fda_evidence_level;VariantToEvidence
+1:variant;;oncokb2:oncokb_evidence_level;VariantToEvidence
+2:variant;;fda3:fda_evidence_level;VariantToEvidence
+2:variant;;oncokb3:oncokb_evidence_level;VariantToEvidence
+3:variant;;fda3:fda_evidence_level;VariantToEvidence
+3:variant;;oncokb3:oncokb_evidence_level;VariantToEvidence

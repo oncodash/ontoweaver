@@ -1,8 +1,26 @@
-subject: variant # Type for each entry (e.g. line).
-columns:
-    patient: # The column having this label.
+row:
+    map:
+        columns:
+            - id
+        to_subject: variant
+transformers:
+    - map:
+          columns:
+              - patient
+          to_object: patient
+          via_relation: patient_has_variant
+    - map:
+          columns:
+              - sample
+          to_object: sample
+          via_relation: variant_in_sample
+    - map:
+        columns:
+          - patient
+        from_subject: sample
         to_object: patient
-        via_relation: patient_has_variant
-    sample:
-        to_object: sample
-        via_relation: variant_in_sample
+        via_relation: sample_to_patient
+
+
+
+
