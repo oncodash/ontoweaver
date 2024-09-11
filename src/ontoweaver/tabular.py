@@ -67,6 +67,7 @@ class PandasAdapter(base.Adapter):
                  df: pd.DataFrame,
                  subject_transformer: base.Transformer,
                  transformers: Iterable[base.Transformer],
+                 metadata: Optional[dict] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  ):
@@ -77,6 +78,7 @@ class PandasAdapter(base.Adapter):
             df (pd.DataFrame): The table containing the input data.
             subject_transformer (base.Transformer): The transformer that maps the subject node.
             transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
+            metadata (Optional[dict]): Metadata to be added to the nodes and edges.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
@@ -99,6 +101,7 @@ class PandasAdapter(base.Adapter):
 
         self.subject_transformer = subject_transformer
         self.transformers = transformers
+        self.metadata = metadata
         # logging.debug(self.properties_of)
 
     def source_type(self, row):
@@ -165,7 +168,7 @@ class PandasAdapter(base.Adapter):
             return False
         return True
 
-    def properties(self, properity_dict, row, i):
+    def properties(self, properity_dict, row, i, transformer, node = False):
         """
         Extract properties of each property category for the given node type.
         If no properties are found, return an empty dictionary.
@@ -174,15 +177,24 @@ class PandasAdapter(base.Adapter):
             properity_dict: Dictionary of property mappings.
             row: The current row of the DataFrame.
             i: The index of the current row.
+            transformer: The transformer instance creating the node or edge class at hand.
+            node: True if the object created is a node, False otherwise.
 
         Returns:
             dict: Extracted properties.
         """
+        # FIXME metadata on edges should not contain column names. Maybe add node: True to properties parameters do distinguish ?
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
             for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
+
+        # If the metadata dictionary is not empty, and the object created is a node, add the metadata to the property dictionary.
+        if self.metadata and node:
+            if transformer.target.__name__ in self.metadata:
+                for key, value in self.metadata[transformer.target.__name__].items():
+                    properties[key] = value
 
         return properties
 
@@ -236,7 +248,7 @@ class PandasAdapter(base.Adapter):
             if source_node_id:
                 logging.debug(f"\t\tDeclared source id: `{source_node_id}")
                 self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
-                                          properties=self.properties(self.subject_transformer.properties_of, row, i))))
+                                          properties=self.properties(self.subject_transformer.properties_of, row, i, self.subject_transformer, node = True))))
             else:
                 raise ValueError(f"\t\tDeclaration of subject ID for row `{row}` unsuccessful.")
 
@@ -250,7 +262,7 @@ class PandasAdapter(base.Adapter):
                             target_node_id = self.make_id(transformer.target.__name__, target_id)
                             logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
                             self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                      properties=self.properties(transformer.properties_of, row, i)))
+                                                      properties=self.properties(transformer.properties_of, row, i, transformer, node = True)))
 
                             # If a `from_subject` attribute is present in the transformer, loop over the transformer
                             # list to find the transformer instance mapping to the correct type, and then create new
@@ -270,14 +282,14 @@ class PandasAdapter(base.Adapter):
                                         self.edges_append(
                                             self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
                                                            id_target=target_node_id,
-                                                           properties=self.properties(transformer.properties_of, row, i)))
+                                                           properties=self.properties(transformer.properties_of, row, i, transformer)))
 
                                     else:
                                         continue
                             else:
                                 logging.debug(f"\t\t\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
                                 self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                          properties=self.properties(transformer.edge.fields(), row, i)))
+                                                          properties=self.properties(transformer.edge.fields(), row, i, transformer)))
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
@@ -491,7 +503,7 @@ class YamlParser(Declare):
 
     :param dict config: A configuration dictionary.
     :param module: The module in which to insert the types declared by the configuration.
-    :return tuple: subject_transformer, transformers, as needed by the Adapter.
+    :return tuple: subject_transformer, transformers, metadata as needed by the Adapter.
     """
 
     def __init__(self, config: dict, module=types):
@@ -553,6 +565,7 @@ class YamlParser(Declare):
         """
         properties_of = {}
         transformers = []
+        metadata = {}
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
@@ -564,6 +577,7 @@ class YamlParser(Declare):
         k_properties = ["to_properties", "to_property"]
         k_prop_to_object = ["for_objects"]
         k_transformer = ["transformers"]
+        k_metadata = ["metadata"]
 
         transformers_list = self.get(k_transformer)
 
@@ -581,6 +595,9 @@ class YamlParser(Declare):
                             properties_of[object_type].setdefault(prop_transformer, property_name)
                         logging.debug(f"\t\t\t\tDeclare property mapping for `{object_type}`: {properties_of[object_type]}")
 
+        metadata_list = self.get(k_metadata)
+
+
         subject_dict = self.get(k_row)
         subject_transformer_class = list(subject_dict.keys())[0]
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
@@ -593,6 +610,20 @@ class YamlParser(Declare):
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
+
+        # Extract metadata for the source type.
+        if metadata_list:
+            if subject_type:
+                metadata.setdefault(subject_type, {})
+                for item in metadata_list:
+                    metadata[subject_type].update(item)
+                if "add_source_column_names_as" in metadata[subject_type]:
+                    # Use the value of 'source_column_names' as the key.
+                    key_name = metadata[subject_type]["add_source_column_names_as"]
+                    # Remove the 'source_column_names' key from the metadata dictionary.
+                    del metadata[subject_type]["add_source_column_names_as"]
+                    if subject_columns:
+                        metadata[subject_type][key_name] = ", ".join(subject_columns)
 
         # Then, declare types.
         for transformer_types in transformers_list:
@@ -632,7 +663,24 @@ class YamlParser(Declare):
                     elif (target and not edge) or (edge and not target):
                         logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
 
+                    # Extract metadata for the target type.
+                    if metadata_list:
+                        if target:
+                            metadata.setdefault(target, {})
+                            for item in metadata_list:
+                                metadata[target].update(item)
+                            # Check if 'source_column_names' exists in metadata[target]
+                            if "add_source_column_names_as" in metadata[target]:
+                                # Use the value of 'source_column_names' as the key.
+                                key_name = metadata[target]["add_source_column_names_as"]
+                                # Remove the 'source_column_names' key from the metadata dictionary.
+                                del metadata[target]["add_source_column_names_as"]
+                                if columns:
+                                    metadata[target][key_name] = ", ".join(columns)
+
+
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
         logging.debug(f"transformers: {transformers}")
-        return subject_transformer, transformers
+        logging.debug(f"metadata: {metadata}")
+        return subject_transformer, transformers, metadata
