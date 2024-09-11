@@ -78,7 +78,7 @@ class PandasAdapter(base.Adapter):
             df (pd.DataFrame): The table containing the input data.
             subject_transformer (base.Transformer): The transformer that maps the subject node.
             transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
-            metadata (Optional[dict]): Metadata to be added to the nodes and edges.
+            metadata (Optional[dict]): Metadata to be added to the nodes.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
@@ -183,7 +183,6 @@ class PandasAdapter(base.Adapter):
         Returns:
             dict: Extracted properties.
         """
-        # FIXME metadata on edges should not contain column names. Maybe add node: True to properties parameters do distinguish ?
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
@@ -255,8 +254,6 @@ class PandasAdapter(base.Adapter):
             # Loop over list of transformer instances and create corresponding nodes and edges.
             for transformer in self.transformers:
 
-                # TODO assert that there is no from_subject attribute in the regular transforemrs
-
                     for target_id in transformer(row, i):
                         if target_id:
                             target_node_id = self.make_id(transformer.target.__name__, target_id)
@@ -269,8 +266,6 @@ class PandasAdapter(base.Adapter):
                             # subject id.
 
                             # FIXME add hook functions to be overloaded.
-
-                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
                             if hasattr(transformer, "from_subject"):
                                 for t in self.transformers:
@@ -293,8 +288,6 @@ class PandasAdapter(base.Adapter):
                         else:
                             logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
                             continue
-
-                        # TODO check if two transformers are declaring the same type and raise error
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
     """
@@ -618,9 +611,9 @@ class YamlParser(Declare):
                 for item in metadata_list:
                     metadata[subject_type].update(item)
                 if "add_source_column_names_as" in metadata[subject_type]:
-                    # Use the value of 'source_column_names' as the key.
+                    # Use the value of "add_source_column_names_as" as the key.
                     key_name = metadata[subject_type]["add_source_column_names_as"]
-                    # Remove the 'source_column_names' key from the metadata dictionary.
+                    # Remove the "add_source_column_names_as" key from the metadata dictionary.
                     del metadata[subject_type]["add_source_column_names_as"]
                     if subject_columns:
                         metadata[subject_type][key_name] = ", ".join(subject_columns)
@@ -669,11 +662,11 @@ class YamlParser(Declare):
                             metadata.setdefault(target, {})
                             for item in metadata_list:
                                 metadata[target].update(item)
-                            # Check if 'source_column_names' exists in metadata[target]
+                            # Check if "add_source_column_names_as" exists in metadata[target]
                             if "add_source_column_names_as" in metadata[target]:
-                                # Use the value of 'source_column_names' as the key.
+                                # Use the value of "add_source_column_names_as" as the key.
                                 key_name = metadata[target]["add_source_column_names_as"]
-                                # Remove the 'source_column_names' key from the metadata dictionary.
+                                # Remove the "add_source_column_names_as" key from the metadata dictionary.
                                 del metadata[target]["add_source_column_names_as"]
                                 if columns:
                                     metadata[target][key_name] = ", ".join(columns)
