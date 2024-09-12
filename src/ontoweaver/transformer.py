@@ -147,14 +147,14 @@ class rowIndex(base.Transformer):
             row: The current row of the DataFrame.
             i: The index of the current row.
 
-        Yields:
+        Returns:
             int: The row index if valid.
 
         Raises:
             Warning: If the row index is invalid.
         """
         if self.valid(i):
-            yield i
+            return i
         else:
             logging.warning(
                 f"Error while mapping by row index. Invalid cell content: `{i}`")
@@ -191,6 +191,9 @@ class map(base.Transformer):
         Raises:
             Warning: If the cell value is invalid.
         """
+        if not self.columns:
+            raise ValueError(f"No column declared for the map transformer, did you forgot to add a `columns` keyword?")
+
         for key in self.columns:
             if self.valid(row[key]):
                 yield row[key]
