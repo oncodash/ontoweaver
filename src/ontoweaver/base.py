@@ -296,17 +296,25 @@ class Transformer:
             from_subject = self.from_subject
         else:
             from_subject = "."
+
         if self.target:
             target_name = self.target.__name__
         else:
             target_name = "."
+
         if self.edge:
             edge_name = self.edge.__name__
         else:
             edge_name = "."
+
+        if self.properties_of:
+            props = self.properties_of
+        else:
+            props = "{}"
+
         params = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
 
-        return f"<Transformer/{type(self).__name__}{params} {self.columns} => [{from_subject}]--({edge_name})->[{target_name}/{self.properties_of}]>"
+        return f"<Transformer/{type(self).__name__}{params} {self.columns} => [{from_subject}]--({edge_name})->[{target_name}/{props}]>"
 
 class All:
     """Gathers lists of subclasses of Element and their fields

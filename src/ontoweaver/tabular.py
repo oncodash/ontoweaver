@@ -120,7 +120,7 @@ class PandasAdapter(base.Adapter):
         return self.row_type
 
 
-    def make_id(self, type, entry_name):
+    def make_id(self, entry_type, entry_name):
         """
         Create a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration.
@@ -135,18 +135,21 @@ class PandasAdapter(base.Adapter):
         Raises:
             ValueError: If the ID creation fails.
         """
+        assert(type(entry_type) == str)
+        assert(type(entry_name) == str)
         if self.type_affix == TypeAffixes.prefix:
-            id = f'{type}{self.type_affix_sep}{entry_name}'
+            id = f'{entry_type}{self.type_affix_sep}{entry_name}'
         elif self.type_affix == TypeAffixes.suffix:
-            id = f'{entry_name}{self.type_affix_sep}{type}'
+            id = f'{entry_name}{self.type_affix_sep}{entry_type}'
         elif self.type_affix == TypeAffixes.none:
             id = f'{entry_name}'
 
         if id:
-            logging.debug(f"\t\tCreated ID `{id}` for cell value `{entry_name}` of type: `{type}`")
+            logging.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
             return id
         else:
-            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
+            raise ValueError(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`")
+
 
     def valid(self, val):
         """
@@ -164,6 +167,7 @@ class PandasAdapter(base.Adapter):
         elif str(val) == "nan":  # Conversion from Pandas' `object` needs to be explicit.
             return False
         return True
+
 
     def properties(self, properity_dict, row, i):
         """
@@ -186,6 +190,7 @@ class PandasAdapter(base.Adapter):
 
         return properties
 
+
     def make_node(self, node_t, id, properties):
         """
         Create nodes of a certain type.
@@ -199,6 +204,7 @@ class PandasAdapter(base.Adapter):
             The created node.
         """
         return node_t(id=id, properties=properties)
+
 
     def make_edge(self, edge_t, id_target, id_source, properties):
         """
@@ -215,6 +221,7 @@ class PandasAdapter(base.Adapter):
         """
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
+
     def run(self):
         """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
 
@@ -226,20 +233,27 @@ class PandasAdapter(base.Adapter):
             logging.debug(f"Process row {i}...")
             nb_rows += 1
 
-            source_id = self.subject_transformer(row, i)
+            logging.debug(f"\tCreate subject node:")
+            # There can be only one subject, so transformers yielding multiple IDs cannot be used.
+            ids = list(self.subject_transformer(row, i))
+            if(len(ids) > 1):
+                logging.error(f"\t\tSubject Transformer {self.subject_transformer} produced multiple IDs: {ids}")
+                raise ValueError("You cannot use a transformer yielding multiple IDs as a subject")
+            source_id = ids[0]
             source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
             if source_node_id:
-                logging.debug(f"\tDeclared source id: `{source_node_id}")
+                logging.debug(f"\t\tDeclared subject ID: `{source_node_id}")
                 self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
                                           properties=self.properties(self.subject_transformer.properties_of, row, i))))
             else:
-                raise ValueError(f"\tDeclaration of subject ID for row `{row}` unsuccessful.")
+                raise ValueError(f"Declaration of subject ID for row `{row}` unsuccessful.")
 
             # Loop over list of transformer instances and create corresponding nodes and edges.
+            # FIXME the transformer variable here shadows the transformer module.
             for transformer in self.transformers:
                 nb_transformations += 1
-                logging.debug(f"\tCalling transformer {transformer}...")
+                logging.debug(f"\tCalling transformer {transformer}:")
 
                 for target_id in transformer(row, i):
                     nb_nodes += 1
@@ -271,7 +285,8 @@ class PandasAdapter(base.Adapter):
 
                                 else:
                                     continue
-                        else: # no from_subject attribute in transformer
+
+                        else: # no attribute `from_subject` in `transformer`
                             logging.debug(f"\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
                             self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
                                                       properties=self.properties(transformer.edge.fields(), row, i)))
@@ -365,7 +380,7 @@ class Declare:
             "fields": staticmethod(fields),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"\t\tDeclare Node class `{t}` (prop: `{properties}`).")
+        logging.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -420,7 +435,7 @@ class Declare:
             "target_type": staticmethod(tt),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"\t\tDeclare Edge class `{t}` (prop: `{properties}`).")
+        logging.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -429,8 +444,8 @@ class Declare:
         Create a transformer class with the given parameters.
 
         Args:
-            transformer_type: The type of the transformer.
-            node_type: The type of the node.
+            transformer_type: The class of the transformer.
+            node_type: The type of the target node created by the transformer.
             properties: The properties of the transformer.
             edge: The edge type of the transformer.
             columns: The columns to be processed by the transformer.
@@ -448,12 +463,15 @@ class Declare:
             if not issubclass(parent_t, base.Transformer):
                 raise TypeError(f"Object `{transformer_type}` is not an existing transformer.")
             else:
-                logging.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{node_type}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns,
-                                        **kwargs)
+                if node_type:
+                    nt = node_type.__name__
+                else:
+                    nt = "."
+                logging.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, **kwargs)
         else:
             # logging.debug(dir(generators))
-            raise TypeError(f"Cannot find a transformer of name `{transformer_type}`.")
+            raise TypeError(f"Cannot find a transformer class with name `{transformer_type}`.")
 
 
 class YamlParser(Declare):
@@ -598,12 +616,12 @@ class YamlParser(Declare):
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
         logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
                       f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
-        assert(subject_columns == None)
 
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
+        logging.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         # Then, declare types.
         logging.debug(f"Declare types...")
@@ -641,7 +659,7 @@ class YamlParser(Declare):
                             logging.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
-                        logging.debug(f"\tDeclare transformer for `{transformer_type}`...")
+                        logging.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=target_t,
                             properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
