@@ -126,7 +126,7 @@ class PandasAdapter(base.Adapter):
         taking into account affix and separator configuration.
 
         Args:
-            type: The type of the entry.
+            entry_type: The type of the entry.
             entry_name: The name of the entry.
 
         Returns:

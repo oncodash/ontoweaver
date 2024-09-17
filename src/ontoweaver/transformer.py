@@ -34,7 +34,7 @@ class split(base.Transformer):
             if self.valid(row[key]):
                 items = row[key].split(self.separator)
                 for item in items:
-                    yield item
+                    yield str(item)
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
@@ -75,7 +75,7 @@ class cat(base.Transformer):
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
-        yield formatted_items
+        yield str(formatted_items)
 
 
 class cat_format(base.Transformer):
@@ -120,7 +120,7 @@ class cat_format(base.Transformer):
                         f"Try using another transformer type.")
 
             formatted_string = self.format_string.format_map(row)
-            yield formatted_string
+            yield str(formatted_string)
 
         else:
             raise Exception(f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.")
@@ -157,7 +157,7 @@ class rowIndex(base.Transformer):
             Warning: If the row index is invalid.
         """
         if self.valid(i):
-            yield i
+            yield str(i)
         else:
             logging.warning(f"Error while mapping by row index. Invalid cell content: `{i}`")
 
@@ -198,7 +198,7 @@ class map(base.Transformer):
 
         for key in self.columns:
             if self.valid(row[key]):
-                yield row[key]
+                yield str(row[key])
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
