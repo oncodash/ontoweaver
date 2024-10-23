@@ -189,11 +189,16 @@ class PandasAdapter(base.Adapter):
             for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
 
-        # If the metadata dictionary is not empty, and the object created is a node, add the metadata to the property dictionary.
-        if self.metadata and node:
-            if transformer.target.__name__ in self.metadata:
-                for key, value in self.metadata[transformer.target.__name__].items():
-                    properties[key] = value
+        # If the metadata dictionary is not empty add the metadata to the property dictionary.
+        if self.metadata:
+            if node:
+                if transformer.target.__name__ in self.metadata:
+                    for key, value in self.metadata[transformer.target.__name__].items():
+                        properties[key] = value
+            else:
+                if transformer.edge.__name__ in self.metadata:
+                    for key, value in self.metadata[transformer.edge.__name__].items():
+                        properties[key] = value
 
         return properties
 
@@ -571,6 +576,7 @@ class YamlParser(Declare):
         k_prop_to_object = ["for_objects"]
         k_transformer = ["transformers"]
         k_metadata = ["metadata"]
+        k_metadata_column_placeholder = ["add_source_column_names_as", "COL_NAME_FOR_NODES"]
 
         transformers_list = self.get(k_transformer)
 
@@ -610,13 +616,15 @@ class YamlParser(Declare):
                 metadata.setdefault(subject_type, {})
                 for item in metadata_list:
                     metadata[subject_type].update(item)
-                if "add_source_column_names_as" in metadata[subject_type]:
-                    # Use the value of "add_source_column_names_as" as the key.
-                    key_name = metadata[subject_type]["add_source_column_names_as"]
-                    # Remove the "add_source_column_names_as" key from the metadata dictionary.
-                    del metadata[subject_type]["add_source_column_names_as"]
-                    if subject_columns:
-                        metadata[subject_type][key_name] = ", ".join(subject_columns)
+                for key in k_metadata_column_placeholder:
+                    if key in metadata[subject_type]:
+                    # Use the value of k_metadata_column_placeholder as the key.
+                        key_name = metadata[subject_type][key]
+                        # Remove the k_metadata_column_placeholder key from the metadata dictionary.
+                        del metadata[subject_type][key]
+                        if subject_columns:
+                            metadata[subject_type][key_name] = ", ".join(subject_columns)
+
 
         # Then, declare types.
         for transformer_types in transformers_list:
@@ -662,14 +670,23 @@ class YamlParser(Declare):
                             metadata.setdefault(target, {})
                             for item in metadata_list:
                                 metadata[target].update(item)
-                            # Check if "add_source_column_names_as" exists in metadata[target]
-                            if "add_source_column_names_as" in metadata[target]:
-                                # Use the value of "add_source_column_names_as" as the key.
-                                key_name = metadata[target]["add_source_column_names_as"]
-                                # Remove the "add_source_column_names_as" key from the metadata dictionary.
-                                del metadata[target]["add_source_column_names_as"]
-                                if columns:
-                                    metadata[target][key_name] = ", ".join(columns)
+                            # Check if k_metadata_column_placeholder exists in metadata[target]
+                            for key in k_metadata_column_placeholder:
+                                if key in metadata[target]:
+                                    # Use the value of k_metadata_column_placeholder as the key.
+                                    key_name = metadata[target][key]
+                                    # Remove the k_metadata_column_placeholder key from the metadata dictionary.
+                                    del metadata[target][key]
+                                    if columns:
+                                        metadata[target][key_name] = ", ".join(columns)
+                        if edge:
+                            metadata.setdefault(edge, {})
+                            for item in metadata_list:
+                                metadata[edge].update(item)
+                            for key in k_metadata_column_placeholder:
+                                if key in metadata[edge]:
+                                    del metadata[edge][key]
+
 
 
         logging.debug(f"source class: {source_t}")
