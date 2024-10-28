@@ -136,7 +136,10 @@ class PandasAdapter(base.Adapter):
             ValueError: If the ID creation fails.
         """
         assert(type(entry_type) == str)
-        assert(type(entry_name) == str)
+        if type(entry_name) != str:
+            logging.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
+            entry_name = str(entry_name)
+
         if self.type_affix == TypeAffixes.prefix:
             id = f'{entry_type}{self.type_affix_sep}{entry_name}'
         elif self.type_affix == TypeAffixes.suffix:
