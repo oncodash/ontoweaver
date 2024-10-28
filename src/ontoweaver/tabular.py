@@ -120,13 +120,13 @@ class PandasAdapter(base.Adapter):
         return self.row_type
 
 
-    def make_id(self, type, entry_name):
+    def make_id(self, entry_type, entry_name):
         """
         Create a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration.
 
         Args:
-            type: The type of the entry.
+            entry_type: The type of the entry.
             entry_name: The name of the entry.
 
         Returns:
@@ -135,18 +135,24 @@ class PandasAdapter(base.Adapter):
         Raises:
             ValueError: If the ID creation fails.
         """
+        assert(type(entry_type) == str)
+        if type(entry_name) != str:
+            logging.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
+            entry_name = str(entry_name)
+
         if self.type_affix == TypeAffixes.prefix:
-            id = f'{type}{self.type_affix_sep}{entry_name}'
+            id = f'{entry_type}{self.type_affix_sep}{entry_name}'
         elif self.type_affix == TypeAffixes.suffix:
-            id = f'{entry_name}{self.type_affix_sep}{type}'
+            id = f'{entry_name}{self.type_affix_sep}{entry_type}'
         elif self.type_affix == TypeAffixes.none:
             id = f'{entry_name}'
 
         if id:
-            logging.debug(f"\tID created for cell value `{entry_name}` of type: `{type}`: `{id}`")
+            logging.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
             return id
         else:
-            raise ValueError(f"Failed to create ID for cell value: `{entry_name}` of type: `{type}`")
+            raise ValueError(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`")
+
 
     def valid(self, val):
         """
@@ -164,6 +170,7 @@ class PandasAdapter(base.Adapter):
         elif str(val) == "nan":  # Conversion from Pandas' `object` needs to be explicit.
             return False
         return True
+
 
     def properties(self, properity_dict, row, i):
         """
@@ -186,6 +193,7 @@ class PandasAdapter(base.Adapter):
 
         return properties
 
+
     def make_node(self, node_t, id, properties):
         """
         Create nodes of a certain type.
@@ -199,6 +207,7 @@ class PandasAdapter(base.Adapter):
             The created node.
         """
         return node_t(id=id, properties=properties)
+
 
     def make_edge(self, edge_t, id_target, id_source, properties):
         """
@@ -215,74 +224,90 @@ class PandasAdapter(base.Adapter):
         """
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
+
     def run(self):
         """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
 
         # Loop over the data frame.
+        nb_rows = 0
+        nb_transformations = 0
+        nb_nodes = 0
         for i, row in self.df.iterrows():
+            logging.debug(f"Process row {i}...")
+            nb_rows += 1
 
-            source_id = None
-            source_node_id = None
-
-            # Declare a source id and create corresponding node. If no column defined, create source id from row index.
-            if source_id is None:
-
-                for s_id in self.subject_transformer(row, i):
-                    source_id =  s_id
-
-
-                source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
+            logging.debug(f"\tCreate subject node:")
+            # There can be only one subject, so transformers yielding multiple IDs cannot be used.
+            ids = list(self.subject_transformer(row, i))
+            if(len(ids) > 1):
+                logging.error(f"\t\tSubject Transformer {self.subject_transformer} produced multiple IDs: {ids}")
+                raise ValueError("You cannot use a transformer yielding multiple IDs as a subject")
+            source_id = ids[0]
+            source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
             if source_node_id:
-                logging.debug(f"\t\tDeclared source id: `{source_node_id}")
+                logging.debug(f"\t\tDeclared subject ID: `{source_node_id}")
                 self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
                                           properties=self.properties(self.subject_transformer.properties_of, row, i))))
             else:
-                raise ValueError(f"\t\tDeclaration of subject ID for row `{row}` unsuccessful.")
+                raise ValueError(f"Declaration of subject ID for row `{row}` unsuccessful.")
 
             # Loop over list of transformer instances and create corresponding nodes and edges.
+            # FIXME the transformer variable here shadows the transformer module.
             for transformer in self.transformers:
+                nb_transformations += 1
+                logging.debug(f"\tCalling transformer: {transformer}...")
 
-                # TODO assert that there is no from_subject attribute in the regular transforemrs
+                for target_id in transformer(row, i):
+                    nb_nodes += 1
+                    if target_id:
+                        target_node_id = self.make_id(transformer.target.__name__, target_id)
+                        logging.debug(f"\t\tMake node `{target_node_id}`.")
+                        self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
+                                                  properties=self.properties(transformer.properties_of, row, i)))
 
-                    for target_id in transformer(row, i):
-                        if target_id:
-                            target_node_id = self.make_id(transformer.target.__name__, target_id)
-                            logging.debug(f"\t\t\t\tMake node `{target_node_id}`.")
-                            self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                      properties=self.properties(transformer.properties_of, row, i)))
+                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                        # list to find the transformer instance mapping to the correct type, and then create new
+                        # subject id.
 
-                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                            # list to find the transformer instance mapping to the correct type, and then create new
-                            # subject id.
+                        # FIXME add hook functions to be overloaded.
 
-                            # FIXME add hook functions to be overloaded.
+                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
-                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
+                        if hasattr(transformer, "from_subject"):
+                            for t in self.transformers:
+                                if transformer.from_subject == t.target.__name__:
+                                    for s_id in t(row, i):
+                                        subject_id = s_id
+                                    subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                    logging.debug(f"\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
+                                    self.edges_append(
+                                        self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                                       id_target=target_node_id,
+                                                       properties=self.properties(transformer.properties_of, row, i)))
 
-                            if hasattr(transformer, "from_subject"):
-                                for t in self.transformers:
-                                    if transformer.from_subject == t.target.__name__:
-                                        for s_id in t(row, i):
-                                            subject_id = s_id
-                                        subject_node_id = self.make_id(t.target.__name__, subject_id)
-                                        logging.debug(f"\t\t\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
-                                        self.edges_append(
-                                            self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
-                                                           id_target=target_node_id,
-                                                           properties=self.properties(transformer.properties_of, row, i)))
+                                else:
+                                    continue
 
-                                    else:
-                                        continue
-                            else:
-                                logging.debug(f"\t\t\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
-                                self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                          properties=self.properties(transformer.edge.fields(), row, i)))
-                        else:
-                            logging.error(f"\t\tDeclaration of target ID for row `{row}` unsuccessful.")
-                            continue
+                        else: # no attribute `from_subject` in `transformer`
+                            logging.debug(f"\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
+                            self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
+                                                      properties=self.properties(transformer.edge.fields(), row, i)))
+                    else: # if not target_id
+                        # FIXME should this be errors or warnings?
+                        err_msg = f"No valid target node identifier from {transformer} for {i}th row."
+                        logging.error(f"\t\t{err_msg}")
+                        logging.debug(f"Error above occured on row:\n{row}\n")
+                        self.errors.append(err_msg)
+                        continue
 
-                        # TODO check if two transformers are declaring the same type and raise error
+                    # TODO check if two transformers are declaring the same type and raise error
+        if self.errors:
+            logging.error(f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+            # logging.debug("\n".join(self.errors))
+        else:
+            logging.info(f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
     """
@@ -344,10 +369,10 @@ class Declare:
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
             logging.debug(
-                f"\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
             for p in properties.values():
                 if p not in cls.fields():
-                    logging.warning(f"\t\tProperty `{p}` not found in fields.")
+                    logging.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
             return cls
 
         def fields():
@@ -358,7 +383,7 @@ class Declare:
             "fields": staticmethod(fields),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"Declare Node class `{t}` (prop: `{properties}`).")
+        logging.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -380,21 +405,20 @@ class Declare:
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
             logging.info(
-                f"Edge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+                f"\t\tEdge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
             for t, p in properties.items():
                 if p not in cls.fields():
                     logging.warning(f"\t\tProperty `{p}` not found in fields.")
 
             tt_list = cls.target_type()
 
+            # FIXME: should we keep target_type approach?
             tt_list.append(target_t)
 
             def tt():
                 return tt_list
 
             cls.target_type = staticmethod(tt)
-
-            # TODO allow multiple source types for edge
 
             return cls
 
@@ -414,7 +438,7 @@ class Declare:
             "target_type": staticmethod(tt),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"Declare Edge class `{t}` (prop: `{properties}`).")
+        logging.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -423,8 +447,8 @@ class Declare:
         Create a transformer class with the given parameters.
 
         Args:
-            transformer_type: The type of the transformer.
-            node_type: The type of the node.
+            transformer_type: The class of the transformer.
+            node_type: The type of the target node created by the transformer.
             properties: The properties of the transformer.
             edge: The edge type of the transformer.
             columns: The columns to be processed by the transformer.
@@ -442,12 +466,15 @@ class Declare:
             if not issubclass(parent_t, base.Transformer):
                 raise TypeError(f"Object `{transformer_type}` is not an existing transformer.")
             else:
-                logging.debug(f"Declare transformer type '{transformer_type}' for node type '{node_type}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns,
-                                        **kwargs)
+                if node_type:
+                    nt = node_type.__name__
+                else:
+                    nt = "."
+                logging.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, **kwargs)
         else:
             # logging.debug(dir(generators))
-            raise TypeError(f"Cannot find a transformer of name `{transformer_type}`.")
+            raise TypeError(f"Cannot find a transformer class with name `{transformer_type}`.")
 
 
 class YamlParser(Declare):
@@ -505,7 +532,7 @@ class YamlParser(Declare):
         super().__init__(module)
         self.config = config
 
-        logging.debug(f"Classes created in module '{self.module}'")
+        logging.debug(f"Classes will be created in module '{self.module}'")
 
     def get_not(self, keys, pconfig=None):
         """
@@ -551,6 +578,8 @@ class YamlParser(Declare):
         Returns:
             tuple: The subject transformer and a list of transformers.
         """
+        logging.debug(f"Parse mapping:")
+
         properties_of = {}
         transformers = []
 
@@ -568,6 +597,7 @@ class YamlParser(Declare):
         transformers_list = self.get(k_transformer)
 
         # First, parse property mappings.
+        logging.debug(f"Parse properties...")
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
                 if any(field in field_dict.keys() for field in k_properties):
@@ -579,22 +609,25 @@ class YamlParser(Declare):
                         properties_of.setdefault(object_type, {})
                         for property_name in property_names:
                             properties_of[object_type].setdefault(prop_transformer, property_name)
-                        logging.debug(f"\t\t\t\tDeclare property mapping for `{object_type}`: {properties_of[object_type]}")
+                        logging.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
+        logging.debug(f"Declare subject transformer...")
         subject_dict = self.get(k_row)
         subject_transformer_class = list(subject_dict.keys())[0]
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
         subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
-        logging.debug(f"Declare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
-                      f"subject kwargs '{subject_kwargs}', subject columns '{subject_columns}'")
+        logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
+                      f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
 
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
+        logging.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         # Then, declare types.
+        logging.debug(f"Declare types...")
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
                 if any(field in field_dict.keys() for field in k_properties):
@@ -618,21 +651,25 @@ class YamlParser(Declare):
                         del gen_data['from_source']
 
                     if target and edge:
+                        logging.debug(f"\tDeclare node target for `{target}`...")
                         target_t = self.make_node_class(target, properties_of.get(target, {}))
-                        logging.debug(f"\t\t\t\tDeclare target for `{target}`: {target_t}")
+                        logging.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
                         if subject:
+                            logging.debug(f"\tDeclare subject for `{subject}`...")
                             subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
                             edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
                         else:
+                            logging.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+
+                        logging.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=target_t,
                             properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
-                        logging.debug(f"\t\t\t\tDeclare mapping `{columns}` => `{edge_t.__name__}`")
+                        logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
-                        logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
+                        logging.error(f"\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
 
-        logging.debug(f"source class: {source_t}")
-        logging.debug(f"properties_of: {properties_of}")
-        logging.debug(f"transformers: {transformers}")
+        logging.debug(f"Declared subject transformer: {subject_transformer}")
+        logging.debug(f"Declared {len(transformers)} transformers: {[type(t).__name__ for t in transformers]}")
         return subject_transformer, transformers
