@@ -32,6 +32,7 @@ class split(base.Transformer):
         """
         for key in self.columns:
             if self.valid(row[key]):
+                assert(type(row[key]) == str)
                 items = row[key].split(self.separator)
                 for item in items:
                     yield str(item)

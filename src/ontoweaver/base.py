@@ -312,9 +312,32 @@ class Transformer:
         else:
             props = "{}"
 
-        params = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
+        params = ""
+        parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
+        if parameters:
+            p = []
+            for k,v in parameters.items():
+                p.append(f"{k}={v}")
+            params = ','.join(p)
 
-        return f"<Transformer/{type(self).__name__}{params} {self.columns} => [{from_subject}]--({edge_name})->[{target_name}/{props}]>"
+        if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
+            # If this is a property transformer
+            link = ""
+
+        elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
+            # This a subject transformer.
+            link = f" => [{target_name}/{props}]"
+
+        else:
+            # This is a regular transformer.
+            link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+
+        if self.columns:
+            columns = self.columns
+        else:
+            columns = []
+
+        return f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>"
 
 class All:
     """Gathers lists of subclasses of Element and their fields

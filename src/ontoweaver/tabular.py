@@ -256,7 +256,7 @@ class PandasAdapter(base.Adapter):
             # FIXME the transformer variable here shadows the transformer module.
             for transformer in self.transformers:
                 nb_transformations += 1
-                logging.debug(f"\tCalling transformer {transformer}:")
+                logging.debug(f"\tCalling transformer: {transformer}...")
 
                 for target_id in transformer(row, i):
                     nb_nodes += 1
