@@ -576,7 +576,7 @@ class YamlParser(Declare):
         k_prop_to_object = ["for_objects"]
         k_transformer = ["transformers"]
         k_metadata = ["metadata"]
-        k_metadata_column_placeholder = ["add_source_column_names_as", "COL_NAME_FOR_NODES"]
+        k_metadata_column = ["add_source_column_names_as"]
 
         transformers_list = self.get(k_transformer)
 
@@ -616,11 +616,11 @@ class YamlParser(Declare):
                 metadata.setdefault(subject_type, {})
                 for item in metadata_list:
                     metadata[subject_type].update(item)
-                for key in k_metadata_column_placeholder:
+                for key in k_metadata_column:
                     if key in metadata[subject_type]:
-                    # Use the value of k_metadata_column_placeholder as the key.
+                    # Use the value of k_metadata_column as the key.
                         key_name = metadata[subject_type][key]
-                        # Remove the k_metadata_column_placeholder key from the metadata dictionary.
+                        # Remove the k_metadata_column key from the metadata dictionary.
                         del metadata[subject_type][key]
                         if subject_columns:
                             metadata[subject_type][key_name] = ", ".join(subject_columns)
@@ -670,12 +670,12 @@ class YamlParser(Declare):
                             metadata.setdefault(target, {})
                             for item in metadata_list:
                                 metadata[target].update(item)
-                            # Check if k_metadata_column_placeholder exists in metadata[target]
-                            for key in k_metadata_column_placeholder:
+                            # Check if k_metadata_column exists in metadata[target]
+                            for key in k_metadata_column:
                                 if key in metadata[target]:
-                                    # Use the value of k_metadata_column_placeholder as the key.
+                                    # Use the value of k_metadata_column as the key.
                                     key_name = metadata[target][key]
-                                    # Remove the k_metadata_column_placeholder key from the metadata dictionary.
+                                    # Remove the k_metadata_column key from the metadata dictionary.
                                     del metadata[target][key]
                                     if columns:
                                         metadata[target][key_name] = ", ".join(columns)
@@ -683,7 +683,7 @@ class YamlParser(Declare):
                             metadata.setdefault(edge, {})
                             for item in metadata_list:
                                 metadata[edge].update(item)
-                            for key in k_metadata_column_placeholder:
+                            for key in k_metadata_column:
                                 if key in metadata[edge]:
                                     del metadata[edge][key]
 
