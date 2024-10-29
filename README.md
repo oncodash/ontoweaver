@@ -553,8 +553,10 @@ metadata:
 ```
 
 The metadata defined in the `metadata` section will be added to all nodes created during the mapping process.
-In addition to the user defined metadata, a property field  `add_source_column_names_as` is also available, to define the addition 
-of the names of the source columns for each of the nodes. This can be added to the metadata section as follows:
+In addition to the user defined metadata, a property field  `add_source_column_names_as` is also available.
+It allows to indicate the column name in which the data was found, as a property.
+For example, if the label of a node is extracted from the "indication" column, and you indicate `add_source_column_name_as: source_column`, the node will have a property: `source_column: indication`.
+This can be added to the metadata section as follows:
 
 ```yaml
 metadata:
