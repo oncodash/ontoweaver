@@ -78,7 +78,7 @@ class PandasAdapter(base.Adapter):
             df (pd.DataFrame): The table containing the input data.
             subject_transformer (base.Transformer): The transformer that maps the subject node.
             transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
-            metadata (Optional[dict]): Metadata to be added to the nodes.
+            metadata (Optional[dict]): Metadata to be added to all the nodes and edges.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
