@@ -617,12 +617,17 @@ class YamlParser(Declare):
                     metadata[subject_type].update(item)
                 for key in k_metadata_column:
                     if key in metadata[subject_type]:
-                    # Use the value of k_metadata_column as the key.
+                        # Use the value of k_metadata_column as the key.
                         key_name = metadata[subject_type][key]
-                        # Remove the k_metadata_column key from the metadata dictionary.
-                        del metadata[subject_type][key]
-                        if subject_columns:
-                            metadata[subject_type][key_name] = ", ".join(subject_columns)
+                        try:
+                            # Remove the k_metadata_column key from the metadata dictionary.
+                            assert (key_name not in metadata[subject_type])
+                            del metadata[subject_type][key]
+                            if subject_columns:
+                                metadata[subject_type][key_name] = ", ".join(subject_columns)
+                        except:
+                            raise AssertionError(
+                                f"They key you used for adding source column names: '{key_name}' to source node: `{subject_type}` already exists in metadata dictionary.")
 
 
         # Then, declare types.
@@ -674,10 +679,16 @@ class YamlParser(Declare):
                                 if key in metadata[target]:
                                     # Use the value of k_metadata_column as the key.
                                     key_name = metadata[target][key]
-                                    # Remove the k_metadata_column key from the metadata dictionary.
-                                    del metadata[target][key]
-                                    if columns:
-                                        metadata[target][key_name] = ", ".join(columns)
+                                    try:
+                                        # Remove the k_metadata_column key from the metadata dictionary.
+                                        assert (key_name not in metadata[target])
+                                        del metadata[target][key]
+                                        if columns:
+                                            metadata[target][key_name] = ", ".join(columns)
+                                    except:
+                                        raise AssertionError(
+                                            f"They key you used for adding source column names: '{key_name}' to target node: `{target}` already exists in metadata dictionary.")
+
                         if edge:
                             metadata.setdefault(edge, {})
                             for item in metadata_list:
@@ -685,8 +696,6 @@ class YamlParser(Declare):
                             for key in k_metadata_column:
                                 if key in metadata[edge]:
                                     del metadata[edge][key]
-
-
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
