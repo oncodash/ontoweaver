@@ -192,13 +192,12 @@ class PandasAdapter(base.Adapter):
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
         if self.metadata:
             if node:
-                if transformer.target.__name__ in self.metadata:
-                    for key, value in self.metadata[transformer.target.__name__].items():
-                        properties[key] = value
+                elem = transformer.target
             else:
-                if transformer.edge.__name__ in self.metadata:
-                    for key, value in self.metadata[transformer.edge.__name__].items():
-                        properties[key] = value
+                elem = transformer.edge
+            if elem.__name__ in self.metadata:
+                for key, value in self.metadata[elem.__name__].items():
+                    properties[key] = value
 
         return properties
 
