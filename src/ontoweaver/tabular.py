@@ -279,7 +279,7 @@ class PandasAdapter(base.Adapter):
                         target_node_id = self.make_id(transformer.target.__name__, target_id)
                         logging.debug(f"\t\tMake node `{target_node_id}`.")
                         self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                  properties=self.properties(transformer.properties_of, row, i)))
+                                                  properties=self.properties(transformer.properties_of, row, i, transformer, node=True)))
 
                         # If a `from_subject` attribute is present in the transformer, loop over the transformer
                         # list to find the transformer instance mapping to the correct type, and then create new
@@ -299,7 +299,7 @@ class PandasAdapter(base.Adapter):
                                     self.edges_append(
                                         self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
                                                        id_target=target_node_id,
-                                                       properties=self.properties(transformer.properties_of, row, i)))
+                                                       properties=self.properties(transformer.properties_of, row, i, t)))
 
                                 else:
                                     continue
@@ -307,7 +307,7 @@ class PandasAdapter(base.Adapter):
                         else: # no attribute `from_subject` in `transformer`
                             logging.debug(f"\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
                             self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                      properties=self.properties(transformer.edge.fields(), row, i)))
+                                                      properties=self.properties(transformer.edge.fields(), row, i, transformer)))
                     else: # if not target_id
                         # FIXME should this be errors or warnings?
                         err_msg = f"No valid target node identifier from {transformer} for {i}th row."

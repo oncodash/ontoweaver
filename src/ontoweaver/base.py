@@ -2,12 +2,44 @@ import logging
 import math
 import pandas as pd
 from collections.abc import Iterable, Generator
-from abc import ABCMeta as ABSTRACT
+from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
+import ontoweaver
 
-from enum import Enum
+# Strategy using a user defined __eq__ method, enabling a more flexible comparison of objects.
+# class Comparer(metaclass=ABCMeta):
+#
+#     @abstractmethod
+#     def __call__(self, elem1, elem2):
+#         raise NotImplementedError
+#
+# class CompEq(Comparer):
+#
+#     def __call__(self, elem1, elem2):
+#         return elem1 is elem2
+
+class StringRep(metaclass=ABSTRACT):
+
+    @abstractmethod
+    def __call__(self, elem):
+        raise NotImplementedError
+
+class StringIDNodes(StringRep):
+
+    def __call__(self, elem):
+        return elem.id
+
+class StringIDEdges(StringRep):
+
+        def __call__(self, elem):
+            return elem.id_source + elem.id_target
+
+
+# FIXME use hash functions for comparison.
+
+
 
 class Element(metaclass = ABSTRACT):
     """Base class for either Node or Edge.
@@ -15,15 +47,17 @@ class Element(metaclass = ABSTRACT):
     Manages allowed properties mechanics."""
 
     def __init__(self,
-        id        : Optional[str] = None,
-        properties: Optional[dict[str,str]] = {},
-        label     : Optional[str] = None,
-    ):
+                 id        : Optional[str] = None,
+                 properties: Optional[dict[str,str]] = {},
+                 label     : Optional[str] = None,
+                 hash_rep  : Optional[StringRep] = None, #FIXME use default hash represenation which takes everything that is a member variable and concatinates as string.
+                 ):
         """Instantiate an element.
 
         :param str id: Unique identifier of the element. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the element. If label = None, the lower-case version of the class name is used as a label.
+        :param Comparer hash_rep: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         if not id:
             self._id = ''
@@ -37,6 +71,17 @@ class Element(metaclass = ABSTRACT):
             self._label = self.__class__.__name__.lower()
         else:
             self._label = str(label)
+
+        self.hash_rep = hash_rep
+
+    def __str__(self):
+        return self.hash_rep(self)
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __eq__(self, other):
+        return self.__str__() == other.__str__()
 
     @staticmethod
     @abstract
@@ -85,17 +130,19 @@ class Node(Element):
     """Base class for any Node."""
 
     def __init__(self,
-        id        : Optional[str] = None,
-        properties: Optional[dict[str,str]] = {},
-        label     : Optional[str] = None, # Set from subclass name.
-    ):
+                 id        : Optional[str] = None,
+                 properties: Optional[dict[str,str]] = {},
+                 label     : Optional[str] = None,  # Set from subclass name.
+                 hash_rep  : Optional[StringRep] = StringIDNodes(),
+                 ):
         """Instantiate a Node.
 
         :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param Comparer hash_rep: The comparer to use for equality checks. Default uses the python `is` operator.
         """
-        super().__init__(id, properties, label)
+        super().__init__(id, properties, label, hash_rep)
 
     Tuple: TypeAlias = tuple[str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
@@ -107,20 +154,40 @@ class Node(Element):
             self.properties
         )
 
+    def fields(self) -> list[str]:
+        """List of property fields provided by the (sub)class."""
+        return list(self.properties.keys())
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __eq__(self, other):
+        return self.__str__() == other.__str__()
+    def __str__(self):
+        return f"{self.hash_rep(self)}"
+
     def __repr__(self):
         return f"<[{self._label}:{self._id}/{self._properties}]>"
 
+    def serialize(self):
+        return {
+            "id": self._id,
+            "label": self._label,
+            "properties": self.properties,
+            "hash_rep": self.hash_rep
+        }
 
 class Edge(Element):
     """Base class for any Edge."""
 
     def __init__(self,
-        id        : Optional[str] = None,
-        id_source : Optional[str] = None,
-        id_target : Optional[str] = None,
-        properties: Optional[dict[str,str]] = {},
-        label     : Optional[str] = None, # Set from subclass name.
-    ):
+                 id        : Optional[str] = None,
+                 id_source : Optional[str] = None,
+                 id_target : Optional[str] = None,
+                 properties: Optional[dict[str,str]] = {},
+                 label     : Optional[str] = None,  # Set from subclass name.
+                 hash_rep  : Optional[StringRep] = StringIDEdges(),
+                 ):
         """Instantiate an Edge.
 
         :param str id: Unique identifier of the edge. If id == None, is then set to the empty string.
@@ -128,8 +195,9 @@ class Edge(Element):
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
-        super().__init__(id, properties, label)
+        super().__init__(id, properties, label, hash_rep)
         self._id_source = str(id_source)
         self._id_target = str(id_target)
 
@@ -166,6 +234,28 @@ class Edge(Element):
     def __repr__(self):
         return f"<[{self.source_type()}:{self._source_id}]--({self._label}:{self._id}/{self._properties})-->[{self.target_type()}:{self._id_target}]>"
 
+    def fields(self) -> list[str]:
+        """List of property fields provided by the (sub)class."""
+        return list(self.properties.keys())
+
+    def __str__(self):
+        return f"{self.hash_rep(self)}"
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __eq__(self, other):
+        return self.__str__() == other.__str__()
+
+    def serialize(self):
+        return {
+            "id": self._id,
+            "id_source": self._id_source,
+            "id_target": self._id_target,
+            "label": self._label,
+            "properties": self.properties,
+            "hash_rep": self.hash_rep
+        }
 
 class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
