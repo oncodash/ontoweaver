@@ -81,7 +81,6 @@ class Element(metaclass = ABSTRACT):
         self._properties = properties
 
 
-
 class Node(Element):
     """Base class for any Node."""
 
@@ -107,6 +106,9 @@ class Node(Element):
             # FIXME this has been changed to keep ALL properties. No checking if allowed
             self.properties
         )
+
+    def __repr__(self):
+        return f"<[{self._label}:{self._id}/{self._properties}]>"
 
 
 class Edge(Element):
@@ -161,6 +163,9 @@ class Edge(Element):
             self.properties
         )
 
+    def __repr__(self):
+        return f"<[{self.source_type()}:{self._source_id}]--({self._label}:{self._id}/{self._properties})-->[{self.target_type()}:{self._id_target}]>"
+
 
 class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
@@ -176,6 +181,7 @@ class Adapter(metaclass = ABSTRACT):
 
         self._nodes = []
         self._edges = []
+        self.errors = []
 
     def nodes_append(self, node_s) -> None:
         """Append an Node (or each Node in a list of nodes) to the internal list of nodes."""
@@ -225,21 +231,14 @@ class Adapter(metaclass = ABSTRACT):
         for e in self._edges:
             yield e
 
+
 class Transformer:
     """"Class used to manipulate cell values and return them in the correct format."""""
 
     def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
-
-        self.target = target
-        self.properties_of = properties_of
-        self.edge = edge
-        self.columns = columns
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
         """
         Instantiate transformers.
-    
+
         :param target: the target ontology / node type to map to.
         :param properties_of: the properties of each node type.
         :param edge: the edge type to use in the mapping.
@@ -247,15 +246,20 @@ class Transformer:
 
         """
 
+        self.target = target
+        self.properties_of = properties_of
+        self.edge = edge
+        self.columns = columns
+        self.parameters = kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
     def get_transformer(self):
         return self
 
-
     @abstract
     def __call__(self, row, i):
-
         raise NotImplementedError
-
 
     @abstract
     def nodes(self):
@@ -287,6 +291,53 @@ class Transformer:
             return False
         return True
 
+    def __repr__(self):
+        if hasattr(self, "from_subject"):
+            from_subject = self.from_subject
+        else:
+            from_subject = "."
+
+        if self.target:
+            target_name = self.target.__name__
+        else:
+            target_name = "."
+
+        if self.edge:
+            edge_name = self.edge.__name__
+        else:
+            edge_name = "."
+
+        if self.properties_of:
+            props = self.properties_of
+        else:
+            props = "{}"
+
+        params = ""
+        parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
+        if parameters:
+            p = []
+            for k,v in parameters.items():
+                p.append(f"{k}={v}")
+            params = ','.join(p)
+
+        if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
+            # If this is a property transformer
+            link = ""
+
+        elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
+            # This a subject transformer.
+            link = f" => [{target_name}/{props}]"
+
+        else:
+            # This is a regular transformer.
+            link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+
+        if self.columns:
+            columns = self.columns
+        else:
+            columns = []
+
+        return f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>"
 
 class All:
     """Gathers lists of subclasses of Element and their fields

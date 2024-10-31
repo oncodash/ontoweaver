@@ -1,6 +1,7 @@
 import logging
 
 from . import base
+
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
@@ -31,12 +32,14 @@ class split(base.Transformer):
         """
         for key in self.columns:
             if self.valid(row[key]):
+                assert(type(row[key]) == str)
                 items = row[key].split(self.separator)
                 for item in items:
-                    yield item
+                    yield str(item)
             else:
-                logging.warning(
-                    f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+
+
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -71,10 +74,11 @@ class cat(base.Transformer):
             if self.valid(row[key]):
                 formatted_items += str(row[key])
             else:
-                logging.warning(
-                    f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
-        yield formatted_items
+        yield str(formatted_items)
+
+
 class cat_format(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
@@ -117,11 +121,11 @@ class cat_format(base.Transformer):
                         f"Try using another transformer type.")
 
             formatted_string = self.format_string.format_map(row)
-            yield formatted_string
+            yield str(formatted_string)
 
         else:
-            raise Exception(
-                f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.")
+            raise Exception(f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.")
+
 
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
@@ -147,17 +151,16 @@ class rowIndex(base.Transformer):
             row: The current row of the DataFrame.
             i: The index of the current row.
 
-        Yields:
+        Returns:
             int: The row index if valid.
 
         Raises:
             Warning: If the row index is invalid.
         """
         if self.valid(i):
-            yield i
+            yield str(i)
         else:
-            logging.warning(
-                f"Error while mapping by row index. Invalid cell content: `{i}`")
+            logging.warning(f"Error while mapping by row index. Invalid cell content: `{i}`")
 
 
 class map(base.Transformer):
@@ -191,9 +194,13 @@ class map(base.Transformer):
         Raises:
             Warning: If the cell value is invalid.
         """
+        if not self.columns:
+            raise ValueError(f"No column declared for the map transformer, did you forgot to add a `columns` keyword?")
+
         for key in self.columns:
             if self.valid(row[key]):
-                yield row[key]
+                yield str(row[key])
             else:
+
                 logging.warning(
                      f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
