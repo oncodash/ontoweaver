@@ -11,6 +11,7 @@ biocypher = "^0.5.44"
 pooch = "^1.7.0" # Dep of biocypher
 pandas = "^2.0.1"
 numpy = "^1.26.3"
+owlready2 = "^0.46"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.2"

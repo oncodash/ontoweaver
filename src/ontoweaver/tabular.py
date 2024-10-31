@@ -67,6 +67,7 @@ class PandasAdapter(base.Adapter):
                  df: pd.DataFrame,
                  subject_transformer: base.Transformer,
                  transformers: Iterable[base.Transformer],
+                 metadata: Optional[dict] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  ):
@@ -77,6 +78,7 @@ class PandasAdapter(base.Adapter):
             df (pd.DataFrame): The table containing the input data.
             subject_transformer (base.Transformer): The transformer that maps the subject node.
             transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
+            metadata (Optional[dict]): Metadata to be added to all the nodes and edges.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
         """
@@ -99,6 +101,7 @@ class PandasAdapter(base.Adapter):
 
         self.subject_transformer = subject_transformer
         self.transformers = transformers
+        self.metadata = metadata
         # logging.debug(self.properties_of)
 
     def source_type(self, row):
@@ -171,8 +174,8 @@ class PandasAdapter(base.Adapter):
             return False
         return True
 
+    def properties(self, properity_dict, row, i, transformer, node = False):
 
-    def properties(self, properity_dict, row, i):
         """
         Extract properties of each property category for the given node type.
         If no properties are found, return an empty dictionary.
@@ -181,6 +184,8 @@ class PandasAdapter(base.Adapter):
             properity_dict: Dictionary of property mappings.
             row: The current row of the DataFrame.
             i: The index of the current row.
+            transformer: The transformer instance creating the node or edge class at hand.
+            node: True if the object created is a node, False otherwise.
 
         Returns:
             dict: Extracted properties.
@@ -190,6 +195,16 @@ class PandasAdapter(base.Adapter):
         for prop_transformer, property_name in properity_dict.items():
             for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
+
+        # If the metadata dictionary is not empty add the metadata to the property dictionary.
+        if self.metadata:
+            if node:
+                elem = transformer.target
+            else:
+                elem = transformer.edge
+            if elem.__name__ in self.metadata:
+                for key, value in self.metadata[elem.__name__].items():
+                    properties[key] = value
 
         return properties
 
@@ -248,7 +263,7 @@ class PandasAdapter(base.Adapter):
             if source_node_id:
                 logging.debug(f"\t\tDeclared subject ID: `{source_node_id}")
                 self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
-                                          properties=self.properties(self.subject_transformer.properties_of, row, i))))
+                                          properties=self.properties(self.subject_transformer.properties_of, row, i, self.subject_transformer, node = True))))
             else:
                 raise ValueError(f"Declaration of subject ID for row `{row}` unsuccessful.")
 
@@ -518,7 +533,7 @@ class YamlParser(Declare):
 
     :param dict config: A configuration dictionary.
     :param module: The module in which to insert the types declared by the configuration.
-    :return tuple: subject_transformer, transformers, as needed by the Adapter.
+    :return tuple: subject_transformer, transformers, metadata as needed by the Adapter.
     """
 
     def __init__(self, config: dict, module=types):
@@ -571,6 +586,41 @@ class YamlParser(Declare):
                 return pconfig[k]
         return None
 
+    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, type, columns):
+        """
+        Extract metadata and update the metadata dictionary.
+
+        Args:
+            k_metadata_column (list): List of keys to be used for adding source column names.
+            metadata_list (list): List of metadata items to be added.
+            metadata (dict): The metadata dictionary to be updated.
+            type (str): The type of the node or edge.
+            columns (list): List of columns to be added to the metadata.
+
+        Returns:
+            dict: The updated metadata dictionary.
+        """
+        if metadata_list and type:
+                metadata.setdefault(type, {})
+                for item in metadata_list:
+                    metadata[type].update(item)
+                for key in k_metadata_column:
+                    if key in metadata[type]:
+                        # Use the value of k_metadata_column as the key.
+                        key_name = metadata[type][key]
+                        # Remove the k_metadata_column key from the metadata dictionary.
+                        if key_name in metadata[type]:
+                            msg = f"They key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
+                            logging.error(msg)
+                            raise KeyError(msg)
+                        del metadata[type][key]
+                        if columns:
+                            metadata[type][key_name] = ", ".join(columns)
+
+                return metadata
+        else:
+            return None
+
     def __call__(self):
         """
         Parse the configuration and return the subject transformer and transformers.
@@ -582,6 +632,7 @@ class YamlParser(Declare):
 
         properties_of = {}
         transformers = []
+        metadata = {}
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
@@ -593,6 +644,8 @@ class YamlParser(Declare):
         k_properties = ["to_properties", "to_property"]
         k_prop_to_object = ["for_objects"]
         k_transformer = ["transformers"]
+        k_metadata = ["metadata"]
+        k_metadata_column = ["add_source_column_names_as"]
 
         transformers_list = self.get(k_transformer)
 
@@ -611,6 +664,9 @@ class YamlParser(Declare):
                             properties_of[object_type].setdefault(prop_transformer, property_name)
                         logging.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
+
+        metadata_list = self.get(k_metadata)
+
         logging.debug(f"Declare subject transformer...")
         subject_dict = self.get(k_row)
         subject_transformer_class = list(subject_dict.keys())[0]
@@ -625,6 +681,11 @@ class YamlParser(Declare):
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
         logging.debug(f"\tDeclared subject transformer: {subject_transformer}")
+
+        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
+        if extracted_metadata:
+            metadata.update(extracted_metadata)
+
 
         # Then, declare types.
         logging.debug(f"Declare types...")
@@ -670,6 +731,18 @@ class YamlParser(Declare):
                     elif (target and not edge) or (edge and not target):
                         logging.error(f"\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
 
-        logging.debug(f"Declared subject transformer: {subject_transformer}")
-        logging.debug(f"Declared {len(transformers)} transformers: {[type(t).__name__ for t in transformers]}")
-        return subject_transformer, transformers
+                    extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
+                    if extracted_metadata:
+                        metadata.update(extracted_metadata)
+
+                    if edge:
+                        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, edge, None)
+                        if extracted_metadata:
+                            metadata.update(extracted_metadata)
+
+        logging.debug(f"source class: {source_t}")
+        logging.debug(f"properties_of: {properties_of}")
+        logging.debug(f"transformers: {transformers}")
+        logging.debug(f"metadata: {metadata}")
+        return subject_transformer, transformers, metadata
+

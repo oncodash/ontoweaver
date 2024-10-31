@@ -15,7 +15,7 @@ class split(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            **kwargs: Additional keyword arguments.
+            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -53,7 +53,7 @@ class cat(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            **kwargs: Additional keyword arguments.
+            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -92,7 +92,7 @@ class cat_format(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            **kwargs: Additional keyword arguments.
+            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -139,7 +139,7 @@ class rowIndex(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            **kwargs: Additional keyword arguments.
+            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -176,7 +176,7 @@ class map(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            **kwargs: Additional keyword arguments.
+            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -201,5 +201,6 @@ class map(base.Transformer):
             if self.valid(row[key]):
                 yield str(row[key])
             else:
-                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
 
+                logging.warning(
+                     f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")

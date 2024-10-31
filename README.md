@@ -539,3 +539,32 @@ need to add the following section to the transformers in the mapping configurati
         to_object: patient
         via_relation: sample_to_patient
 ```
+#### How to add Metadata to Nodes and Edges
+
+Metadata can be added to nodes and edges by defining a `metadata` section in the mapping configuration. You can 
+specify all the property keys and values that you wish to add to your nodes and edges in a `metadata` section. For example:
+
+```yaml
+metadata:
+        - name: oncokb
+        - url: https://oncokb.org/
+        - license: CC BY-NC 4.0
+        - version: 0.1
+```
+
+The metadata defined in the `metadata` section will be added to all nodes created during the mapping process.
+In addition to the user defined metadata, a property field  `add_source_column_names_as` is also available.
+It allows to indicate the column name in which the data was found, as a property.
+For example, if the label of a node is extracted from the "indication" column, and you indicate `add_source_column_name_as: source_column`, the node will have a property: `source_column: indication`.
+This can be added to the metadata section as follows:
+
+```yaml
+metadata:
+        - name: oncokb
+        - url: https://oncokb.org/
+        - license: CC BY-NC 4.0
+        - version: 0.1
+        - add_source_column_names_as: sources
+```
+Now each of the nodes contains a property `sources` that contains the names of the source columns from which it was extracted.
+Be sure to include all the added node properties in the schema configuration file, to ensure that the properties are correctly added to the nodes.
