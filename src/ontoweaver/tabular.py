@@ -553,6 +553,41 @@ class YamlParser(Declare):
                 return pconfig[k]
         return None
 
+    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, type, columns):
+        """
+        Extract metadata and update the metadata dictionary.
+
+        Args:
+            k_metadata_column (list): List of keys to be used for adding source column names.
+            metadata_list (list): List of metadata items to be added.
+            metadata (dict): The metadata dictionary to be updated.
+            type (str): The type of the node or edge.
+            columns (list): List of columns to be added to the metadata.
+
+        Returns:
+            dict: The updated metadata dictionary.
+        """
+        if metadata_list and type:
+                metadata.setdefault(type, {})
+                for item in metadata_list:
+                    metadata[type].update(item)
+                for key in k_metadata_column:
+                    if key in metadata[type]:
+                        # Use the value of k_metadata_column as the key.
+                        key_name = metadata[type][key]
+                        # Remove the k_metadata_column key from the metadata dictionary.
+                        if key_name in metadata[type]:
+                            msg = f"They key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
+                            logging.error(msg)
+                            raise KeyError(msg)
+                        del metadata[type][key]
+                        if columns:
+                            metadata[type][key_name] = ", ".join(columns)
+
+                return metadata
+        else:
+            return None
+
     def __call__(self):
         """
         Parse the configuration and return the subject transformer and transformers.
@@ -609,25 +644,9 @@ class YamlParser(Declare):
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
 
-        # Extract metadata for the source type.
-        if metadata_list:
-            if subject_type:
-                metadata.setdefault(subject_type, {})
-                for item in metadata_list:
-                    metadata[subject_type].update(item)
-                for key in k_metadata_column:
-                    if key in metadata[subject_type]:
-                        # Use the value of k_metadata_column as the key.
-                        key_name = metadata[subject_type][key]
-                        try:
-                            # Remove the k_metadata_column key from the metadata dictionary.
-                            assert (key_name not in metadata[subject_type])
-                            del metadata[subject_type][key]
-                            if subject_columns:
-                                metadata[subject_type][key_name] = ", ".join(subject_columns)
-                        except:
-                            raise AssertionError(
-                                f"They key you used for adding source column names: '{key_name}' to source node: `{subject_type}` already exists in metadata dictionary.")
+        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
+        if extracted_metadata:
+            metadata.update(extracted_metadata)
 
 
         # Then, declare types.
@@ -668,34 +687,14 @@ class YamlParser(Declare):
                     elif (target and not edge) or (edge and not target):
                         logging.error(f"\t\t\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)")
 
-                    # Extract metadata for the target type.
-                    if metadata_list:
-                        if target:
-                            metadata.setdefault(target, {})
-                            for item in metadata_list:
-                                metadata[target].update(item)
-                            # Check if k_metadata_column exists in metadata[target]
-                            for key in k_metadata_column:
-                                if key in metadata[target]:
-                                    # Use the value of k_metadata_column as the key.
-                                    key_name = metadata[target][key]
-                                    try:
-                                        # Remove the k_metadata_column key from the metadata dictionary.
-                                        assert (key_name not in metadata[target])
-                                        del metadata[target][key]
-                                        if columns:
-                                            metadata[target][key_name] = ", ".join(columns)
-                                    except:
-                                        raise AssertionError(
-                                            f"They key you used for adding source column names: '{key_name}' to target node: `{target}` already exists in metadata dictionary.")
+                    extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
+                    if extracted_metadata:
+                        metadata.update(extracted_metadata)
 
-                        if edge:
-                            metadata.setdefault(edge, {})
-                            for item in metadata_list:
-                                metadata[edge].update(item)
-                            for key in k_metadata_column:
-                                if key in metadata[edge]:
-                                    del metadata[edge][key]
+                    if edge:
+                        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, edge, None)
+                        if extracted_metadata:
+                            metadata.update(extracted_metadata)
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
