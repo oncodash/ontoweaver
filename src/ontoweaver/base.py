@@ -158,7 +158,7 @@ class Node(Element):
         return self.serializer(self)
 
     def __repr__(self):
-        return f"<[{self.label}:{self.id}/{self.properties}]>"
+        return f"<['{self.label}':'{self.id}'/{self.properties}]>"
 
     def __hash__(self):
         return hash(self.__str__())
@@ -243,7 +243,7 @@ class Edge(Element):
             serializer = serializer)
 
     def __repr__(self):
-        return f"<[{self.source_type()}:{self.id_source}]--({self.label}:{self.id}/{self.properties})-->[{self.target_type()}:{self.id_target}]>"
+        return f"<['{self.source_type()}':'{self.id_source}']--('{self.label}':'{self.id}'/{self.properties})-->['{self.target_type()}':'{self.id_target}']>"
 
     def fields(self) -> list[str]:
         """List of property fields provided by the (sub)class."""

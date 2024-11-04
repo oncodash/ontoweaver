@@ -1,21 +1,100 @@
-from ontoweaver import base
+import logging
+from abc import ABCMeta, abstractmethod
 
+from . import base
+from . import merge
 
-class Fuser:
-    pass
+Fuser = merge.Merger
 
-class CompoundFuser(Fuser):
+class Members(Fuser):
+    # FIXME avoid calling methods on all 5 sub mergers each time.
+
+    class Mergers:
+        def __init__(self,
+             merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
+             merge_label : merge.string.StringMerger = merge.string.UseKey(),
+             merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
+             merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
+             merge_target: merge.string.StringMerger = merge.string.OrderedSet()
+        ):
+            self.ID = merge_ID
+            self.label = merge_label
+            self.prop = merge_prop
+            self.source = merge_source
+            self.target = merge_target
 
     def __init__(self,
-                 MergeID,
-                 MergeProperties,
-                 MergeType,
+                 cls,
+                 merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
+                 merge_label : merge.string.StringMerger = merge.string.UseKey(),
+                 merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
+                 merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
+                 merge_target: merge.string.StringMerger = merge.string.OrderedSet()
                  ):
-        self.MergeID = MergeID
-        self.MergeProperties = MergeProperties
-        self.MergeType = MergeType
+        logging.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
+        self.cls = cls
+        self.merged = Members.Mergers(merge_ID, merge_label, merge_prop, merge_source, merge_target)
+        logging.debug(f"  ID    : {type(self.merged.ID).__name__}")
+        logging.debug(f"  label : {type(self.merged.label).__name__}")
+        logging.debug(f"  prop  : {type(self.merged.prop).__name__}")
 
-    def __call__(self, lhs: base.Element, rhs: base.Element):
-        self.MergeID(lhs, rhs)
-        self.MergeProperties(lhs, rhs)
-        self.MergeType(lhs, rhs)
+        self.members = {
+            "id": None,
+            "label": None,
+            "properties": {},
+        }
+        if issubclass(self.cls, base.Edge):
+            self.members.update({
+                "id_source": None,
+                "id_target": None,
+            })
+            logging.debug(f"  source: {type(self.merged.source).__name__}")
+            logging.debug(f"  target: {type(self.merged.target).__name__}")
+
+    def precheck(self, key, lhs, rhs):
+        assert(issubclass(type(key), base.Element))
+        assert(issubclass(type(lhs), base.Element))
+        assert(issubclass(type(rhs), base.Element))
+
+    def reset(self):
+        self.merged.ID.reset()
+        self.merged.label.reset()
+        self.merged.prop.reset()
+        self.merged.source.reset()
+        self.merged.target.reset()
+
+    def set(self, mergers) -> None:
+        self.merged.ID.set(mergers.ID.merged)
+        self.merged.label.set(mergers.label.merged)
+        self.merged.prop.set(mergers.prop.merged)
+
+        if issubclass(self.cls, base.Edge):
+            self.merged.source.set(mergers.source.merged)
+            self.merged.target.set(mergers.target.merged)
+
+    def merge(self, key, lhs: base.Element, rhs: base.Element):
+        assert(issubclass(type(lhs), base.Node) and issubclass(type(rhs), base.Node)
+               or
+               issubclass(type(lhs), base.Edge) and issubclass(type(rhs), base.Edge) )
+
+        self.merged.ID(key, lhs.id, rhs.id)
+        self.merged.label(key, lhs.label, rhs.label)
+        self.merged.prop(key, lhs.properties, rhs.properties)
+
+        if issubclass(self.cls, base.Edge):
+            self.merged.source(key, lhs.id_source, rhs.id_source)
+            self.merged.target(key, lhs.id_target, rhs.id_target)
+
+        self.set(self.merged)
+
+    def get(self) -> base.Element:
+        self.members["id"] = self.merged.ID.get()
+        self.members["label"] = self.merged.label.get()
+        self.members["properties"] = self.merged.prop.get()
+
+        if issubclass(self.cls, base.Edge):
+            self.members["id_source"] = self.merged.source.get()
+            self.members["id_target"] = self.merged.target.get()
+
+        return self.cls(**(self.members))
+
