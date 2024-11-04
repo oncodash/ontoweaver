@@ -198,6 +198,10 @@ class map(base.Transformer):
             raise ValueError(f"No column declared for the map transformer, did you forgot to add a `columns` keyword?")
 
         for key in self.columns:
+            if key not in row:
+                msg = f"Column '{key}' not found in data"
+                logging.error(msg)
+                raise KeyError(msg)
             if self.valid(row[key]):
                 yield str(row[key])
             else:
