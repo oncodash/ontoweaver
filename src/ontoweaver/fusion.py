@@ -30,7 +30,7 @@ class Key(metaclass=ABCMeta):
     def edge_properties(self, edge_tuple):
         return edge_tuple[4]
 
-# FIXME transform biocypher duplciate detection to crash if encountering duplicates after fuson.
+# FIXME transform biocypher duplicate detection to crash if encountering duplicates after fuson.
 
 class Duplicates:
 
