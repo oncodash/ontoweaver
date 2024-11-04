@@ -567,10 +567,15 @@ class YamlParser(Declare):
 
         transformers_list = self.get(k_transformer)
 
+        n_transformer = 0
         # First, parse property mappings.
         for transformer_types in transformers_list:
+            n_transformer += 1
             for transformer_type, field_dict in transformer_types.items():
-                if any(field in field_dict.keys() for field in k_properties):
+                if not field_dict:
+                    logging.error(f"There is no field for the {n_transformer}th transformer: '{transformer_type}', did you forget an indentation?")
+                    raise Exception(f"Empty transformer: '{transformer_type}'")
+                if any(field in field_dict for field in k_properties):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(k_properties, pconfig=field_dict)
                     column_names = self.get(k_columns, pconfig=field_dict)
@@ -597,14 +602,18 @@ class YamlParser(Declare):
         # Then, declare types.
         for transformer_types in transformers_list:
             for transformer_type, field_dict in transformer_types.items():
-                if any(field in field_dict.keys() for field in k_properties):
-                    if any(field in field_dict.keys() for field in k_target):
+                if not field_dict:
+                    continue
+                elif any(field in field_dict for field in k_properties):
+                    if any(field in field_dict for field in k_target):
                         prop = self.get(k_properties, field_dict)
                         target = self.get(k_target, field_dict)
                         logging.error(f"ERROR in transformer '{transformer_type}': one cannot "
                                       f"declare a mapping to both properties '{prop}' and object type '{target}'.")
                     continue
                 else:
+                    if type(field_dict) != dict:
+                        raise Exception(str(field_dict)+" is not a dictionary")
                     columns = self.get(k_columns, pconfig=field_dict)
                     target = self.get(k_target, pconfig=field_dict)
                     subject = self.get(k_subject, pconfig=field_dict)
