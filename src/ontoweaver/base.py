@@ -268,6 +268,39 @@ class Edge(Element):
     #         "serializer": self.serializer
     #     }
 
+class GenericEdge(Edge):
+    """Base class for any Edge."""
+
+    def __init__(self,
+                 id        : Optional[str] = None,
+                 id_source : Optional[str] = None,
+                 id_target : Optional[str] = None,
+                 properties: Optional[dict[str,str]] = {},
+                 label     : Optional[str] = None,  # Set from subclass name.
+                 serializer: Optional[serialize.Serializer] = serialize.EdgeAll(),
+                 ):
+        """Instantiate an Edge.
+
+        :param str id: Unique identifier of the edge. If id == None, is then set to the empty string.
+        :param str id_source: Unique identifier of the source Node. If None, is then set to the empty string.
+        :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
+        :param dict[str,str] properties: All available properties for this instance.
+        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
+        """
+        super().__init__(id, properties, label, serializer)
+        self._id_source = str(id_source)
+        self._id_target = str(id_target)
+
+    @staticmethod
+    def source_type():
+        return Node
+
+    @staticmethod
+    def target_type():
+        return Node
+
+
 class Adapter(metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
 

@@ -5,53 +5,6 @@ import functools
 from ontoweaver import base
 
 
-class Key(metaclass=ABCMeta):
-    def node_id(self, node_tuple):
-        return node_tuple[0]
-
-    def node_label(self, node_tuple):
-        return node_tuple[1]
-
-    def node_properties(self, node_tuple):
-        return node_tuple[2]
-
-    def edge_id(self, edge_tuple):
-        return edge_tuple[0]
-
-    def edge_source(self, edge_tuple):
-        return edge_tuple[1]
-
-    def edge_target(self, edge_tuple):
-        return edge_tuple[2]
-
-    def edge_label(self, edge_tuple):
-        return edge_tuple[3]
-
-    def edge_properties(self, edge_tuple):
-        return edge_tuple[4]
-
-# FIXME transform biocypher duplicate detection to crash if encountering duplicates after fuson.
-
-class Duplicates:
-
-    key = Key()
-
-    def __init__(self, comp_nodes: base.StringRep, comp_edges: base.StringRep):
-        self.comp_nodes: Optional[base.StringRep] = comp_nodes
-        self.comp_edges:  Optional[base.StringRep] = comp_edges
-        self.dict_duplicates = {}
-
-    def __call__(self, t_nodes, t_edges):
-
-        for t_node in t_nodes:
-            node = base.Node(self.key.node_id(t_node), self.key.node_properties(t_node), self.key.node_label(t_node), self.comp_nodes)
-            self.dict_duplicates[node] = self.dict_duplicates.get(node, []) + [node]
-
-        for t_edge in t_edges:
-            edge = base.Edge(id=self.key.edge_id(t_edge), id_source=self.key.edge_source(t_edge), id_target=self.key.edge_target(t_edge), properties=self.key.edge_properties(t_edge), label=self.key.edge_label(t_edge), hash_rep=self.comp_edges)
-            self.dict_duplicates[edge] = self.dict_duplicates.get(edge, []) + [edge]
-
-
 class Fuse(metaclass=ABCMeta):
 
     def __init__(self, dict_duplicates, fuser: base.Fuser):

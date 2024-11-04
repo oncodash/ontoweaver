@@ -10,5 +10,6 @@ from . import types
 from . import transformer
 from . import tabular
 from . import serialize
+from . import congregate
 
-__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize']
+__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate']
