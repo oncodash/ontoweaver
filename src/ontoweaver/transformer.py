@@ -1,9 +1,43 @@
+import sys
 import logging
 import pandas as pd
 
 from . import base
 
-# NOTE: transformers pass all kwargs to superclass to allow it to show the user-defined arguments when calling __repr__.
+def register(transformer_class):
+    """Adds the given transformer class to those available to OntoWeaver.
+
+    The given class should inherit from ontoweaver.base.Transformer
+
+    Example::
+
+        import ontoweaver
+
+        class user_transformer(ontoweaver.base.Transformer):
+            def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+                super().__init__(target, properties_of, edge, columns, **kwargs)
+
+            def __call__(self, row, i):
+                for key in self.columns:
+                    yield str(row[key])
+
+        ontoweaver.transformer.register( user_transformer )
+
+        # The mapping can now use "user_transformer" in the transformers list.
+
+    Args:
+        transformer_class: The class to add to the ontoweaver.transformer module.
+    """
+
+    if not issubclass(transformer_class, base.Transformer):
+        raise RuntimeError(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.")
+    current = sys.modules[__name__]
+    setattr(current, transformer_class.__name__, transformer_class)
+
+
+# NOTE: transformers pass all kwargs to superclass to allow it to show
+#       the (additional) user-defined arguments when calling __repr__.
+
 
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
