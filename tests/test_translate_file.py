@@ -17,10 +17,10 @@ transformers:
             - patient
         to_object: patient
         via_relation: patient_has_variant
-        translations:
-            A: a
-            B: b
-            C: c
+        translations_file: tests/translate/translations.tsv
+        translate_from: From
+        translate_to: To
+        sep: TAB
 """
 
 mapping = yaml.safe_load(yaml_mapping)
@@ -38,4 +38,5 @@ assert(adapter.edges)
 
 for n in adapter.nodes:
     logging.info(n)
+    assert(n[0].isnumeric() or n[0].islower())
 

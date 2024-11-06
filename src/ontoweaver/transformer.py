@@ -1,8 +1,9 @@
 import logging
+import pandas as pd
 
 from . import base
 
-# FIXME get rid of the kwargs for child class of base.Transformer, since it does not expose the interface.
+# NOTE: transformers pass all kwargs to superclass to allow it to show the user-defined arguments when calling __repr__.
 
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
@@ -215,7 +216,8 @@ class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
     # def __init__(self, target, properties_of, edge=None, columns=None, translations=None, translate_from=None, translate_to=None, **kwargs):
-    def __init__(self, target, properties_of, edge=None, columns=None, translations=None, **kwargs):
+    # def __init__(self, target, properties_of, edge=None, columns=None, translations=None, translations_file=None, translate_from=None, translate_to=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
         """
         Constructor.
 
@@ -227,36 +229,58 @@ class translate(base.Transformer):
             kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
-        self.map = map(target, properties_of, edge, columns, **kwargs)
+        self.map = map(target, properties_of, edge, columns)
 
-        # TODO allow a hand-declared mapping in the form of a dict.
-        self.translate = translations
+        translations = kwargs.get("translations", None)
+        translations_file = kwargs.get("translations_file", None)
+        translate_from = kwargs.get("translate_from", None)
+        translate_to = kwargs.get("translate_to", None)
 
-        # self.mapping = mapping
-        # self.translate_from = translate_from
-        # self.translate_to = translate_to
+        if translations and translations_file:
+            raise RuntimeError(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.")
 
-        # if not self.mapping:
-        #     raise ValueError(f"No mapping file declared for the `{type(self).__name__}` transformer, did you forget to add a `mapping` keyword?")
-        # if not self.translate_from:
-        #     raise ValueError(f"No mapping source declared for the `{type(self).__name__}` transformer, did you forget to add a `translate_from` keyword?")
-        # if not self.translate_to:
-        #     raise ValueError(f"No mapping target declared for the `{type(self).__name__}` transformer, did you forget to add a `translate_to` keyword?")
+        if translations:
+            self.translate = translations
+            logging.debug(f"\t\t\tManual translations: `{self.translate}`")
+        elif translations_file:
+            logging.debug(f"\t\t\tGet translations from file: `{translations_file}`")
+            if not translate_from:
+                raise ValueError(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_from` keyword?")
+            if not translate_to:
+                raise ValueError(f"No translation target column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_to` keyword?")
+            else:
+                self.translations_file = translations_file
+                self.translate_from = translate_from
+                self.translate_to = translate_to
 
-        # self.df = pd.read_csv(self.mapping)
+                pd_read_csv_args =[ "sep", "delimiter", "header", "names", "index_col", "usecols", "dtype", "engine", "converters", "true_values", "false_values", "skipinitialspace", "skiprows", "skipfooter", "nrows", "na_values", "keep_default_na", "na_filter", "verbose", "skip_blank_lines", "parse_dates", "infer_datetime_format", "keep_date_col", "date_parser", "date_format", "dayfirst", "cache_dates", "iterator", "chunksize", "compression", "thousands", "decimal", "lineterminator", "quotechar", "quoting", "doublequote", "escapechar", "comment", "encoding", "encoding_errors", "dialect", "on_bad_lines", "delim_whitespace", "low_memory", "memory_map", "float_precision", "storage_options", "dtype_backend" ]
+                pd_args = {k:v for k,v in kwargs.items() if k in pd_read_csv_args}
 
-        # if self.translate_from not in self.df.columns:
-        #     raise ValueError(f"Source column `{self.translate_from}` not found in {type(self).__name__} transformer’s mapping file `{self.mapping}`.")
+                if "sep" in pd_args and pd_args["sep"] == "TAB":
+                    logging.debug(f"\t\t\tMapping asked for sep:TAB, enable Pandas' read_csv engine:python to avoid a warning.")
+                    pd_args["sep"] = '\t'
+                    pd_args["engine"] = "python"
 
-        # if self.translate_to not in self.df.columns:
-        #     raise ValueError(f"Target column `{self.translate_to}` not found in {type(self).__name__} transformer’s mapping file `{self.mapping}`.")
+                logging.debug(f"\t\t\tArguments passed to pandas.read_csv: `{pd_args}`")
 
-        # self.translate = {}
-        # for i,row in self.df.iterrows():
-        #     if row[self.translate_from] and row[self.translate_to]:
-        #         self.translate[row[self.translate_from]] = row[self.translate_to]
-        #     else:
-        #         logging.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid mapping values at row {i}: `{row[self.translate_from]}` => `{row[self.translate_to]}`")
+                self.df = pd.read_csv(self.translations_file, **pd_args)
+
+                if self.translate_from not in self.df.columns:
+                    raise ValueError(f"Source column `{self.translate_from}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.")
+
+                if self.translate_to not in self.df.columns:
+                    raise ValueError(f"Target column `{self.translate_to}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.")
+
+                self.translate = {}
+                for i,row in self.df.iterrows():
+                    if row[self.translate_from] and row[self.translate_to]:
+                        self.translate[row[self.translate_from]] = row[self.translate_to]
+                    else:
+                        logging.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{row[self.translate_from]}` => `{row[self.translate_to]}`. I will ignore this translation.")
+
+        else:
+            raise RuntimeError(f"When using a {type(self).__name__} transformer, you must define either `translations` or `translations_file`.")
+
 
         if not self.translate:
             raise ValueError(f"No translation found, did you forget the `translations` keyword?")
@@ -291,3 +315,4 @@ class translate(base.Transformer):
 
         for e in self.map(row, i):
             yield e
+
