@@ -18,7 +18,7 @@ class split(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
+            sep: Character(s) to use for splitting.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -56,7 +56,6 @@ class cat(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -95,7 +94,7 @@ class cat_format(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
+            format_string: A format string containing the column names to assemble.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -113,7 +112,7 @@ class cat_format(base.Transformer):
         Raises:
             Exception: If the format string is not defined or if invalid content is encountered.
         """
-        if hasattr(self, "format_string"):
+        if self.format_string:
             for column_name in self.columns:
                 column_value = row.get(column_name, '')
                 if self.valid(column_value):
@@ -142,7 +141,6 @@ class rowIndex(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -179,7 +177,6 @@ class map(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
@@ -215,18 +212,22 @@ class map(base.Transformer):
 class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
-    # def __init__(self, target, properties_of, edge=None, columns=None, translations=None, translate_from=None, translate_to=None, **kwargs):
-    # def __init__(self, target, properties_of, edge=None, columns=None, translations=None, translations_file=None, translate_from=None, translate_to=None, **kwargs):
     def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
         """
         Constructor.
+
+        NOTE: The user should provide at least either `translations` or `translations_file`, but not both.
 
         Args:
             target: The target node type.
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            kwargs: Additional keyword arguments.
+            translations: A dictionary figuring what to replace (keys) with which string (values).
+            translations_file: A filename pointing to a tabular file readable by Pandas' csv_read.
+            translate_from: The column in the file containing what to replace.
+            translate_to: The column in the file containing the replacement string.
+            kwargs: Additional arguments to pass to Pandas' read_csv (if "sep=TAB", reads the translations_file as tab-separated).
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
         self.map = map(target, properties_of, edge, columns)
@@ -297,7 +298,7 @@ class translate(base.Transformer):
             str: The cell value if valid.
 
         Raises:
-            Warning: If the cell value is invalid.
+            Warning: If the cell value or the translation is invalid.
         """
         if not self.columns:
             raise ValueError(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?")
