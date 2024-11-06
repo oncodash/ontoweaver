@@ -1,3 +1,4 @@
+import re
 import sys
 import logging
 import pandas as pd
@@ -266,6 +267,7 @@ class translate(base.Transformer):
         super().__init__(target, properties_of, edge, columns, **kwargs)
         self.map = map(target, properties_of, edge, columns)
 
+        # Since we cannot expand kwargs, let's recover what we have inside.
         translations = kwargs.get("translations", None)
         translations_file = kwargs.get("translations_file", None)
         translate_from = kwargs.get("translate_from", None)
@@ -288,7 +290,13 @@ class translate(base.Transformer):
                 self.translate_from = translate_from
                 self.translate_to = translate_to
 
-                pd_read_csv_args =[ "sep", "delimiter", "header", "names", "index_col", "usecols", "dtype", "engine", "converters", "true_values", "false_values", "skipinitialspace", "skiprows", "skipfooter", "nrows", "na_values", "keep_default_na", "na_filter", "verbose", "skip_blank_lines", "parse_dates", "infer_datetime_format", "keep_date_col", "date_parser", "date_format", "dayfirst", "cache_dates", "iterator", "chunksize", "compression", "thousands", "decimal", "lineterminator", "quotechar", "quoting", "doublequote", "escapechar", "comment", "encoding", "encoding_errors", "dialect", "on_bad_lines", "delim_whitespace", "low_memory", "memory_map", "float_precision", "storage_options", "dtype_backend" ]
+                # Extract available arguments from Pandas' read_csv docstring:
+                pd_read_csv_args = []
+                for line in pd.read_csv.__doc__.split("\n"):
+                    if re.match(r"^[a-z_]+ :", line):
+                        pd_read_csv_args.append(line.split(":")[0].strip())
+
+                # Keep only the user-passed arguments that are in Pandas' read_csv list.
                 pd_args = {k:v for k,v in kwargs.items() if k in pd_read_csv_args}
 
                 if "sep" in pd_args and pd_args["sep"] == "TAB":
