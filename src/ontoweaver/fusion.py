@@ -67,11 +67,11 @@ def reconciliate(nodes, edges):
     nodes_congregater(nodes)
 
     # Fuse them
-    as_keys    = merge.string.UseKey()
+    use_key    = merge.string.UseKey()
     identicals = merge.string.EnsureIdentical()
     in_lists   = merge.dictry.Append()
     node_fuser = fuse.Members(base.Node,
-            merge_ID    = as_keys,
+            merge_ID    = use_key,
             merge_label = identicals,
             merge_prop  = in_lists,
         )
@@ -83,10 +83,17 @@ def reconciliate(nodes, edges):
         logging.debug("\t"+repr(n))
 
     # EDGES REMAP
-    remaped_edges = remap_edges(edges, node_fuser)
-    logging.debug("Remaped edges:")
-    for n in remaped_edges:
-        logging.debug("\t"+repr(n))
+    # If we use on_ID/use_key,
+    # we shouldn't have any remapping of IDs in edges.
+    assert(len(node_fuser.ID_mapping) == 0)
+    # If one change this, you may want to remap like this:
+    if len(node_fuser.ID_mapping) > 0:
+        remaped_edges = remap_edges(edges, node_fuser)
+        logging.debug("Remaped edges:")
+        for n in remaped_edges:
+            logging.debug("\t"+repr(n))
+    else:
+        remaped_edges = edges
 
     # EDGES FUSION
     # Find duplicates

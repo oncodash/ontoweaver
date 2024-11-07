@@ -22,6 +22,13 @@ def test_reconciliate():
     assert(len(fnodes) == 2)
     assert(len(fedges) == 2)
 
+    for n in fnodes:
+        assert("p1" in n[2]) # properties
+        assert("p2" in n[2]) # properties
+        assert(n[0] in "12") # id
+        assert(n[1] in ["Source", "Target"]) # Label/type
+        logging.info(n)
+
     for e in fedges:
         assert("q1" in e[4])
         assert("q2" in e[4])
@@ -30,12 +37,7 @@ def test_reconciliate():
             assert(l in "ABC")
         assert(e[1] in "12")
         assert(e[2] in "12")
-
-    for n in fnodes:
-        assert("p1" in n[2])
-        assert("p2" in n[2])
-        assert(n[0] in "12")
-        assert(n[1] in ["Source", "Target"])
+        logging.info(e)
 
 
 if __name__ == "__main__":
