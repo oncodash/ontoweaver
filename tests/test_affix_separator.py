@@ -53,6 +53,5 @@ def test_affix_separator():
     shutil.rmtree(output_dir)
 
 
-
 if __name__ == "__main__":
     test_affix_separator()

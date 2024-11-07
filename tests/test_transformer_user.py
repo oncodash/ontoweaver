@@ -12,31 +12,34 @@ class user_transformer(ontoweaver.base.Transformer):
         for key in self.columns:
             yield str(row[key])
 
-# Add the passed transformer to the list available to OntoWeaver.
-ontoweaver.transformer.register(user_transformer)
+def test_transformer_user():
+    # Add the passed transformer to the list available to OntoWeaver.
+    ontoweaver.transformer.register(user_transformer)
 
-directory_name = "simplest"
+    directory_name = "simplest"
 
-logging.debug("Load mapping...")
-yaml_mapping = """
-row:
-    rowIndex:
-        to_subject: variant
-transformers:
-    - user_transformer:
-        columns:
-            - patient
-        to_object: patient
-        via_relation: patient_has_variant
-"""
+    logging.debug("Load mapping...")
+    yaml_mapping = """
+    row:
+        rowIndex:
+            to_subject: variant
+    transformers:
+        - user_transformer:
+            columns:
+                - patient
+            to_object: patient
+            via_relation: patient_has_variant
+    """
 
-mapping = yaml.safe_load(yaml_mapping)
+    mapping = yaml.safe_load(yaml_mapping)
 
-logging.debug("Load data...")
-csv_file = "tests/" + directory_name + "/data.csv"
-table = pd.read_csv(csv_file)
+    logging.debug("Load data...")
+    csv_file = "tests/" + directory_name + "/data.csv"
+    table = pd.read_csv(csv_file)
 
-logging.debug("Run the adapter...")
-adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
+    logging.debug("Run the adapter...")
+    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
 
 
+if __name__ == "__main__":
+    test_transformer_user()

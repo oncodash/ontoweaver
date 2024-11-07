@@ -4,38 +4,43 @@ import pandas as pd
 
 import ontoweaver
 
-directory_name = "simplest"
+def test_translate():
 
-logging.debug("Load mapping...")
-yaml_mapping = """
-row:
-    rowIndex:
-        to_subject: variant
-transformers:
-    - translate:
-        columns:
-            - patient
-        to_object: patient
-        via_relation: patient_has_variant
-        translations:
-            A: a
-            B: b
-            C: c
-"""
+    directory_name = "simplest"
 
-mapping = yaml.safe_load(yaml_mapping)
+    logging.debug("Load mapping...")
+    yaml_mapping = """
+    row:
+        rowIndex:
+            to_subject: variant
+    transformers:
+        - translate:
+            columns:
+                - patient
+            to_object: patient
+            via_relation: patient_has_variant
+            translations:
+                A: a
+                B: b
+                C: c
+    """
 
-logging.debug("Load data...")
-csv_file = "tests/" + directory_name + "/data.csv"
-table = pd.read_csv(csv_file)
+    mapping = yaml.safe_load(yaml_mapping)
 
-logging.debug("Run the adapter...")
-adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
+    logging.debug("Load data...")
+    csv_file = "tests/" + directory_name + "/data.csv"
+    table = pd.read_csv(csv_file)
 
-assert(adapter)
-assert(adapter.nodes)
-assert(adapter.edges)
+    logging.debug("Run the adapter...")
+    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
 
-for n in adapter.nodes:
-    logging.info(n)
+    assert(adapter)
+    assert(adapter.nodes)
+    assert(adapter.edges)
 
+    for n in adapter.nodes:
+        logging.info(n)
+
+
+if __name__ == "__main__":
+    test_translate()

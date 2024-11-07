@@ -25,3 +25,7 @@ addopts = [
     "--import-mode=importlib",
 ]
 pythonpath = "src"
+testpaths = [
+    "tests",
+]
+
