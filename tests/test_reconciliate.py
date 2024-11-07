@@ -23,18 +23,18 @@ def test_reconciliate():
     assert(len(fedges) == 2)
 
     for e in fedges:
-        assert("q1" in e.properties)
-        assert("q2" in e.properties)
-        assert(e.label == "Edge")
-        assert(e.id in "ABC")
-        assert(e.id_source in "12")
-        assert(e.id_target in "12")
+        assert("q1" in e[4])
+        assert("q2" in e[4])
+        assert(e[3] == "Edge")
+        assert(e[0] in "ABC")
+        assert(e[1] in "12")
+        assert(e[2] in "12")
 
     for n in fnodes:
-        assert("p1" in n.properties)
-        assert("p2" in n.properties)
-        assert(n.id in "12")
-        assert(n.label in ["Source", "Target"])
+        assert("p1" in n[2])
+        assert("p2" in n[2])
+        assert(n[0] in "12")
+        assert(n[1] in ["Source", "Target"])
 
 
 if __name__ == "__main__":

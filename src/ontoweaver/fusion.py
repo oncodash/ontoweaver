@@ -110,5 +110,5 @@ def reconciliate(nodes, edges):
     for n in fusioned_edges:
         logging.debug("\t"+repr(n))
 
-    return fusioned_nodes, fusioned_edges
+    return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
 
