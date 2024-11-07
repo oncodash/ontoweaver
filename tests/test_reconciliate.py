@@ -26,7 +26,8 @@ def test_reconciliate():
         assert("q1" in e[4])
         assert("q2" in e[4])
         assert(e[3] == "Edge")
-        assert(e[0] in "ABC")
+        for l in e[0].split(";"):
+            assert(l in "ABC")
         assert(e[1] in "12")
         assert(e[2] in "12")
 

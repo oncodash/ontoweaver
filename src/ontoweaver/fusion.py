@@ -61,10 +61,12 @@ def remap_edges(edges, node_fuser):
 def reconciliate(nodes, edges):
 
     # NODES FUSION
+    # Find duplicates
     on_ID = serialize.ID()
     nodes_congregater = congregate.Nodes(on_ID)
     nodes_congregater(nodes)
 
+    # Fuse them
     as_keys    = merge.string.UseKey()
     identicals = merge.string.EnsureIdentical()
     in_lists   = merge.dictry.Append()
@@ -87,17 +89,19 @@ def reconciliate(nodes, edges):
         logging.debug("\t"+repr(n))
 
     # EDGES FUSION
+    # Find duplicates
     on_STL = serialize.edge.SourceTargetLabel()
     edges_congregater = congregate.Edges(on_STL)
     edges_congregater(remaped_edges)
 
-    use_last_ID    = merge.string.UseLast()
-    identicals = merge.string.EnsureIdentical()
-    in_lists   = merge.dictry.Append()
-    use_last_source    = merge.string.UseLast()
-    use_last_target    = merge.string.UseLast()
+    # Fuse them
+    set_of_ID       = merge.string.OrderedSet(";")
+    identicals      = merge.string.EnsureIdentical()
+    in_lists        = merge.dictry.Append()
+    use_last_source = merge.string.UseLast()
+    use_last_target = merge.string.UseLast()
     edge_fuser = fuse.Members(base.GenericEdge,
-            merge_ID     = use_last_ID,
+            merge_ID     = set_of_ID,
             merge_label  = identicals,
             merge_prop   = in_lists,
             merge_source = use_last_source,
@@ -110,5 +114,6 @@ def reconciliate(nodes, edges):
     for n in fusioned_edges:
         logging.debug("\t"+repr(n))
 
+    # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
 
