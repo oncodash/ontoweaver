@@ -9,6 +9,12 @@ from . import congregate
 from . import serialize
 
 class Fusioner(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, congregater: congregate.Congregater):
+        raise NotImplementedError
+
+
+class Reduce(Fusioner):
     def __init__(self, fuser: fuse.Fuser):
         self.fuser = fuser
 
@@ -76,7 +82,7 @@ def reconciliate(nodes, edges):
             merge_prop  = in_lists,
         )
 
-    nodes_fusioner = Fusioner(node_fuser)
+    nodes_fusioner = Reduce(node_fuser)
     fusioned_nodes = nodes_fusioner(nodes_congregater)
     logging.debug("Fusioned nodes:")
     for n in fusioned_nodes:
@@ -115,7 +121,7 @@ def reconciliate(nodes, edges):
             merge_target = use_last_target
         )
 
-    edges_fusioner = Fusioner(edge_fuser)
+    edges_fusioner = Reduce(edge_fuser)
     fusioned_edges = edges_fusioner(edges_congregater)
     logging.debug("Fusioned edges:")
     for n in fusioned_edges:
