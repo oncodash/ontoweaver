@@ -137,5 +137,5 @@ if __name__ == "__main__":
         choices=["rdfxml","ntriples"], default="rdfxml", metavar="OWLREADY2_FORMAT")
 
     asked = p.parse_args()
-    to_bc_ontology(asked.ontology_file, asked.format, asked,json)
+    to_bc_ontology(asked.ontology_file, asked.format, asked.json)
 
