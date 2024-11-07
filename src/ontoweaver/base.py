@@ -483,6 +483,10 @@ class Transformer:
         else:
             columns = []
 
+        for c in columns:
+            if type(c) != str:
+                raise ValueError(f"Column `{c}` is not a string, did you mistype a leading colon?")
+
         return f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>"
 
 class All:
