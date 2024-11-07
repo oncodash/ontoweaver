@@ -7,8 +7,8 @@ nodes = [
 ]
 
 edges = [
-    ("Link:0", "Source:1", "Target:2", "Link", ""),
-    ("Link:0", "Source:1", "Target:2", "Link", "") # Complete duplicate
+    ("Link:0", "Source:1", "Target:2", "Link", {}),
+    ("Link:0", "Source:1", "Target:2", "Link", {}) # Complete duplicate
 ]
 
 on_ID = ontoweaver.serialize.ID()

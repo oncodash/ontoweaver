@@ -4,7 +4,12 @@ from abc import ABCMeta, abstractmethod
 from . import base
 from . import merge
 
-Fuser = merge.Merger
+class Fuser(merge.Merger):
+    def __init__(self, cls):
+        logging.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
+        self.cls = cls
+        self.ID_mapping = {}
+
 
 class Members(Fuser):
     # FIXME avoid calling methods on all 5 sub mergers each time.
@@ -31,8 +36,8 @@ class Members(Fuser):
                  merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
                  merge_target: merge.string.StringMerger = merge.string.OrderedSet()
                  ):
-        logging.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
-        self.cls = cls
+        super().__init__(cls)
+
         self.merged = Members.Mergers(merge_ID, merge_label, merge_prop, merge_source, merge_target)
         logging.debug(f"  ID    : {type(self.merged.ID).__name__}")
         logging.debug(f"  label : {type(self.merged.label).__name__}")
@@ -51,6 +56,9 @@ class Members(Fuser):
             logging.debug(f"  source: {type(self.merged.source).__name__}")
             logging.debug(f"  target: {type(self.merged.target).__name__}")
 
+        self._ID_seen = set()
+
+
     def precheck(self, key, lhs, rhs):
         assert(issubclass(type(key), base.Element))
         assert(issubclass(type(lhs), base.Element))
@@ -58,6 +66,7 @@ class Members(Fuser):
 
     def reset(self):
         self.merged.ID.reset()
+        self._ID_seen = set()
         self.merged.label.reset()
         self.merged.prop.reset()
         self.merged.source.reset()
@@ -77,6 +86,8 @@ class Members(Fuser):
                or
                issubclass(type(lhs), base.Edge) and issubclass(type(rhs), base.Edge) )
 
+        self._ID_seen.add(lhs.id)
+        self._ID_seen.add(rhs.id)
         self.merged.ID(key, lhs.id, rhs.id)
         self.merged.label(key, lhs.label, rhs.label)
         self.merged.prop(key, lhs.properties, rhs.properties)
@@ -89,6 +100,12 @@ class Members(Fuser):
 
     def get(self) -> base.Element:
         self.members["id"] = self.merged.ID.get()
+        # Save the ID mappings we've seen so far.
+        for id in self._ID_seen:
+            # We do not need to save self-mappings.
+            if id != self.members["id"]:
+                self.ID_mapping[id] = self.members["id"]
+
         self.members["label"] = self.merged.label.get()
         self.members["properties"] = self.merged.prop.get()
 

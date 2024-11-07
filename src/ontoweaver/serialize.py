@@ -7,51 +7,64 @@ class Serializer(metaclass=ABSTRACT):
     def __call__(self, elem):
         raise NotImplementedError
 
+class node:
+    class ID(Serializer):
+        def __call__(self, node):
+            assert(issubclass(type(node), base.Node))
+            return node.id
 
-class NodeID(Serializer):
-    def __call__(self, node):
-        assert(issubclass(type(node), base.Node))
-        return node.id
+    class IDLabel(Serializer):
+        def __init__(self):
+            self.id = ID()
+        def __call__(self, node):
+            assert(issubclass(type(node), base.Node))
+            return self.id(node) + node.label
 
-class NodeIDLabel(Serializer):
-    def __init__(self):
-        self.id = NodeID()
-    def __call__(self, node):
-        assert(issubclass(type(node), base.Node))
-        return self.id(node) + node.label
+    class All(Serializer):
+        def __init__(self):
+            self.idlbl = IDLabel()
+        def __call__(self, node):
+            assert(issubclass(type(node), base.Node))
+            return self.idlbl(node) + str(node.properties)
 
-class NodeAll(Serializer):
-    def __init__(self):
-        self.idlbl = NodeIDLabel()
-    def __call__(self, node):
-        assert(issubclass(type(node), base.Node))
-        return self.idlbl(node) + str(node.properties)
+class edge:
+    class ID(Serializer):
+        def __call__(self, edge):
+            assert(issubclass(type(edge), base.Edge))
+            return edge.id
 
+    class IDLabel(Serializer):
+        def __init__(self):
+            self.id = ID()
+        def __call__(self, edge):
+            assert(issubclass(type(edge), base.Edge))
+            return self.id(edge) + edge.label
 
-class EdgeID(Serializer):
-    def __call__(self, edge):
-        assert(issubclass(type(edge), base.Edge))
-        return edge.id + edge.id_source + edge.id_target
+    class SourceTarget(Serializer):
+        def __call__(self, edge):
+            assert(issubclass(type(edge), base.Edge))
+            return edge.id_source + edge.id_target
 
-class EdgeIDLabel(Serializer):
-    def __init__(self):
-        self.id = EdgeID()
-    def __call__(self, edge):
-        assert(issubclass(type(edge), base.Edge))
-        return self.id(edge) + edge.label
+    class SourceTargetLabel(Serializer):
+        def __init__(self):
+            self.ST = edge.SourceTarget()
+        def __call__(self, edge):
+            assert(issubclass(type(edge), base.Edge))
+            return self.ST(edge) + edge.label
 
-class EdgeAll(Serializer):
-    def __init__(self):
-        self.idlbl = EdgeIDLabel()
-    def __call__(self, edge):
-        assert(issubclass(type(edge), base.Edge))
-        return self.idlbl(edge) + str(edge.properties)
+    class All(Serializer):
+        def __init__(self):
+            self.idlbl = IDLabel()
+            self.ST = edge.SourceTarget()
+        def __call__(self, edge):
+            assert(issubclass(type(edge), base.Edge))
+            return self.ST(edge) + self.idlbl(edge) + str(edge.properties)
 
 
 class ID(Serializer):
     def __init__(self):
-        self.nodeid = NodeID()
-        self.edgeid = EdgeID()
+        self.nodeid = node.ID()
+        self.edgeid = edge.ID()
 
     def __call__(self, elem):
         if issubclass(type(elem), base.Node):
@@ -63,8 +76,8 @@ class ID(Serializer):
 
 class IDLabel(Serializer):
     def __init__(self):
-        self.nodeidlbl = NodeIDLabel()
-        self.edgeidlbl = EdgeIDLabel()
+        self.nodeidlbl = node.IDLabel()
+        self.edgeidlbl = edge.IDLabel()
 
     def __call__(self, elem):
         if issubclass(type(elem), base.Node):
@@ -76,8 +89,8 @@ class IDLabel(Serializer):
 
 class All(Serializer):
     def __init__(self):
-        self.nodeall = NodeAll()
-        self.edgeall = EdgeAll()
+        self.nodeall = node.All()
+        self.edgeall = edge.All()
 
     def __call__(self, elem):
         if issubclass(type(elem), base.Node):

@@ -4,7 +4,9 @@ from typing import Optional
 
 from . import base
 from . import fuse
+from . import merge
 from . import congregate
+from . import serialize
 
 class Fusioner(metaclass=ABCMeta):
     def __init__(self, fuser: fuse.Fuser):
@@ -35,4 +37,78 @@ class Fusioner(metaclass=ABCMeta):
             assert(issubclass(type(f), base.Element))
             fusioned.add(f)
         return fusioned
+
+
+def remap_edges(edges, node_fuser):
+    assert(node_fuser.cls == base.Node)
+    remaped_edges = []
+    for et in edges:
+        edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
+
+        s = node_fuser.ID_mapping.get(edge.id_source, None)
+        if s:
+            edge.id_source = s
+
+        t = node_fuser.ID_mapping.get(edge.id_target, None)
+        if t:
+            edge.id_source = t
+
+        remaped_edges.append(edge.as_tuple())
+
+    return remaped_edges
+
+
+def reconciliate(nodes, edges):
+
+    # NODES FUSION
+    on_ID = serialize.ID()
+    nodes_congregater = congregate.Nodes(on_ID)
+    nodes_congregater(nodes)
+
+    as_keys    = merge.string.UseKey()
+    identicals = merge.string.EnsureIdentical()
+    in_lists   = merge.dictry.Append()
+    node_fuser = fuse.Members(base.Node,
+            merge_ID    = as_keys,
+            merge_label = identicals,
+            merge_prop  = in_lists,
+        )
+
+    nodes_fusioner = Fusioner(node_fuser)
+    fusioned_nodes = nodes_fusioner(nodes_congregater)
+    logging.debug("Fusioned nodes:")
+    for n in fusioned_nodes:
+        logging.debug("\t"+repr(n))
+
+    # EDGES REMAP
+    remaped_edges = remap_edges(edges, node_fuser)
+    logging.debug("Remaped edges:")
+    for n in remaped_edges:
+        logging.debug("\t"+repr(n))
+
+    # EDGES FUSION
+    on_STL = serialize.edge.SourceTargetLabel()
+    edges_congregater = congregate.Edges(on_STL)
+    edges_congregater(remaped_edges)
+
+    use_last_ID    = merge.string.UseLast()
+    identicals = merge.string.EnsureIdentical()
+    in_lists   = merge.dictry.Append()
+    use_last_source    = merge.string.UseLast()
+    use_last_target    = merge.string.UseLast()
+    edge_fuser = fuse.Members(base.GenericEdge,
+            merge_ID     = use_last_ID,
+            merge_label  = identicals,
+            merge_prop   = in_lists,
+            merge_source = use_last_source,
+            merge_target = use_last_target
+        )
+
+    edges_fusioner = Fusioner(edge_fuser)
+    fusioned_edges = edges_fusioner(edges_congregater)
+    logging.debug("Fusioned edges:")
+    for n in fusioned_edges:
+        logging.debug("\t"+repr(n))
+
+    return fusioned_nodes, fusioned_edges
 

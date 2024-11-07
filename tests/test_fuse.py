@@ -36,6 +36,7 @@ for e in fusioned:
     assert("p2" in e.properties)
     assert("y" in e.properties["p2"])
 
+assert(len(fuser.ID_mapping) == 0) # Only self-mappings.
 
 as_sets = ontoweaver.merge.string.OrderedSet(".")
 in_lists2 = ontoweaver.merge.dictry.Append(";")

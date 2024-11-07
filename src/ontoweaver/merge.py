@@ -115,6 +115,19 @@ class string:
             self.set(rhs)
 
 
+    class EnsureIdentical(StringMerger):
+        """If the merged values are not all identical, raise a ValueError."""
+
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            if self.merged:
+                if self.merged != lhs or self.merged != rhs:
+                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` not identical to previously seen one: `{self.merged}`.")
+            else:
+                if lhs != rhs:
+                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` not identical.`")
+            self.set(lhs) # Should be equal to rhs.
+
+
     class OrderedSet(StringMerger):
         def __init__(self, sep = None):
             self.sep = sep

@@ -78,8 +78,12 @@ class Element(metaclass = ABSTRACT):
 
     @classmethod
     @abstract
-    def from_tuple(cls, t : tuple):
-        return cls(t)
+    def from_tuple(cls,
+                   biocypher_tuple : tuple,
+                   serializer: Optional[serialize.Serializer] = serialize.All()
+        ):
+        # return cls(biocypher_tuple,serializer)
+        raise NotImplementedError
 
     @property
     def id(self) -> str:
@@ -101,6 +105,7 @@ class Element(metaclass = ABSTRACT):
 
         # Sanity checks:
         assert(properties is not None)
+        assert(type(properties) == dict)
         # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
         # TODO enable the usage of available() function to disable / enable parts of ontology / certain nodes
         # for p in properties:
@@ -117,7 +122,7 @@ class Node(Element):
                  id        : Optional[str] = None,
                  properties: Optional[dict[str,str]] = {},
                  label     : Optional[str] = None,  # Set from subclass name.
-                 serializer: Optional[serialize.Serializer] = serialize.NodeAll(),
+                 serializer: Optional[serialize.Serializer] = serialize.node.All(),
                  ):
         """Instantiate a Node.
 
@@ -126,7 +131,7 @@ class Node(Element):
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         :param Comparer serializer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
-        super().__init__(id, properties, label, serializer)
+        super().__init__(id = id, properties = properties, label = label, serializer = serializer)
 
     Tuple: TypeAlias = tuple[str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
@@ -141,7 +146,7 @@ class Node(Element):
     @classmethod
     def from_tuple(cls,
                    biocypher_tuple : tuple[str,str,dict[str,str]],
-                   serializer: Optional[serialize.Serializer] = serialize.NodeAll(),
+                   serializer: Optional[serialize.Serializer] = serialize.node.All(),
                    ):
         assert(len(biocypher_tuple) == 3)
         return cls(
@@ -183,7 +188,7 @@ class Edge(Element):
                  id_target : Optional[str] = None,
                  properties: Optional[dict[str,str]] = {},
                  label     : Optional[str] = None,  # Set from subclass name.
-                 serializer: Optional[serialize.Serializer] = serialize.EdgeAll(),
+                 serializer: Optional[serialize.Serializer] = serialize.edge.All(),
                  ):
         """Instantiate an Edge.
 
@@ -194,7 +199,7 @@ class Edge(Element):
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
-        super().__init__(id, properties, label, serializer)
+        super().__init__(id = id, properties = properties, label = label, serializer = serializer)
         self._id_source = str(id_source)
         self._id_target = str(id_target)
 
@@ -231,19 +236,28 @@ class Edge(Element):
     @classmethod
     def from_tuple(cls,
                    biocypher_tuple : tuple[str,str,str,str,dict[str,str]],
-                   serializer: Optional[serialize.Serializer] = serialize.EdgeAll(),
+                   serializer: Optional[serialize.Serializer] = serialize.edge.All()
                    ):
         assert(len(biocypher_tuple) == 5)
         return cls(
             id         = biocypher_tuple[0],
             id_source  = biocypher_tuple[1],
             id_target  = biocypher_tuple[2],
-            label      = biocypher_tuple[3],
             properties = biocypher_tuple[4],
+            label      = biocypher_tuple[3],
             serializer = serializer)
 
     def __repr__(self):
-        return f"<['{self.source_type()}':'{self.id_source}']--('{self.label}':'{self.id}'/{self.properties})-->['{self.target_type()}':'{self.id_target}']>"
+        if self.source_type() == Node:
+            st = "."
+        else:
+            st = f"’{self.source_type()}’"
+        if self.target_type() == Node:
+            tt = "."
+        else:
+            tt = f"’{self.target_type()}’"
+
+        return f"<[{st}:'{self.id_source}']--('{self.label}':'{self.id}'/{self.properties})-->[{tt}:'{self.id_target}']>"
 
     def fields(self) -> list[str]:
         """List of property fields provided by the (sub)class."""
@@ -277,7 +291,7 @@ class GenericEdge(Edge):
                  id_target : Optional[str] = None,
                  properties: Optional[dict[str,str]] = {},
                  label     : Optional[str] = None,  # Set from subclass name.
-                 serializer: Optional[serialize.Serializer] = serialize.EdgeAll(),
+                 serializer: Optional[serialize.Serializer] = serialize.edge.All(),
                  ):
         """Instantiate an Edge.
 
@@ -288,9 +302,7 @@ class GenericEdge(Edge):
         :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
         :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
-        super().__init__(id, properties, label, serializer)
-        self._id_source = str(id_source)
-        self._id_target = str(id_target)
+        super().__init__(id = id, id_source = id_source, id_target = id_target, properties = properties, label = label, serializer = serializer)
 
     @staticmethod
     def source_type():
