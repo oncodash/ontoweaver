@@ -45,17 +45,17 @@ class Reduce(Fusioner):
         return fusioned
 
 
-def remap_edges(edges, node_fuser):
+def remap_edges(edges, ID_mapping):
     assert(node_fuser.cls == base.Node)
     remaped_edges = []
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
 
-        s = node_fuser.ID_mapping.get(edge.id_source, None)
+        s = ID_mapping.get(edge.id_source, None)
         if s:
             edge.id_source = s
 
-        t = node_fuser.ID_mapping.get(edge.id_target, None)
+        t = ID_mapping.get(edge.id_target, None)
         if t:
             edge.id_source = t
 
@@ -64,7 +64,7 @@ def remap_edges(edges, node_fuser):
     return remaped_edges
 
 
-def reconciliate(nodes, edges):
+def reconciliate_nodes(nodes):
 
     # NODES FUSION
     # Find duplicates
@@ -84,28 +84,20 @@ def reconciliate(nodes, edges):
 
     nodes_fusioner = Reduce(node_fuser)
     fusioned_nodes = nodes_fusioner(nodes_congregater)
-    logging.debug("Fusioned nodes:")
-    for n in fusioned_nodes:
-        logging.debug("\t"+repr(n))
+    # logging.debug("Fusioned nodes:")
+    # for n in fusioned_nodes:
+    #     logging.debug("\t"+repr(n))
 
-    # EDGES REMAP
-    # If we use on_ID/use_key,
-    # we shouldn't have any remapping of IDs in edges.
-    assert(len(node_fuser.ID_mapping) == 0)
-    # If one change this, you may want to remap like this:
-    if len(node_fuser.ID_mapping) > 0:
-        remaped_edges = remap_edges(edges, node_fuser)
-        logging.debug("Remaped edges:")
-        for n in remaped_edges:
-            logging.debug("\t"+repr(n))
-    else:
-        remaped_edges = edges
+    return fusioned_nodes, node_fuser.ID_mapping
+
+
+def reconciliate_edges(edges):
 
     # EDGES FUSION
     # Find duplicates
     on_STL = serialize.edge.SourceTargetLabel()
     edges_congregater = congregate.Edges(on_STL)
-    edges_congregater(remaped_edges)
+    edges_congregater(edges)
 
     # Fuse them
     set_of_ID       = merge.string.OrderedSet(";")
@@ -123,9 +115,31 @@ def reconciliate(nodes, edges):
 
     edges_fusioner = Reduce(edge_fuser)
     fusioned_edges = edges_fusioner(edges_congregater)
-    logging.debug("Fusioned edges:")
-    for n in fusioned_edges:
-        logging.debug("\t"+repr(n))
+    # logging.debug("Fusioned edges:")
+    # for n in fusioned_edges:
+    #     logging.debug("\t"+repr(n))
+
+    return fusioned_edges
+
+
+def reconciliate(nodes, edges):
+
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes)
+
+    # EDGES REMAP
+    # If we use on_ID/use_key,
+    # we shouldn't have any need to remap sources and target IDs in edges.
+    assert(len(ID_mapping) == 0)
+    # If one change this, you may want to remap like this:
+    if len(ID_mapping) > 0:
+        remaped_edges = remap_edges(edges, ID_mapping)
+        # logging.debug("Remaped edges:")
+        # for n in remaped_edges:
+        #     logging.debug("\t"+repr(n))
+    else:
+        remaped_edges = edges
+
+    fusioned_edges = reconciliate_edges(remaped_edges)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]

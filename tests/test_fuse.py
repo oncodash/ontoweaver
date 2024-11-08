@@ -24,7 +24,7 @@ def test_fuse():
             merge_prop  = in_lists,
         )
 
-    fusioner = ontoweaver.fusion.Fusioner(fuser)
+    fusioner = ontoweaver.fusion.Reduce(fuser)
     fusioned = fusioner(congregater)
 
     logging.debug("Fusioned items:")
@@ -47,7 +47,7 @@ def test_fuse():
             merge_prop  = in_lists2,
         )
 
-    fusioner2 = ontoweaver.fusion.Fusioner(fuser2)
+    fusioner2 = ontoweaver.fusion.Reduce(fuser2)
     fusioned2 = fusioner2(congregater)
 
     logging.debug("Fusioned items:")
