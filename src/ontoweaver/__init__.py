@@ -22,6 +22,20 @@ __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings):
+    """Calls several mappings, each on the related Pandas-redable tabular data file,
+       then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
+       then export everything with BioCypher.
+       Returns the path to the resulting import file.
+
+       Args:
+           biocypher_config_path: the BioCypher configuration file
+           schema_path: the assembling schema file
+           data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+
+       Returns:
+           The path to the import file.
+   """
+
     assert(type(data_mappings) == dict) # data_file => mapping_file
 
     nodes = []

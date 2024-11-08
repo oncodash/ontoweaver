@@ -5,6 +5,15 @@ from . import base
 from . import merge
 
 class Fuser(merge.Merger):
+    """Interface for Merger classes merging elements of a given type
+    (usually a base.Element subclass).
+
+    A subclass implementing this interface should keep trace of
+    which ID was replaced by which one, in the `ID_mapping` dictionary.
+    This dictionary may be used to remap the id_source and id_target of
+    the related edges, processed later by another Fuser.
+    """
+
     def __init__(self, cls):
         logging.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
         self.cls = cls
@@ -12,6 +21,18 @@ class Fuser(merge.Merger):
 
 
 class Members(Fuser):
+    """A Fuser that merges base.Element objects, members by members,
+    by calling the given sub-Mergers for each members.
+
+    By definition, a merge performed with this class cannot implement
+    a processing that depends on the values of other member variables.
+    Each merging of member variables is independant.
+
+    For instance, if the fusion that you want to implement decides
+    how to merge types based on properties, you will need to implement
+    your own subclass of Fuser.
+    """
+
     # FIXME avoid calling methods on all 5 sub mergers each time.
 
     class Mergers:
@@ -36,6 +57,20 @@ class Members(Fuser):
                  merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
                  merge_target: merge.string.StringMerger = merge.string.OrderedSet()
                  ):
+         """Constructor.
+
+        Takes the class to merge and a merger for each member variable
+        of either a Node or an Edge.
+
+         Args:
+             cls: either a base.Node or a base.Edge subclass
+             merge_ID: the merger used to merge `id`(s)
+             merge_label: the merger used to merge `label`(s)
+             merge_prop: the merger used to merge `property`(s)
+             merge_source: the merger used to merge `id_source`(s)
+             merge_target: the merger used to merge `id_target`(s)
+         """
+
         super().__init__(cls)
 
         self.merged = Members.Mergers(merge_ID, merge_label, merge_prop, merge_source, merge_target)
