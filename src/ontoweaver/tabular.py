@@ -5,7 +5,6 @@ import logging
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
-import ontoweaver
 
 import pandas as pd
 
@@ -339,7 +338,7 @@ def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", se
     Returns:
         PandasAdapter: The configured adapter.
     """
-    parser = ontoweaver.tabular.YamlParser(config, module)
+    parser = YamlParser(config, module)
     mapping = parser()
 
     adapter = PandasAdapter(
