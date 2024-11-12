@@ -133,6 +133,7 @@ class dictry:
 
         def __init__(self, sep = None):
             self.sep = sep
+            self.merged = {}
 
         def reset(self):
             self.merged = {}
@@ -144,7 +145,7 @@ class dictry:
                 if type(v) == set:
                     e.union(v)
                 else:
-                    self.merged[k] = set(v).union(e)
+                    self.merged[k] = set((v,)).union(e)
 
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]):
             self.set(lhs)
