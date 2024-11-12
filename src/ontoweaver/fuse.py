@@ -57,7 +57,7 @@ class Members(Fuser):
                  merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
                  merge_target: merge.string.StringMerger = merge.string.OrderedSet()
                  ):
-         """Constructor.
+        """Constructor.
 
         Takes the class to merge and a merger for each member variable
         of either a Node or an Edge.
@@ -69,7 +69,7 @@ class Members(Fuser):
              merge_prop: the merger used to merge `property`(s)
              merge_source: the merger used to merge `id_source`(s)
              merge_target: the merger used to merge `id_target`(s)
-         """
+        """
 
         super().__init__(cls)
 
