@@ -52,5 +52,6 @@ def test_ontology_subtypes():
 
     shutil.rmtree(output_dir)
 
+
 if __name__ == "__main__":
     test_ontology_subtypes()
