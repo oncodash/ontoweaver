@@ -52,7 +52,7 @@ class Reduce(Fusioner):
             # Manual functools.reduce without initial state.
             it = iter(elem_list)
             lhs = next(it)
-            logging.debug(f"  Fuse `{lhs}`...")
+            logging.debug(f"  Fuse element with ID `{lhs}`...")
             logging.debug(f"    with itself: {repr(lhs)}")
             self.fuser(key, lhs, lhs)
             logging.debug(f"      = {repr(self.fuser.get())}")
@@ -63,8 +63,10 @@ class Reduce(Fusioner):
 
             # Convert to final string.
             f = self.fuser.get()
+            logging.debug(f"  Fused: {repr(f)}")
             assert(issubclass(type(f), base.Element))
             fusioned.add(f)
+        logging.debug(f"Fusioned {len(fusioned)} elements.")
         return fusioned
 
 
@@ -102,7 +104,7 @@ def remap_edges(edges, ID_mapping):
     return remaped_edges
 
 
-def reconciliate_nodes(nodes):
+def reconciliate_nodes(nodes, separator = None):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -133,7 +135,7 @@ def reconciliate_nodes(nodes):
     # Fuse them
     use_key    = merge.string.UseKey()
     identicals = merge.string.EnsureIdentical()
-    in_lists   = merge.dictry.Append()
+    in_lists   = merge.dictry.Append(separator)
     node_fuser = fuse.Members(base.Node,
             merge_ID    = use_key,
             merge_label = identicals,
@@ -149,7 +151,7 @@ def reconciliate_nodes(nodes):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges):
+def reconciliate_edges(edges, separator = None):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -177,7 +179,7 @@ def reconciliate_edges(edges):
     edges_congregater(edges)
 
     # Fuse them
-    set_of_ID       = merge.string.OrderedSet(";")
+    set_of_ID       = merge.string.OrderedSet(separator)
     identicals      = merge.string.EnsureIdentical()
     in_lists        = merge.dictry.Append()
     use_last_source = merge.string.UseLast()
@@ -199,7 +201,7 @@ def reconciliate_edges(edges):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges):
+def reconciliate(nodes, edges, separator = None):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
@@ -216,7 +218,7 @@ def reconciliate(nodes, edges):
     See reconciliate_nodes and reconciliate_edges for details.
     """
 
-    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes)
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, separator = separator)
 
     # EDGES REMAP
     # If we use on_ID/use_key,
@@ -231,7 +233,7 @@ def reconciliate(nodes, edges):
     else:
         remaped_edges = edges
 
-    fusioned_edges = reconciliate_edges(remaped_edges)
+    fusioned_edges = reconciliate_edges(remaped_edges, separator = separator)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
