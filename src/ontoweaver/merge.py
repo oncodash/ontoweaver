@@ -144,6 +144,7 @@ class dictry:
                 e = self.merged.get(k, set())
                 if type(v) == set:
                     e.union(v)
+                    self.merged[k] = e
                 else:
                     self.merged[k] = set((v,)).union(e)
 
@@ -159,7 +160,14 @@ class dictry:
                 if self.sep:
                     merged[k] = self.sep.join(v)
                 else:
-                    merged[k] = str(list(v))
+                    if len(v) == 0:
+                        merged[k] = ''
+                    elif len(v) == 1:
+                        # We don't want to alter v by reference.
+                        e = copy.copy(v).pop()
+                        merged[k] = str(e)
+                    else:
+                        merged[k] = str(list(v))
             return merged
 
 
