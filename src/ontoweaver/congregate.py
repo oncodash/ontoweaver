@@ -57,7 +57,7 @@ class Congregate(Congregater):
         """Call interface
 
         Args:
-            biocypher_tuples: a list of tuples in the BioCypher format for nodes xor edges.
+            biocypher_tuples: a list of tuples in the BioCypher format for nodes or edges.
         """
         logging.debug(f"Call Congregate...")
         for t in biocypher_tuples:
