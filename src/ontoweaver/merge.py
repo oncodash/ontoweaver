@@ -151,6 +151,7 @@ class dictry:
             self.set(lhs)
             self.set(rhs)
 
+
         def get(self) -> str:
             merged = {}
             for k,v in self.merged.items():
@@ -159,7 +160,8 @@ class dictry:
                 if self.sep:
                     merged[k] = self.sep.join(v)
                 else:
-                    merged[k] = str(list(v))
+                    merged[k] = ', '.join(str(item) for item in v)
+
             return merged
 
 
