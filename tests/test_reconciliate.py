@@ -17,7 +17,7 @@ def test_reconciliate():
         ("C", "2", "1", "Edge", {"q1":"i", "q2": "j"}),
     ]
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges)
+    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=";")
 
     assert(len(fnodes) == 2)
     assert(len(fedges) == 2)
