@@ -21,7 +21,7 @@ from . import fusion
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion']
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings, separator = None):
     """Calls several mappings, each on the related Pandas-redable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -52,7 +52,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
         nodes += adapter.nodes
         edges += adapter.edges
 
-    fnodes, fedges = fusion.reconciliate(nodes, edges)
+    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
     bc = biocypher.BioCypher(
         biocypher_config_path = biocypher_config_path,
