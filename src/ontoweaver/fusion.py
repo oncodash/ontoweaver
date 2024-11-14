@@ -86,7 +86,6 @@ def remap_edges(edges, ID_mapping):
         the list of remaped edges tuples
     """
 
-    assert(node_fuser.cls == base.Node)
     remaped_edges = []
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
@@ -97,7 +96,7 @@ def remap_edges(edges, ID_mapping):
 
         t = ID_mapping.get(edge.id_target, None)
         if t:
-            edge.id_source = t
+            edge.id_target = t
 
         remaped_edges.append(edge.as_tuple())
 
@@ -181,7 +180,7 @@ def reconciliate_edges(edges, separator = None):
     # Fuse them
     set_of_ID       = merge.string.OrderedSet(separator)
     identicals      = merge.string.EnsureIdentical()
-    in_lists        = merge.dictry.Append()
+    in_lists        = merge.dictry.Append(separator)
     use_last_source = merge.string.UseLast()
     use_last_target = merge.string.UseLast()
     edge_fuser = fuse.Members(base.GenericEdge,
