@@ -75,7 +75,7 @@ class split(base.Transformer):
                 for item in items:
                     yield str(item)
             else:
-                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `split` transformer. Skipping cell value: `{row[key]}`")
 
 
 class cat(base.Transformer):
@@ -111,7 +111,7 @@ class cat(base.Transformer):
             if self.valid(row[key]):
                 formatted_items += str(row[key])
             else:
-                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `cat` transformer. Skipping cell value: `{row[key]}`")
 
         yield str(formatted_items)
 
@@ -153,9 +153,9 @@ class cat_format(base.Transformer):
                 if self.valid(column_value):
                     continue
                 else:
-                    raise Exception(
-                        f"Encountered invalid content when mapping column: `{column_name}` in `format_cat` transformer. "
-                        f"Try using another transformer type.")
+                    logging.warning(
+                        f"Encountered invalid content when mapping column: `{column_name}`, line: {i} in `cat_format` transformer."
+                        f"Skipping cell value: `{column_value}`.")
 
             formatted_string = self.format_string.format_map(row)
             yield str(formatted_string)
@@ -196,7 +196,7 @@ class rowIndex(base.Transformer):
         if self.valid(i):
             yield str(i)
         else:
-            logging.warning(f"Error while mapping by row index. Invalid cell content: `{i}`")
+            logging.warning(f"Error while mapping by row index in line: {i}. Skipping cell value: `{i}`")
 
 
 class map(base.Transformer):
@@ -241,7 +241,7 @@ class map(base.Transformer):
                 yield str(row[key])
             else:
                 logging.warning(
-                     f"Encountered invalid content at row {i} when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                     f"Encountered invalid content at row {i} when mapping column: `{key}`, using `map` transformer. Skipping cell value: `{row[key]}`")
 
 
 class translate(base.Transformer):
