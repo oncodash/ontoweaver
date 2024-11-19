@@ -363,7 +363,6 @@ class translate(base.Transformer):
         for e in self.map(row, i):
             yield e
 
-
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
@@ -403,3 +402,50 @@ class string(base.Transformer):
         else:
             raise ValueError(f"Value `{self.value}` is invalid.")
 
+
+class map_remove_special_characters(base.Transformer):
+    """Transformer subclass used to unify cell values of defined columns and create nodes with
+    their respective values as id."""
+
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Initialize the unify transformer.
+
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+        """
+        super().__init__(target, properties_of, edge, columns, **kwargs)
+
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values with special characters removed or replaced.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The processed cell value with special characters removed or replaced.
+
+        Raises:
+            Warning: If the processed cell value is invalid.
+        """
+
+        pattern = r'[^a-zA-Z0-9_`.()]'  # Allow alphanumeric characters (A-Z, a-z, 0-9), underscore (_), backtick (`), dot (.), and parentheses ().
+
+        for key in self.columns:
+            if hasattr(self, "separator"):
+                formatted = re.sub(pattern, self.separator, row[key])
+                strip_formatted = formatted.strip(self.separator)
+            else:
+                formatted = re.sub(pattern, "", row[key])
+                strip_formatted = formatted.strip()
+            if strip_formatted and self.valid(strip_formatted):
+                yield str(strip_formatted)
+            else:
+                logging.warning(
+                    f"Error while removing special characters at row {row} when mapping column: `{key}`, "
+                    f"using `map_remove_special_characters` transformer. Skipping cell value: `{row[key]}`")
