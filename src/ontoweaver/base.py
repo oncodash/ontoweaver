@@ -433,8 +433,10 @@ class Transformer:
         if pd.api.types.is_numeric_dtype(type(val)):
             if (math.isnan(val) or val == float("nan")):
                 return False
-        elif str(val) == "nan":  # Conversion from Pandas' `object` needs to be explicit. # TODO test also for empty strings, in case pandas is not used. Double check if works for paralelization.
+
+        elif str(val).lower() == "nan" or val == "":
             return False
+
         return True
 
     def __repr__(self):
