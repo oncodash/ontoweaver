@@ -73,7 +73,11 @@ class split(base.Transformer):
                 assert(type(row[key]) == str)
                 items = row[key].split(self.separator)
                 for item in items:
-                    yield str(item)
+                    if self.valid(item):
+                        yield str(item)
+                    else:
+                        logging.warning(
+                            f"Encountered invalid content when splitting values of column column: `{key}`, line: {i}, in `split` transformer. Skipping cell value: `{item}`")
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `split` transformer. Skipping cell value: `{row[key]}`")
 
