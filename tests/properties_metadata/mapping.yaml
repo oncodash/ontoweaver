@@ -1,0 +1,31 @@
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+
+    - map:
+        columns:
+            - publication
+        to_object: publication
+        via_relation: publication_to_variant
+    - map:
+        columns:
+          - journal
+        to_property:
+          - journal
+        for_objects:
+          - publication
+    - map:
+        columns:
+          - variant_version
+        to_property:
+          - version
+metadata:
+    - database_name: my_database
+    - add_source_column_names_as: source_columns
+
