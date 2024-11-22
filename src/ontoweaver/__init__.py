@@ -54,7 +54,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
 
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
-    bc = biocypher.BioCypher(
+    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
     )
@@ -65,3 +65,37 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
 
     return import_file
 
+def extract(data_mappings, separator = None, affix = "none"):
+    assert(type(data_mappings) == dict) # data_file => mapping_file
+
+    nodes = []
+    edges = []
+
+    for data_file, mapping_file in data_mappings.items():
+        table = pd.read_csv(data_file, sep = None)
+
+        with open(mapping_file) as fd:
+            mapping = yaml.full_load(fd)
+
+        adapter = tabular.extract_all(table, mapping, affix=affix, separator=separator)
+
+        nodes += adapter.nodes
+        edges += adapter.edges
+
+    return nodes, edges
+
+def reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separator = None):
+
+    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+
+    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
+        biocypher_config_path = biocypher_config_path,
+        schema_config_path = schema_path
+    )
+
+    bc.write_nodes(fnodes)
+    bc.write_edges(fedges)
+    #bc.summary()
+    import_file = bc.write_import_call()
+
+    return import_file
