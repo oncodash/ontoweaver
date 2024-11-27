@@ -339,13 +339,9 @@ class Adapter(metaclass = ABSTRACT):
         # logging.debug(f"Nodes: {nodes}.")
         for node in nodes:
             # logging.debug(f"\tAppend node {node}.")
-            if node in self._nodes:
-                # logging.warning(f"\t\tSkipped Node already declared: `{node}`")
-                # return False
-                pass
-            else:
-                self._nodes.append(node.as_tuple())
-                # return True
+            # Checking for duplicates in reconciliation, otherwise complexity too high.
+            self._nodes.append(node.as_tuple())
+            # return True
 
     def edges_append(self, edge_s) -> None:
         """Append an Edge (or each Edge in a list of edges) to the internal list of edges."""
@@ -357,13 +353,9 @@ class Adapter(metaclass = ABSTRACT):
         # logging.debug(f"Edges: {edges}.")
         for edge in edges:
             # logging.debug(f"\tAppend edge {edge}.")
-            if edge in self._edges:
-                # logging.warning(f"\t\tSkipped Edge already declared: `{edge}`")
-                # return False
-                pass
-            else:
-                self._edges.append(edge.as_tuple())
-                # return True
+            # Checking for duplicates in reconciliation, otherwise complexity too high.
+            self._edges.append(edge.as_tuple())
+            # return True
 
     @property
     def nodes(self) -> Iterable[Node.Tuple]:
