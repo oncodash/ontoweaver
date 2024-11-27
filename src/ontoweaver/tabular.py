@@ -675,7 +675,8 @@ class YamlParser(Declare):
                         logging.debug(f"No object defined for properties {property_names}, I will attach those properties to the subject `{subject_type}`")
                         object_types = [subject_type]
                     column_names = self.get(k_columns, pconfig=field_dict)
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names)
+                    gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, **gen_data)
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
                         for property_name in property_names:
