@@ -1,7 +1,9 @@
 import sys
 import math
+import threading
 import types as pytypes
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
@@ -238,89 +240,145 @@ class PandasAdapter(base.Adapter):
         """
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
-
     def run(self):
-        """Iterate through data frame and map the cell values according to yaml file, using list of transformers."""
+        """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
 
-        # Loop over the data frame.
-        nb_rows = 0
-        nb_transformations = 0
-        nb_nodes = 0
-        for i, row in self.df.iterrows():
-            logging.debug(f"Process row {i}...")
-            nb_rows += 1
+        # Thread-safe containers with their respective locks
+        self._nodes = []
+        self._edges = []
+        self._errors = []
+        self._nodes_lock = threading.Lock()
+        self._edges_lock = threading.Lock()
+        self._errors_lock = threading.Lock()
+        self._row_lock = threading.Lock()
+        self._transformations_lock = threading.Lock()
+        self._local_nb_nodes_lock = threading.Lock()
 
-            logging.debug(f"\tCreate subject node:")
-            # There can be only one subject, so transformers yielding multiple IDs cannot be used.
-            ids = list(self.subject_transformer(row, i))
-            if(len(ids) > 1):
-                logging.error(f"\t\tSubject Transformer {self.subject_transformer} produced multiple IDs: {ids}")
-                raise ValueError("You cannot use a transformer yielding multiple IDs as a subject")
-            source_id = ids[0]
-            source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
+        # Function to process a single row and collect operations
+        def process_row(row_data):
+            i, row = row_data
+            local_nodes = []
+            local_edges = []
+            local_errors = []
+            local_rows = 0
+            local_transformations = 0
+            local_nb_nodes = 0
 
-            if source_node_id:
-                logging.debug(f"\t\tDeclared subject ID: `{source_node_id}")
-                self.nodes_append((self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
-                                          properties=self.properties(self.subject_transformer.properties_of, row, i, self.subject_transformer, node = True))))
-            else:
-                raise ValueError(f"Declaration of subject ID for row `{row}` unsuccessful.")
+            try:
+                logging.debug(f"Process row {i}...")
+                local_rows += 1
+                # There can be only one subject, so transformers yielding multiple IDs cannot be used.
+                logging.debug("\tCreate subject node:")
+                ids = list(self.subject_transformer(row, i))
+                if (len(ids) > 1):
+                    msg = f"\t\tSubject Transformer {self.subject_transformer} produced multiple IDs: {ids}"
+                    logging.error(msg)
+                    local_errors.append(msg)
+                    raise ValueError("You cannot use a transformer yielding multiple IDs as a subject")
+                source_id = ids[0]
+                source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
-            # Loop over list of transformer instances and create corresponding nodes and edges.
-            # FIXME the transformer variable here shadows the transformer module.
-            for transformer in self.transformers:
-                nb_transformations += 1
-                logging.debug(f"\tCalling transformer: {transformer}...")
+                if source_node_id:
+                    logging.debug(f"\t\tDeclared subject ID: {source_node_id}")
+                    local_nodes.append(self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
+                                                      properties=self.properties(self.subject_transformer.properties_of,
+                                                                                 row, i, self.subject_transformer,
+                                                                                 node=True)))
+                else:
+                    msg = f"Declaration of subject ID for row {row} unsuccessful."
+                    logging.error(msg)
+                    local_errors.append(msg)
+                    raise ValueError(f"Declaration of subject ID for row `{row}` unsuccessful.")
 
-                for target_id in transformer(row, i):
-                    nb_nodes += 1
-                    if target_id:
-                        target_node_id = self.make_id(transformer.target.__name__, target_id)
-                        logging.debug(f"\t\tMake node `{target_node_id}`.")
-                        self.nodes_append(self.make_node(node_t=transformer.target, id=target_node_id,
-                                                  properties=self.properties(transformer.properties_of, row, i, transformer, node=True)))
+                # Loop over list of transformer instances and create corresponding nodes and edges.
+                # FIXME the transformer variable here shadows the transformer module.
+                for transformer in self.transformers:
+                    local_transformations += 1
+                    logging.debug(f"\tCalling transformer: {transformer}...")
+                    for target_id in transformer(row, i):
+                        local_nb_nodes += 1
+                        if target_id:
+                            target_node_id = self.make_id(transformer.target.__name__, target_id)
+                            logging.debug(f"\t\tMake node {target_node_id}")
+                            local_nodes.append(self.make_node(node_t=transformer.target, id=target_node_id,
+                                                              properties=self.properties(transformer.properties_of, row,
+                                                                                         i, transformer, node=True)))
 
-                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                        # list to find the transformer instance mapping to the correct type, and then create new
-                        # subject id.
+                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                            # list to find the transformer instance mapping to the correct type, and then create new
+                            # subject id.
 
-                        # FIXME add hook functions to be overloaded.
+                            # FIXME add hook functions to be overloaded.
 
-                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
+                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
-                        if hasattr(transformer, "from_subject"):
-                            for t in self.transformers:
-                                if transformer.from_subject == t.target.__name__:
-                                    for s_id in t(row, i):
-                                        subject_id = s_id
-                                    subject_node_id = self.make_id(t.target.__name__, subject_id)
-                                    logging.debug(f"\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`.")
-                                    self.edges_append(
-                                        self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
-                                                       id_target=target_node_id,
-                                                       properties=self.properties(transformer.properties_of, row, i, t)))
+                            if hasattr(transformer, "from_subject"):
+                                for t in self.transformers:
+                                    if transformer.from_subject == t.target.__name__:
+                                        for s_id in t(row, i):
+                                            subject_id = s_id
+                                            subject_node_id = self.make_id(t.target.__name__, subject_id)
+                                            logging.debug(
+                                                f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
+                                            local_edges.append(
+                                                self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                                               id_target=target_node_id,
+                                                               properties=self.properties(transformer.properties_of,
+                                                                                          row, i, t)))
 
-                                else:
-                                    continue
+                                    else:
+                                        continue
 
-                        else: # no attribute `from_subject` in `transformer`
-                            logging.debug(f"\t\tMake edge from `{source_node_id}` toward `{target_node_id}`.")
-                            self.edges_append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id, id_source=source_node_id,
-                                                      properties=self.properties(transformer.edge.fields(), row, i, transformer)))
-                    else: # if not target_id
-                        # FIXME should this be errors or warnings?
-                        err_msg = f"No valid target node identifier from {transformer} for {i}th row."
-                        logging.error(f"\t\t{err_msg}")
-                        logging.debug(f"Error above occured on row:\n{row}\n")
-                        self.errors.append(err_msg)
-                        continue
+                            else: # no attribute `from_subject` in `transformer`
+                                logging.debug(f"\t\tMake edge from {source_node_id} toward {target_node_id}")
+                                local_edges.append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id,
+                                                                  id_source=source_node_id,
+                                                                  properties=self.properties(transformer.edge.fields(),
+                                                                                             row, i, transformer)))
+                        else:
+                            msg = f"No valid target node identifier from {transformer} for {i}th row."
+                            logging.error(f"\t\t{msg}")
+                            logging.debug(f"Error above occured on row:\n{row}\n")
+                            local_errors.append(msg)
+                            continue
 
-                    # TODO check if two transformers are declaring the same type and raise error
+            except Exception as e:
+                logging.error(f"Error processing row {i}: {e}")
+                local_errors.append(str(e))
+
+            return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
+
+        # Process the dataset in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            nb_rows = 0
+            nb_transformations = 0
+            nb_nodes = 0
+            # Map the process_row function across the dataframe
+            results = list(executor.map(process_row, self.df.iterrows()))
+
+        # Append the results in a thread-safe manner after all rows have been processed
+        for local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes in results:
+            with self._nodes_lock:
+                self.nodes_append(local_nodes)
+            with self._edges_lock:
+                self.edges_append(local_edges)
+            with self._errors_lock:
+                self.errors.append(local_errors)
+            with self._row_lock:
+                nb_rows += local_rows
+            with self._transformations_lock:
+                nb_transformations += local_transformations
+            with self._local_nb_nodes_lock:
+                nb_nodes += local_nb_nodes
+
+        # Final logging
         if self.errors:
-            logging.error(f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+            logging.error(
+                f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
             # logging.debug("\n".join(self.errors))
         else:
-            logging.info(f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+            logging.info(
+                f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
 def extract_all(df: pd.DataFrame, config: dict, module=types, affix="suffix", separator=":"):
