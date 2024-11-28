@@ -1,0 +1,38 @@
+sequence variant:
+    represented_as: node
+    label_in_input: variant
+    properties:
+        version: str
+        source_columns: str
+        database_name: str
+
+patient:
+    represented_as: node
+    label_in_input: patient
+    synonym_for: case
+    properties:
+        source_columns: str
+        database_name: str
+
+patient has variant:
+    is_a: case to phenotypic feature association
+    represented_as: edge
+    label_in_input: patient_has_variant
+    source: patient
+    target: sequence variant
+
+publication:
+    represented_as: node
+    label_in_input: publication
+    properties:
+        journal: str
+        source_columns: str
+        database_name: str
+
+publication to variant:
+    is_a: information content entity to named thing association
+    represented_as: edge
+    label_in_input: publication_to_variant
+    source: publication
+    target: sequence variant
+

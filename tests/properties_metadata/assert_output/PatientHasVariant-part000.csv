@@ -1,0 +1,3 @@
+0:variant;;'my_database';A:patient;PatientHasVariant
+1:variant;;'my_database';B:patient;PatientHasVariant
+2:variant;;'my_database';C:patient;PatientHasVariant
