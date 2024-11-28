@@ -66,6 +66,18 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
     return import_file
 
 def extract(data_mappings, separator = None, affix = "none"):
+    """
+    Extracts nodes and edges from tabular data files based on provided mappings.
+
+    Args:
+        data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+        separator (str, optional): The separator to use for splitting ID and type. Defaults to None.
+        affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+
+    Returns:
+        tuple: Two lists of tuples containing nodes and edges.
+    """
+
     assert(type(data_mappings) == dict) # data_file => mapping_file
 
     nodes = []
@@ -85,10 +97,22 @@ def extract(data_mappings, separator = None, affix = "none"):
     return nodes, edges
 
 def reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separator = None):
+    """
+    Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
+    Args:
+        nodes (list): A list of nodes to be reconciliated and written.
+        edges (list): A list of edges to be reconciliated and written.
+        biocypher_config_path (str): the BioCypher configuration file.
+        schema_path (str): the assembling schema file
+        separator (str, optional): The separator to use for splitting values. Defaults to None.
+
+    Returns:
+        str: The path to the import file.
+    """
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
-    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
+    bc = biocypher.BioCypher(
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
     )
