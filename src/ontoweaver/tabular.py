@@ -636,12 +636,12 @@ class YamlParser(Declare):
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
         k_subject_type = ["to_subject"]
-        k_columns = ["columns", "fields"]
+        k_columns = ["columns", "fields", "column"]
         k_target = ["to_target", "to_object", "to_node"]
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
-        k_prop_to_object = ["for_objects"]
+        k_prop_to_object = ["for_objects", "for_object"]
         k_transformer = ["transformers"]
         k_metadata = ["metadata"]
         k_metadata_column = ["add_source_column_names_as"]
@@ -657,6 +657,10 @@ class YamlParser(Declare):
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
         subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
+        if subject_columns != None and type(subject_columns) != list:
+            logging.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
+            assert(type(subject_columns) == str)
+            subject_columns = [subject_columns]
         logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
                       f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
 
@@ -671,12 +675,26 @@ class YamlParser(Declare):
                 if any(field in field_dict for field in k_properties):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(k_properties, pconfig=field_dict)
+                    if type(property_names) != list:
+                        logging.debug(f"\tDeclared singular property")
+                        assert(type(property_names) == str)
+                        property_names = [property_names]
                     if not object_types:
-                        logging.debug(f"No object defined for properties {property_names}, I will attach those properties to the subject `{subject_type}`")
+                        logging.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject `{subject_type}`")
                         object_types = [subject_type]
+                    if type(object_types) != list:
+                        logging.debug(f"\tDeclared singular for_object: `{object_types}`")
+                        assert(type(object_types) == str)
+                        object_types = [object_types]
+
                     column_names = self.get(k_columns, pconfig=field_dict)
+                    if  column_names != None and type(column_names) != list:
+                        logging.debug(f"\tDeclared singular column `{column_names}`")
+                        assert(type(column_names) == str)
+                        column_names = [column_names]
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
                     prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, **gen_data)
+
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
                         for property_name in property_names:
@@ -715,6 +733,10 @@ class YamlParser(Declare):
                     if type(field_dict) != dict:
                         raise Exception(str(field_dict)+" is not a dictionary")
                     columns = self.get(k_columns, pconfig=field_dict)
+                    if type(columns) != list:
+                        logging.debug(f"\tDeclared singular column")
+                        assert(type(columns) == str)
+                        columns = [columns]
                     target = self.get(k_target, pconfig=field_dict)
                     subject = self.get(k_subject, pconfig=field_dict)
                     edge = self.get(k_edge, pconfig=field_dict)
