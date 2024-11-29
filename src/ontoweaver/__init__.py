@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import biocypher
 import yaml
 import pandas as pd
@@ -31,6 +33,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
            biocypher_config_path: the BioCypher configuration file
            schema_path: the assembling schema file
            data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+           separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
 
        Returns:
            The path to the import file.
@@ -65,12 +68,13 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
 
     return import_file
 
-def extract(data_mappings, separator = None, affix = "none"):
+def extract(data_mappings: dict, parallel_mapping = False, affix="suffix", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
         data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+        parallel_mapping (bool, optional): Whether to use parallel mapping. Defaults to False.
         separator (str, optional): The separator to use for splitting ID and type. Defaults to None.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
 
@@ -89,14 +93,14 @@ def extract(data_mappings, separator = None, affix = "none"):
         with open(mapping_file) as fd:
             mapping = yaml.full_load(fd)
 
-        adapter = tabular.extract_all(table, mapping, affix=affix, separator=separator)
+        adapter = tabular.extract_all(table, mapping, parallel_mapping=parallel_mapping, affix=affix, separator=separator)
 
         nodes += adapter.nodes
         edges += adapter.edges
 
     return nodes, edges
 
-def reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separator = None):
+def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -105,7 +109,7 @@ def reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separat
         edges (list): A list of edges to be reconciliated and written.
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
-        separator (str, optional): The separator to use for splitting values. Defaults to None.
+        separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
 
     Returns:
         str: The path to the import file.
