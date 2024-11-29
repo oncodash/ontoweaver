@@ -54,10 +54,9 @@ def get_label_from_iri(iri):
         return iri
 
 
-def to_bc_ontology(ontology_file, format="rdfxml", json=None):
+def to_bc_ontology(ontology_file, format="rdfxml", json_f=None):
     ontology_path = os.path.abspath(ontology_file)
     iri_path = "".join(['file://', ontology_path])
-    print("Loading ontology:", iri_path)
     onto = owl.get_ontology(iri_path).load()
 
     translation_dict = {}
@@ -109,8 +108,8 @@ def to_bc_ontology(ontology_file, format="rdfxml", json=None):
                     c.is_a = [bc_root_class]
             #print(c)
 
-    if json:
-        with open(json, 'w') as fp:
+    if json_f:
+        with open(json_f, 'w') as fp:
             json.dump(translation_dict, fp, indent=4)
 
     onto.save(sys.stdout.buffer, format)
