@@ -686,12 +686,15 @@ class YamlParser(Declare):
                         logging.debug(f"\tDeclared singular for_object: `{object_types}`")
                         assert(type(object_types) == str)
                         object_types = [object_types]
+
                     column_names = self.get(k_columns, pconfig=field_dict)
-                    if type(column_names) != list:
-                        logging.debug(f"\tDeclared singular column")
+                    if  column_names != None and type(column_names) != list:
+                        logging.debug(f"\tDeclared singular column `{column_names}`")
                         assert(type(column_names) == str)
                         column_names = [column_names]
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names)
+                    gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, **gen_data)
+
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
                         for property_name in property_names:

@@ -359,3 +359,43 @@ class translate(base.Transformer):
         for e in self.map(row, i):
             yield e
 
+
+class string(base.Transformer):
+    """A transformer that makes up the given static string instead of extractsing something from the table."""
+
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            value: The string to use.
+        """
+        super().__init__(target, properties_of, edge, columns, **kwargs)
+        self.value = kwargs.get("value", None)
+
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        if not self.value:
+            raise ValueError(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?")
+
+        if self.valid(self.value):
+            yield str(self.value)
+        else:
+            raise ValueError(f"Value `{self.value}` is invalid.")
+
