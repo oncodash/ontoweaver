@@ -657,8 +657,8 @@ class YamlParser(Declare):
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
         subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
-        if type(subject_columns) != list:
-            logging.debug(f"\tDeclared singular subject’s column")
+        if subject_columns != None and type(subject_columns) != list:
+            logging.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
             assert(type(subject_columns) == str)
             subject_columns = [subject_columns]
         logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
