@@ -23,7 +23,7 @@ from . import fusion
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion']
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings, separator = None):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings,  parallel_mapping = 0, separator = None):
     """Calls several mappings, each on the related Pandas-redable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -33,6 +33,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
            biocypher_config_path: the BioCypher configuration file
            schema_path: the assembling schema file
            data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+           parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
 
        Returns:
@@ -50,7 +51,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
         with open(mapping_file) as fd:
             mapping = yaml.full_load(fd)
 
-        adapter = tabular.extract_all(table, mapping, affix="none")
+        adapter = tabular.extract_all(table, mapping, parallel_mapping = parallel_mapping, affix = "none")
 
         nodes += adapter.nodes
         edges += adapter.edges
@@ -68,13 +69,13 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
 
     return import_file
 
-def extract(data_mappings: dict, parallel_mapping = False, affix="suffix", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_mappings: dict, parallel_mapping = 0, affix="suffix", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
         data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
-        parallel_mapping (bool, optional): Whether to use parallel mapping. Defaults to False.
+        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         separator (str, optional): The separator to use for splitting ID and type. Defaults to None.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
 

@@ -71,7 +71,7 @@ class PandasAdapter(base.Adapter):
                  metadata: Optional[dict] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
-                 parallel_mapping: bool = False,
+                 parallel_mapping: int = 0,
                  ):
         """
         Instantiate the adapter.
@@ -83,7 +83,7 @@ class PandasAdapter(base.Adapter):
             metadata (Optional[dict]): Metadata to be added to all the nodes and edges.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
-            parallel_mapping (bool): Whether to use parallel mapping (default is False).
+            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         """
         super().__init__()
 
@@ -355,8 +355,8 @@ class PandasAdapter(base.Adapter):
         nb_transformations = 0
         nb_nodes = 0
 
-        if self.parallel_mapping:
-            logging.info(f"Processing dataframe in parallel...")
+        if self.parallel_mapping > 0:
+            logging.info(f"Processing dataframe in parallel. Number of workers set to: {self.parallel_mapping} ...")
             # Process the dataset in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor() as executor:
                 # Map the process_row function across the dataframe
@@ -377,7 +377,7 @@ class PandasAdapter(base.Adapter):
                 with self._local_nb_nodes_lock:
                     nb_nodes += local_nb_nodes
 
-        else:
+        elif self.parallel_mapping == 0:
             logging.info(f"Processing dataframe sequentially...")
             for i, row in self.df.iterrows():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
@@ -387,6 +387,10 @@ class PandasAdapter(base.Adapter):
                 nb_rows += local_rows
                 nb_transformations += local_transformations
                 nb_nodes += local_nb_nodes
+
+        else:
+            raise ValueError(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
+                             f" Pass 0 for sequential processing, or the number of workers for parallel processing.")
 
         # Final logging
         if self.errors:
@@ -398,7 +402,7 @@ class PandasAdapter(base.Adapter):
                 f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
-def extract_all(df: pd.DataFrame, config: dict, parallel_mapping=False, module=types, affix="suffix", separator=":"):
+def extract_all(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":"):
     """
     Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration.
@@ -406,7 +410,7 @@ def extract_all(df: pd.DataFrame, config: dict, parallel_mapping=False, module=t
     Args:
         df (pd.DataFrame): The DataFrame containing the input data.
         config (dict): The configuration dictionary.
-        parallel_mapping (bool): Whether to use parallel mapping (default is False).
+        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         module: The module in which to insert the types declared by the configuration.
         affix (str): The type affix to use (default is "suffix").
         separator (str): The separator to use between labels and type annotations (default is ":").
