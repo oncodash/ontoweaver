@@ -200,7 +200,7 @@ class rowIndex(base.Transformer):
         if self.valid(i):
             yield str(i)
         else:
-            logging.warning(f"Error while mapping by row index in line: {i}. Skipping cell value: `{i}`")
+            logging.warning(f"Encountered invalid content while mapping by row index in line: {i}. Skipping cell value: `{i}`")
 
 
 class map(base.Transformer):
