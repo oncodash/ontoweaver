@@ -446,5 +446,5 @@ class map_remove_special_characters(base.Transformer):
                 yield str(strip_formatted)
             else:
                 logging.warning(
-                    f"Error while removing special characters at row {row} when mapping column: `{key}`, "
+                    f"Encountered an invalid value while removing special characters at row {row} when mapping column: `{key}`, "
                     f"using `map_remove_special_characters` transformer. Skipping cell value: `{row[key]}`")
