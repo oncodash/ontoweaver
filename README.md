@@ -229,8 +229,15 @@ case to phenotypic feature association:
 you may write the following mapping:
 ```yaml
 row:
+<<<<<<< HEAD
    rowIndex:
       # No column is indicated, but OntoWeaver will map the indice of the row to the node name.
+||||||| 73de317
+   map:
+=======
+   map:
+      # When no column is indicated, OntoWeaver will map the indice of the row to the node name.
+>>>>>>> 7b5d4ad561804f54eff3638fef58c7fff5865191
       to_subject: phenotype
 transformers:
     - map:
