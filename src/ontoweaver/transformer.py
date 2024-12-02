@@ -404,12 +404,11 @@ class string(base.Transformer):
 
 
 class map_remove_special_characters(base.Transformer):
-    """Transformer subclass used to unify cell values of defined columns and create nodes with
-    their respective values as id."""
+    """Transformer subclass used to remove special characters from cell values of defined columns."""
 
     def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
         """
-        Initialize the unify transformer.
+        Constructor.
 
         Args:
             target: The target node type.
