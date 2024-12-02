@@ -2,18 +2,18 @@
 
 ## Overview
 
-OntoWeaver is a tool for importing tables data in
+OntoWeaver is a tool for importing table data in
 Semantic Knowledge Graphs (SKG) databases.
 
-OntoWeaver allows to write a simple declarative mapping to express how columns from
+OntoWeaver allows writing a simple declarative mapping to express how columns from
 a [Pandas](https://pandas.pydata.org/) table are to be converted as typed nodes
-or edges in a SKG.
+or edges in an SKG.
 
 ![](docs/OntoWeaver_logo__big.svg)
 
 It provides a simple layer of abstraction on top of [Biocypher](https://biocypher.org),
 which remains responsible for doing the ontology alignment,
-supporting several graph database backend,
+supporting several graph database backends,
 and allowing reproducible & configurable builds.
 
 With a pure Biocypher approach, you would have to write a whole adapter by hand,
@@ -34,7 +34,7 @@ transformers: # How to map cells to nodes and edges.
         to_property: <property name>
         for_object: <type holding the property>
 
-metadata: # Optional propperties added to every nodes and edges.
+metadata: # Optional properties added to every node and edge.
     - source: "My OntoWeaver adapter"
     - version: "v1.2.3"
 ```
@@ -71,9 +71,9 @@ Neo4j is a popular graph database management system that offers a flexible and
 efficient way to store, query, and manipulate complex, interconnected data.
 Cypher is the query language used to interact with Neo4j databases.
 In order to visualize graphs extracted from databases using OntoWeaver and
-BioCypher, you can download the [Neo4j Graph Database Self-Managed]
-(https://neo4j.com/deployment-center/) for your operating system.
-It has been extensively tested with the Community edition.
+BioCypher, you can download the
+[Neo4j Graph Database Self-Managed](https://neo4j.com/deployment-center/)
+for your operating system. It has been extensively tested with the Community edition.
 
 To create a global variable to Neo4j, add the path to `neo4j-admin`
 to your `PATH` and `PYTHONPATH`.
@@ -114,9 +114,9 @@ The output of the execution of the adapter is thus what BioCypher is providing
 In a nutshell, the output is a script file that, when executed, will populate
 the configured database.
 By default, the output script file is saved in a subdirectory of `./biocypher-out/`,
-which name is a timestamp from when the adapter have been executed.
+which name is a timestamp from when the adapter has been executed.
 
-To actually insert data in a SKG database, you will have to use Biocypher
+To actually insert data in an SKG database, you will have to use Biocypher
 export API:
 ```python
     import yaml
@@ -203,7 +203,7 @@ schema configuration.
 ### Common Mapping
 
 The minimal configuration would be to map lines and one column, linked with
-a single edge type.
+a single-edge type.
 
 For example, if you have the following CSV table of phenotypes/patients:
 ```
@@ -361,7 +361,7 @@ For example:
         to_object: case
 ```
 
-Although the examples usually define mapping of cell values to nodes,
+Although the examples usually define a mapping of cell values to nodes,
 the transformers can also used to map cell values to properties
 of nodes and edges. For example:
 
@@ -433,7 +433,7 @@ in the order written in the `columns` section.
 ```yaml
 row:
    cat:
-      columns: # List of columns whose cell values to be concatenated
+      columns: # List of columns whose cell values are to be concatenated
         - variant_id
         - disease
       to_subject: variant # The ontology type to map to
@@ -449,21 +449,21 @@ For example:
 ```yaml
 row:
    cat_format:
-      columns: # List of columns whose cell values to be concatenated
+      columns: # List of columns whose cell values are to be concatenated
         - variant_id
         - disease
       to_subject: variant # The ontology type to map to
-      # Enclose columns names in brackets where you want their content to be:
+      # Enclose column names in brackets where you want their content to be:
       format_string: "{disease}_____{variant_id}"
 ```
 
 
 #### `string`
 
-The *string* transformer allows to map the same pre-defined static string
-to properties of *some* nodes or edges types.
+The *string* transformer allows mapping the same pre-defined static string
+to properties of *some* nodes or edge types.
 
-It only need the string *value*, and then a regular property mapping:
+It only needs the string *value*, and then a regular property mapping:
 ```yaml
     - string:
         value: "This may be useful"
@@ -482,7 +482,7 @@ mapping, extracted from (another) table.
 
 This is useful to *reconciliate* two sources of data using two different
 references for the identifiers of the same object. The translate transformer
-helps you translating one of the identifier to the other reference, so that
+helps you translate one of the identifiers to the other reference, so that
 the resulting graph only uses one reference, and there is no duplicated
 information at the end.
 
@@ -508,7 +508,7 @@ you would do:
             ENSG00000139618: BRCA2
 ```
 
-Of course, there could be hundred of thousands of translations to declare,
+Of course, there could be hundreds of thousands of translations to declare,
 and you don't want to declare them by hand in the mapping file.
 Fortunately, you have access to another table in a CSV file,
 showing which one corresponds to the other:
@@ -603,10 +603,10 @@ inspiration for your own implementation:
 
 ### Keywords Synonyms
 
-Because several communities gathered around semantic knowledge graph,
+Because several communities gathered around semantic knowledge graphs,
 several terms can be used (more or less) interchangeably.
 
-OntoWeaver thus allows to use your favorite vocabulary to write down
+OntoWeaver thus allows you to use your favorite vocabulary to write down
 the mapping configurations.
 
 Here is the list of available synonyms:
@@ -688,7 +688,7 @@ edges created during the mapping process.
 
 #### How to add the column of origin as a property to all nodes
 
-In addition to the user defined metadata, a property field
+In addition to the user-defined metadata, a property field
 `add_source_column_names_as` is also available. It allows to indicate the column
 name in which the data was found, as a property to each *node*. Note that this
 is not added to *edges*, because they are not mapped from a column *per se*.
@@ -739,7 +739,7 @@ class MYADAPTER(ontoweaver.tabular.PandasAdapter):
 ```
 When manually defining adapter classes, be sure to define the affix type
 and separator you wish to use in the mapping. Unless otherwise defined,
-affix type defaults to `suffix` and separator defaults to `:`.
+the affix type defaults to `suffix`, and the separator defaults to `:`.
 In the example above, the affix type is defined as `prefix` and the separator
 is defined as `//`. If you wish to define affix as `none`, you should use
 `type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.none`,
@@ -787,10 +787,10 @@ makes the task difficult and the adapter code even harder to understand.
 
 OntoWeaver provides a way to solve the reconciliation problem
 with its *high-level information fusion* feature. The fusion features allow to
-reconciliate the nodes and edges produced by various *independant* adapters,
+reconciliate the nodes and edges produced by various *independent* adapters,
 by adding a final step on the aggregated list of nodes and edges.
 
-The generic workflow is to first produces nodes and edges —as usual—
+The generic workflow is to first produce nodes and edges —as usual—
 then call the `fusion.reconciliate` function on the produced nodes and edges:
 ```python
 # Call the mappings:
@@ -811,7 +811,7 @@ fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, separato
 
 OntoWeaver provides the `fusion.reconciliate` function, that implements a sane
 default reconciliation of nodes. It merges nodes having the same identifier and
-the same type, taking care of not loosing any property. When nodes have
+the same type, taking care of not losing any property. When nodes have
 the same property field showing different values, it aggregates the values
 in a list.
 
@@ -845,16 +845,16 @@ The simplest approach to fusion is to define how to:
 For step 1, OntoWeaver provides the `serialize` module, which allows to extract
 the part of a node or an edge) that should be used when checking equality.
 
-A node being composed of an identifier, a type label and a properties dictionary,
-the serialize modules provides function objects reflecting the useful combinations
+A node being composed of an identifier, a type label, and a properties dictionary,
+the `serialize` module provides function objects reflecting the useful combinations
 of those components:
 
 - `ID` (only the identifier)
 - `IDLabel` (the identifier and the type label)
-- `All` (the identifier, the type label and the properties)
+- `All` (the identifier, the type label, and the properties)
 
 The user can instantiate those function objects, and pass them to the
-`congregate` module, to find which nodes are duplicates from each others.
+`congregate` module, to find which nodes are duplicates of each other.
 For example:
 ```python
 on_ID = serialize.ID() # Instantiation.
@@ -863,7 +863,7 @@ congregater(my_nodes) # Actual processing call.
 # congregarter now holds a dictionary of duplicated nodes.
 ```
 
-For steps 2 to 4, OntoWeaver provides the `merge` module, whith provides ways
+For steps 2 to 4, OntoWeaver provides the `merge` module, which provides ways
 to merge two nodes' components into a single one. It is separated into two
 submodules, depending on the type of the component:
 
@@ -874,14 +874,14 @@ The `string` submodule provides:
 
 - `UseKey`: replace the identifier with the serialization used at the congregation step,
 - `UseFirst`/`UseLast`: replace the type label with the first/last one seen,
-- `EnsureIdentical`: if two nodes' components are not equals, raise an error,
+- `EnsureIdentical`: if two nodes' components are not equal, raise an error,
 - `OrderedSet`: aggregate all the components of all the seen nodes into a single,
    lexicographically ordered list (joined by a user-defined separator).
 
 The `dictry` submodule provides:
 
 - `Append`: merge all seen dictionaries in a single one, and aggregate all the
-  values of all the duplicated fields into a single, lexicographically ordered
+  values of all the duplicated fields into a single lexicographically ordered
   list (joined by a user-defined separator).
 
 For example, to fuse "congregated" nodes, one can do:
@@ -904,8 +904,8 @@ For example, to fuse "congregated" nodes, one can do:
     fusioned_nodes = fusioner(congregater) # Call on the previously found duplicates.
 ```
 
-Once this fusion step is done, is it possible that edges that were defined
-by the initial adapters refers to node IDs that does not exists anymore.
+Once this fusion step is done, is it possible that the edges that were defined
+by the initial adapters refer to node IDs that do not exist anymore.
 Fortunately, the fuser keeps track of which ID was replaced by which one.
 And this can be used to remap the edges' *target* and *source* identifiers:
 ```python
@@ -953,26 +953,26 @@ that implements a step of the fusion process. Users may provide their own
 implementation of those interfaces, and make them interact with the others.
 
 
-The first function interface is the `congregate.Congregater`, which role is to
+The first function interface is the `congregate.Congregater`, whose role is to
 consume a list of Biocypher tuples, find duplicated elements, and store them
 in a dictionary mapping a key to a list of elements.
 
-This allows to implement a de-duplication algorithm with a time complexity
+This allows to implementation of a de-duplication algorithm with a time complexity
 in O(n·log n).
 
 A `Congregater` is instantiated with a `serialize.Serializer`, indicating which
 part of an element is to be considered when checking for equality.
 
 
-The highest level fusion interface is `fusion.Fusioner`, which role is to
+The highest level fusion interface is `fusion.Fusioner`, whose role is to
 process a `congregate.Congregater` and return a set of fusioned nodes.
 
 OntoWeaver provides `fusion.Reduce` as an implementation of `Fusioner`,
-which itself relies on an interface which role is to fuse two elements:
+which itself relies on an interface whose role is to fuse two elements:
 `fuse.Fuser`.
 
 OntoWeaver provides a `fuse.Members` as an implementation, which itself relies
-on `merge.Merger`, which role is two fuse two elements' *components*.
+on `merge.Merger`, which role is to fuse two elements' *components*.
 
 So, from the lower to the higher level, the following three interfaces
 can be implemented:
