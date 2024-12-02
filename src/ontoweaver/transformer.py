@@ -415,8 +415,13 @@ class map_remove_special_characters(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
+            allowed_characters: The regular expression pattern to match allowed characters.
+            substitute: The string to replace forbidden characters with.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
+        self.allowed_characters = kwargs.get("allowed_characters", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
+        # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
+        self.substitute = kwargs.get("substitute", "")
 
     def __call__(self, row, i):
         """
@@ -432,16 +437,10 @@ class map_remove_special_characters(base.Transformer):
         Raises:
             Warning: If the processed cell value is invalid.
         """
-
-        pattern = r'[^a-zA-Z0-9_`.()]'  # Allow alphanumeric characters (A-Z, a-z, 0-9), underscore (_), backtick (`), dot (.), and parentheses ().
-
         for key in self.columns:
-            if hasattr(self, "separator"):
-                formatted = re.sub(pattern, self.separator, row[key])
-                strip_formatted = formatted.strip(self.separator)
-            else:
-                formatted = re.sub(pattern, "", row[key])
-                strip_formatted = formatted.strip()
+            logging.info(f"Setting allowed characters: {self.allowed_characters} for `map_remove_special_characters` transformer, with substitute character: `{self.substitute}`.")
+            formatted = re.sub(self.allowed_characters, self.substitute, row[key])
+            strip_formatted = formatted.strip(self.substitute)
             if strip_formatted and self.valid(strip_formatted):
                 yield str(strip_formatted)
             else:
