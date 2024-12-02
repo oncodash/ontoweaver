@@ -229,8 +229,8 @@ case to phenotypic feature association:
 you may write the following mapping:
 ```yaml
 row:
-   map:
-      # When no column is indicated, OntoWeaver will map the indice of the row to the node name.
+   rowIndex:
+      # No column is indicated, but OntoWeaver will map the indice of the row to the node name.
       to_subject: phenotype
 transformers:
     - map:
@@ -675,10 +675,16 @@ metadata:
         - version: 0.1
 ```
 
-The metadata defined in the `metadata` section will be added to all nodes
-created during the mapping process. In addition to the user defined metadata,
-a property field  `add_source_column_names_as` is also available. It allows
-to indicate the column name in which the data was found, as a property.
+The metadata defined in the `metadata` section will be added to all nodes and
+edges created during the mapping process.
+
+
+#### How to add the column of origin as a property to all nodes
+
+In addition to the user defined metadata, a property field
+`add_source_column_names_as` is also available. It allows to indicate the column
+name in which the data was found, as a property to each *node*. Note that this
+is not added to *edges*, because they are not mapped from a column *per se*.
 
 For example, if the label of a node is extracted from the "indication" column,
 and you indicate `add_source_column_name_as: source_column`, the node will have
