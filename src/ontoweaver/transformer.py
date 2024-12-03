@@ -403,8 +403,11 @@ class string(base.Transformer):
             raise ValueError(f"Value `{self.value}` is invalid.")
 
 
-class map_remove_special_characters(base.Transformer):
-    """Transformer subclass used to remove special characters from cell values of defined columns."""
+class map_remove_forbidden_characters(base.Transformer):
+    """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
+     The forbidden characters are defined by a regular expression pattern, and are substituted with a user-defined
+     character or removed entirely. In case the cell value is made up of only forbidden characters, the node is not
+     created and a warning is logged."""
 
     def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
         """
@@ -415,35 +418,35 @@ class map_remove_special_characters(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            allowed_characters: The regular expression pattern to match allowed characters.
+            forbidden_characters: The regular expression pattern to match forbidden characters.
             substitute: The string to replace forbidden characters with.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
-        self.allowed_characters = kwargs.get("allowed_characters", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
+        self.forbidden_characters = kwargs.get("forbidden_characters", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
         # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
         self.substitute = kwargs.get("substitute", "")
 
     def __call__(self, row, i):
         """
-        Process a row and yield cell values with special characters removed or replaced.
+        Process a row and yield cell values with forbidden characters removed or replaced.
 
         Args:
             row: The current row of the DataFrame.
             i: The index of the current row.
 
         Yields:
-            str: The processed cell value with special characters removed or replaced.
+            str: The processed cell value with forbidden characters removed or replaced.
 
         Raises:
             Warning: If the processed cell value is invalid.
         """
         for key in self.columns:
-            logging.info(f"Setting allowed characters: {self.allowed_characters} for `map_remove_special_characters` transformer, with substitute character: `{self.substitute}`.")
-            formatted = re.sub(self.allowed_characters, self.substitute, row[key])
+            logging.info(f"Setting forbidden characters: {self.forbidden_characters} for `map_remove_forbidden_characters` transformer, with substitute character: `{self.substitute}`.")
+            formatted = re.sub(self.forbidden_characters, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
             if strip_formatted and self.valid(strip_formatted):
                 yield str(strip_formatted)
             else:
                 logging.warning(
-                    f"Encountered an invalid value while removing special characters at row {row} when mapping column: `{key}`, "
-                    f"using `map_remove_special_characters` transformer. Skipping cell value: `{row[key]}`")
+                    f"Encountered an invalid value while removing forbidden characters at row {row} when mapping column: `{key}`, "
+                    f"using `map_remove_forbidden_characters` transformer. Skipping cell value: `{row[key]}`")
