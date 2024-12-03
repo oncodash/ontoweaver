@@ -1,0 +1,13 @@
+row:
+   map_remove_forbidden_characters:
+        columns:
+            - id
+        to_subject: variant
+transformers:
+    - map_remove_forbidden_characters:
+        columns:
+            - gene
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+        substitute: "<<_>>"
+        forbidden_characters: '[^0-9]'
