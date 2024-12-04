@@ -803,7 +803,10 @@ For example, to enable parallel processing with 16 workers, the user can call th
 ```python
 adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
 ```
-
+To enable parallel processing with a good default working on any machine, you can use the [approach suggested by the concurrent module](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor).
+```python
+import os
+adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
 
 ### Information Fusion
 
