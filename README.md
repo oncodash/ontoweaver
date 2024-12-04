@@ -570,6 +570,32 @@ and parentheses (), and the substitute will be an empty string. If you wish to u
         via_relation: alteration_biomarker_for_drug
 ```
 
+Let's assume we want to map a table consisting of contact IDs and phone numbers.
+
+
+| id       | phone_number |
+|----------|--------------|
+| Jennifer | 01/23-45-67  |
+
+We want to map the `id` column to the node type `id` and the `phone_number` column to the node type `phone_number`,
+but we want to remove all characters that are not numeric, using the default substitute (""), meaning the forbidden
+characters will only be removed, and not replaced by another character. The mapping would look like this:
+
+```yaml
+row:
+    map:
+        column: id
+        to_subject: id
+transformers:
+    - replace:
+        column: phone_number
+        to_object: phone_number
+        via_relation: phone_number_of_person
+        forbidden: '[^0-9]'
+```
+
+The result of this mapping would be a node of type `phone_number`, with the id of the node being `01234567`, connected to
+a node of type `id` with the id `Jennifer`, via an edge of type `phone_number_of_person`.
 
 ### User-defined Transformers
 
