@@ -4,7 +4,7 @@ row:
             - id
         to_subject: variant
 transformers:
-    - replace:
+    - replac:
         columns:
             - gene
         to_object: gene_hugo
