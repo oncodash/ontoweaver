@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # {name} --map data_stuff.csv:stuff_mapping.yaml --map data_stiff.csv:stiff_mapping.yaml --config biocypher_config.yaml --schema schema.yaml --call-import-script
 
     do.add_argument("mapping", metavar="FILE:MAPPING", nargs="+",
-        help=f"Run the given YAML MAPPING to extract data from the tabular FILE (usually a CSV). Several mappings can be passed to {name}. You may also use the same mapping on different data files.")
+        help=f"Run the given YAML MAPPING to extract data from the tabular FILE (usually a CSV). Several mappings can be passed to {name}. You may also use the same mapping on different data files. If set to `STDIN`, wil read the list of mappings from standard input.")
 
     do.add_argument("-c", "--config", metavar="FILE", default="biocypher_config.yaml",
         help="The BioCypher config file (the one managing ontologies and the output backend). [default: %(default)s]")
@@ -50,13 +50,6 @@ if __name__ == "__main__":
 
     logging.info("OntoWeave parameters:")
 
-    logging.info("\tmappings:")
-    mappings = {}
-    for data_map in asked.mapping:
-        data,map = data_map.split(":")
-        mappings[data] = map
-        logging.info(f"\t\t`{data}` => `{map}`")
-
     logging.info(f"\tconfig: `{asked.config}`")
     logging.info(f"\tschema: `{asked.schema}`")
     logging.info(f"\tprop-sep: `{asked.prop_sep}`")
@@ -64,6 +57,33 @@ if __name__ == "__main__":
     logging.info(f"\ttype-affix-sep: `{asked.type_affix_sep}`")
     logging.info(f"\timport-script-run: `{asked.import_script_run}`")
     logging.info(f"\tlog-level: `{asked.log_level}`")
+
+    logging.info(f"\tasked mappings: `{asked.mapping}`")
+    asked_mapping = []
+    if asked.mapping == ["STDIN"]:
+        while True:
+            try:
+                item = sys.stdin.readline()
+            except UnicodeDecodeError:
+                continue
+            except KeyboardInterrupt:
+                break
+            if not item:
+                break
+            asked_mapping.append(item)
+    else:
+        asked_mapping = asked.mapping
+
+    logging.info(f"\tparsed mappings: {asked_mapping}")
+    mappings = {}
+    for data_map in asked_mapping:
+        if ":" not in data_map:
+            msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
+            logging.error(msg)
+            raise RuntimeError(msg)
+        data,map = data_map.split(":")
+        mappings[data] = map
+        logging.info(f"\t\t`{data}` => `{map}`")
 
     if asked.parallel == "auto":
         parallel = min(32, (os.process_cpu_count() or 1) + 4)
