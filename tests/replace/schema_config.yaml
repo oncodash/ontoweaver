@@ -1,0 +1,344 @@
+########################################
+# IDENTIFICATION
+########################################
+
+## Tail-in SO -> Biolink
+
+sequence variant:
+    represented_as: node
+    label_in_input: variant
+    properties:
+        timestamp: str
+        version: str
+        mutation_effect_description: str
+        variant_summary: str
+
+
+## Under structural_variant in SO
+
+#copy number increase: # For some reason, Biocypher needs to avoid underscores, which SO uses.
+# FIXME or is it sequence_feature > copy_number_gain ?
+#    represented_as: node
+#    label_in_input: amplification
+#   properties:
+#        timestamp: str
+#        version: str
+#        mutation_effect_description: str
+#      variant_summary: str
+
+#copy number decrease:
+# FIXME or is it sequence_feature > copy_number_loss ?
+#    represented_as: node
+#    label_in_input: deletion # FIXME or is it sequence_alteration > deletion ?
+#    properties:
+#        timestamp: str
+#        version: str
+#        mutation_effect_description: str
+#        variant_summary: str
+
+
+## Under functional_effect_variant in SO:
+
+#gain of function variant:
+#    represented_as: node
+#    label_in_input: gain
+#    properties:
+#        timestamp: str
+#        version: str
+#        mutation_effect_description: str
+#        variant_summary: str
+
+#loss of function variant:
+#    represented_as: node
+#    label_in_input: loss
+#    properties:
+#        timestamp: str
+#        version: str
+#        mutation_effect_description: str
+#        variant_summary: str
+
+variant in sample:
+    is_a: material sample to entity association mixin
+    represented_as: edge
+    label_in_input: variant_in_sample
+    source: sequence variant
+    target: material sample
+
+functional effect:
+    is_a: attribute # FIXME
+    represented_as: node
+    label_in_input: functional_effect
+
+variant has effect:
+    is_a: variant to entity association mixin
+    represented_as: edge
+    label_in_input: variant_has_effect
+    source: sequence variant
+    target: functional effect
+
+# PATIENT
+# =======
+
+patient: # Existing in Biolink.
+    represented_as: node
+    label_in_input: patient
+    synonym_for: case
+
+patient has variant: # Not existing in Biolink…
+    # … thus added by Biocypher under:
+    is_a: case to phenotypic feature association
+    represented_as: edge
+    label_in_input: patient_has_variant
+    source: sequence variant
+    target: patient
+
+material sample:
+    represented_as: node
+    label_in_input: sample
+
+sample to patient:
+    is_a: material sample to entity association mixin
+    represented_as: edge
+    label_in_input: sample_to_patient
+    source: material sample
+    target: patient
+
+
+# OMICS
+# =====
+
+genome:
+    represented_as: node
+    label_in_input: genome
+
+reference genome: # Not existing in Biolink.
+    is_a: genotype to phenotypic feature association
+    represented_as: edge
+    label_in_input: reference_genome
+    source: sequence variant
+    target: genome
+
+
+gene:
+    represented_as: node
+    input_label: gene_hugo
+    properties:
+        entrez_gene_id: str
+        gene_summary: str
+
+variant to gene association:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_in_gene
+
+
+# DISEASE
+# =======
+
+disease:
+    represented_as: node
+    label_in_input: disease
+    properties:
+        tumor_type_summary: str
+
+variant to disease association:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_disease
+    source: sequence variant
+    target: disease
+
+
+oncogenicity: # Not in Biolink
+    is_a: behavioral feature
+    represented_as: node
+    label_in_input: oncogenicity
+
+variant to oncogenicity: # Not in Biolink
+    is_a: variant to phenotypic feature association
+    represented_as: edge
+    label_in_input: variant_to_oncogenicity
+    source: sequence variant
+    target: oncogenicity
+
+patient has chronic illness:
+    is_a: entity to disease association
+    represented_as: edge
+    label_in_input: patient_has_chronic_illness
+    source: entity
+    target: disease
+
+treatment:
+    represented_as: node
+    label_in_input: treatment
+
+patient has treatment:
+    is_a: association
+    represented_as: edge
+    label_in_input: patient_has_treatment
+    source: patient
+    target: treatment
+
+
+# SEQUENCE FEATURES
+# =================
+
+chromosome:
+    is_a: NucleicAcidEntity # Surpisingly missing from Biolink? Maybe double-check.
+    represented_as: node
+    label_in_input: chromosome
+
+genomic sequence localization:
+    represented_as: edge
+    label_in_input: variant_on_chromosome
+    source: sequence variant
+    target: chromosome
+    properties:
+        base coordinate: str
+        strand: str
+
+sequence variant to sequence feature association:
+    is_a: association
+    represented_as: edge
+    source: sequence variant
+    target: sequence feature
+
+SNV:
+    represented_as: node
+    label_in_input: SNV
+
+
+# TRANSCRIPTS
+# ===========
+
+transcript:
+    represented_as: node
+    label_in_input: transcript
+
+transcript to gene relationship:
+    represented_as: edge
+    source: transcript
+    target: gene
+    label_in_input: transcript_to_gene_relationship
+
+# ########################################
+# # ALTERATION <-> BIOMARKER
+# ########################################
+
+alteration:
+    is_a: sequence variant
+    represented_as: node
+    label_in_input: alteration
+    properties:
+        alteration_consequence: str
+        protein_start: str
+        protein_end: str
+
+variant to alteration:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_alteration
+    source: sequence variant
+    target: alteration
+
+# ########################################
+# # RESPONSE
+# ########################################
+
+# ########################################
+# # SOURCE
+# ########################################
+
+# ########################################
+# # DRUG
+# ########################################
+
+drug:
+  represented_as: node
+  label_in_input: drug
+
+variant affected by drug:
+    is_a: chemical affects gene association
+    represented_as: edge
+    label_in_input: variant_affected_by_drug
+    source: sequence variant
+    target: drug
+
+# ########################################
+# # EVIDENCE
+# ########################################
+
+publication_pubmed: # maybe without _ ?
+    is_a: publication
+    represented_as: node
+    label_in_input: publication
+
+information content entity to named thing association:
+    represented_as: edge
+    label_in_input: published
+    source: publication
+    target: sequence variant
+
+fda evidence level:
+    is_a: confidence level
+    represented_as: node
+    label_in_input: fda_evidence_level
+
+oncokb evidence level:
+    is_a: confidence level
+    represented_as: node
+    label_in_input: oncokb_evidence_level
+
+variant to fda evidence:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_fda_evidence
+    source: sequence variant
+    target: fda evidence level
+
+variant to oncokb evidence:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_oncokb_evidence
+    source: sequence variant
+    target: oncokb evidence level
+
+# confidence level:
+#   represented_as: node
+#   preferred_id: [vicc, escat]
+#   label_in_input: [cgi, mtbp]
+
+# biomarker variant:
+#   is_a: sequence variant
+#   represented_as: node
+#   label_in_input: biomarker
+
+# missense variant:
+#   represented_as: node
+#   label_in_input: Missense
+
+# # Relations
+
+# sequence variant to biomarker variant association:
+#   is_a: association
+#   represented_as: edge
+#   label_in_input: variant_to_biomarker
+
+# drug to biomarker variant association:
+#   is_a: association
+#   represented_as: node
+#   label_in_input: drug_to_biomarker
+
+# confidence level to drug to biomarker variant association:
+#   is_a: association
+#   represented_as: edge
+#   label_as_edge: HAS_CONFIDENCE_LEVEL
+#   source: confidence level
+#   target: drug to sequence variant association
+#   label_in_input: confidence_level_to_drug_to_biomarker
+
+# confidence level to confidence level association:
+#   is_a: association
+#   represented_as: edge
+#   label_in_input: confidence_level_to_confidence_level
+

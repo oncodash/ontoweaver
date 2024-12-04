@@ -1,0 +1,33 @@
+biocypher:
+    debug: true
+    offline: true
+    schema_config_path: config/schema_config.yaml
+
+    # Ontology configuration
+    head_ontology:
+        url: https://github.com/biolink/biolink-model/raw/v3.2.1/biolink-model.owl.ttl
+        root_node: entity
+
+    tail_ontologies:
+        so_variant:
+            url: http://purl.obolibrary.org/obo/so.owl
+            head_join_node: sequence variant
+            tail_join_node: sequence_variant
+        so_feature:
+            url: http://purl.obolibrary.org/obo/so.owl
+            head_join_node: attribute
+            tail_join_node: sequence_feature
+
+neo4j:
+    database_name: test
+    wipe: true
+    delimiter: ';'
+    array_delimiter: '|'
+    skip_duplicate_nodes: true
+    skip_bad_relationships: true
+
+    # MultiDB functionality
+    # Set to false for using community edition or older versions of Neo4j
+    multi_db: false
+
+    import_call_bin_prefix: ''

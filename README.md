@@ -229,15 +229,8 @@ case to phenotypic feature association:
 you may write the following mapping:
 ```yaml
 row:
-<<<<<<< HEAD
    rowIndex:
       # No column is indicated, but OntoWeaver will map the indice of the row to the node name.
-||||||| 73de317
-   map:
-=======
-   map:
-      # When no column is indicated, OntoWeaver will map the indice of the row to the node name.
->>>>>>> 7b5d4ad561804f54eff3638fef58c7fff5865191
       to_subject: phenotype
 transformers:
     - map:
@@ -544,6 +537,39 @@ they will be passed directly as `read_csv` arguments. For example:
         encoding: latin-1
 ```
 
+#### replace
+
+The *replace* transformer allows the removal of forbidden characters from the values extracted from
+cells of the data frame. The pattern matching the characters that are *forbidden* characters should be passed to the 
+transformer as a regular expression. For example:
+
+```yaml
+    - replace:
+        columns:
+            - treatment
+        to_object: drug
+        via_relation: alteration_biomarker_for_drug
+        forbidden: '[^0-9]' # Pattern matching all characters that are not numeric. 
+        # Therefore, you only allow numeric characters. 
+        substitute: "_" # Substitute all removed characters with an underscore, in case they are  
+        # located inbetween allowed_characters.
+
+```
+
+Here we define that the transformer should only allow numeric characters in the values extracted from the *treatment* column. 
+All other characters will be removed and substituted with an underscore, in case they are located inbetween allowed characters.
+
+By default, the transformer will allow alphanumeric characters (A-Z, a-z, 0-9), underscore (_), backtick (`), dot (.), 
+and parentheses (), and the substitute will be an empty string. If you wish to use the default settings, you can write:
+
+```yaml
+    - replace:
+        columns:
+            - treatment
+        to_object: drug
+        via_relation: alteration_biomarker_for_drug
+```
+
 
 ### User-defined Transformers
 
@@ -765,6 +791,22 @@ node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
 
+### Parallel Processing
+
+OntoWeaver provides a way to parallelize the extraction of nodes and edges from the provided database, with the aim of
+reducing the runtime of the extraction process. By default, the parallel processing is disabled, and the data frame
+is processed in a sequential manner. To enable parallel processing, the user can pass the maximum number of workers to 
+the `extract_all` function. 
+
+For example, to enable parallel processing with 16 workers, the user can call the function as follows:
+
+```python
+adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
+```
+To enable parallel processing with a good default working on any machine, you can use the [approach suggested by the concurrent module](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor).
+```python
+import os
+adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
 
 ### Information Fusion
 

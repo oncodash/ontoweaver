@@ -1,0 +1,13 @@
+row:
+   replace:
+        columns:
+            - id
+        to_subject: variant
+transformers:
+    - replace:
+        columns:
+            - gene
+        to_object: gene_hugo
+        via_relation: variant_in_gene
+        substitute: "<<_>>"
+        forbidden: '[^0-9]'
