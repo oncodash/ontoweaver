@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ feat-ci-pipeline ]
+    branches: [ main ]
   pull_request:
-    branches: [ feat-ci-pipeline ]
+    branches: [ main ]
 
 jobs:
   build_and_test:
