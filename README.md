@@ -579,7 +579,7 @@ Let's assume we want to map a table consisting of contact IDs and phone numbers.
 
 We want to map the `id` column to the node type `id` and the `phone_number` column to the node type `phone_number`,
 but we want to remove all characters that are not numeric, using the default substitute (""), meaning the forbidden
-characters will only be removed and not replace by anther character. The mapping would look like this:
+characters will only be removed, and not replaced by another character. The mapping would look like this:
 
 ```yaml
 row:
@@ -588,8 +588,7 @@ row:
         to_subject: id
 transformers:
     - replace:
-        columns:
-            - phone_number
+        column: phone_number
         to_object: phone_number
         via_relation: phone_number_of_person
         forbidden: '[^0-9]'
