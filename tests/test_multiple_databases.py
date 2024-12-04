@@ -1,3 +1,5 @@
+import time
+
 
 def test_multiple_databases():
     import yaml
@@ -55,6 +57,9 @@ def test_multiple_databases():
     logging.debug("Run the adapter (OncoKB)...")
     adapter_oncokb = ontoweaver.tabular.extract_all(table, mapping)
     assert (adapter_oncokb)
+
+    time.sleep(1) # Sleep for 1 second to allow the previous csv outputs to be removed. Test otherwise fails because
+                  # the directory contains the BioCypher output of previous tests.
 
     logging.debug("Add OncoKB nodes...")
     assert (adapter_oncokb.nodes)

@@ -73,9 +73,13 @@ class split(base.Transformer):
                 assert(type(row[key]) == str)
                 items = row[key].split(self.separator)
                 for item in items:
-                    yield str(item)
+                    if self.valid(item):
+                        yield str(item)
+                    else:
+                        logging.warning(
+                            f"Encountered invalid content when splitting values of column column: `{key}`, line: {i}, in `split` transformer. Skipping cell value: `{item}`")
             else:
-                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `split` transformer. Skipping cell value: `{row[key]}`")
 
 
 class cat(base.Transformer):
@@ -111,7 +115,7 @@ class cat(base.Transformer):
             if self.valid(row[key]):
                 formatted_items += str(row[key])
             else:
-                logging.warning(f"Encountered invalid content when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `cat` transformer. Skipping cell value: `{row[key]}`")
 
         yield str(formatted_items)
 
@@ -153,9 +157,9 @@ class cat_format(base.Transformer):
                 if self.valid(column_value):
                     continue
                 else:
-                    raise Exception(
-                        f"Encountered invalid content when mapping column: `{column_name}` in `format_cat` transformer. "
-                        f"Try using another transformer type.")
+                    logging.warning(
+                        f"Encountered invalid content when mapping column: `{column_name}`, line: {i} in `cat_format` transformer."
+                        f"Skipping cell value: `{column_value}`.")
 
             formatted_string = self.format_string.format_map(row)
             yield str(formatted_string)
@@ -196,7 +200,7 @@ class rowIndex(base.Transformer):
         if self.valid(i):
             yield str(i)
         else:
-            logging.warning(f"Error while mapping by row index. Invalid cell content: `{i}`")
+            logging.warning(f"Encountered invalid content while mapping by row index in line: {i}. Skipping cell value: `{i}`")
 
 
 class map(base.Transformer):
@@ -241,7 +245,7 @@ class map(base.Transformer):
                 yield str(row[key])
             else:
                 logging.warning(
-                     f"Encountered invalid content at row {i} when mapping column: `{key}`. Skipping cell value: `{row[key]}`")
+                     f"Encountered invalid content at row {i} when mapping column: `{key}`, using `map` transformer. Skipping cell value: `{row[key]}`")
 
 
 class translate(base.Transformer):
@@ -359,7 +363,6 @@ class translate(base.Transformer):
         for e in self.map(row, i):
             yield e
 
-
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
@@ -399,3 +402,51 @@ class string(base.Transformer):
         else:
             raise ValueError(f"Value `{self.value}` is invalid.")
 
+
+class replace(base.Transformer):
+    """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
+     The forbidden characters are defined by a regular expression pattern, and are substituted with a user-defined
+     character or removed entirely. In case the cell value is made up of only forbidden characters, the node is not
+     created and a warning is logged."""
+
+    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            target: The target node type.
+            properties_of: Properties of the node.
+            edge: The edge type (optional).
+            columns: The columns to be processed.
+            forbidden: The regular expression pattern to match forbidden characters.
+            substitute: The string to replace forbidden characters with.
+        """
+        super().__init__(target, properties_of, edge, columns, **kwargs)
+        self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
+        # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
+        self.substitute = kwargs.get("substitute", "")
+
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values with forbidden characters removed or replaced.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The processed cell value with forbidden characters removed or replaced.
+
+        Raises:
+            Warning: If the processed cell value is invalid.
+        """
+        for key in self.columns:
+            logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
+            formatted = re.sub(self.forbidden, self.substitute, row[key])
+            strip_formatted = formatted.strip(self.substitute)
+            if strip_formatted and self.valid(strip_formatted):
+                yield str(strip_formatted)
+            else:
+                logging.warning(
+                    f"Encountered an invalid value while removing forbidden characters at row {row} when mapping column: `{key}`, "
+                    f"using `replace` transformer. Skipping cell value: `{row[key]}`")
