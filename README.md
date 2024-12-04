@@ -537,19 +537,19 @@ they will be passed directly as `read_csv` arguments. For example:
         encoding: latin-1
 ```
 
-#### map_remove_forbidden_characters
+#### replace
 
-The *map_remove_forbidden_characters* transformer allows the removal of forbidden characters from the values extracted from
+The *replace* transformer allows the removal of forbidden characters from the values extracted from
 cells of the data frame. The pattern matching the characters that are *forbidden* characters should be passed to the 
 transformer as a regular expression. For example:
 
 ```yaml
-    - map_remove_forbidden_characters:
+    - replace:
         columns:
             - treatment
         to_object: drug
         via_relation: alteration_biomarker_for_drug
-        forbidden_characters: '[^0-9]' # Pattern matching all characters that are not numeric. 
+        forbidden: '[^0-9]' # Pattern matching all characters that are not numeric. 
         # Therefore, you only allow numeric characters. 
         substitute: "_" # Substitute all removed characters with an underscore, in case they are  
         # located inbetween allowed_characters.
@@ -563,7 +563,7 @@ By default, the transformer will allow alphanumeric characters (A-Z, a-z, 0-9), 
 and parentheses (), and the substitute will be an empty string. If you wish to use the default settings, you can write:
 
 ```yaml
-    - map_remove_forbidden_characters:
+    - replace:
         columns:
             - treatment
         to_object: drug

@@ -1,7 +1,7 @@
 import time
 
 
-def test_map_remove_forbidden_characters():
+def test_replace():
     import yaml
     import logging
     import pandas as pd
@@ -13,7 +13,7 @@ def test_map_remove_forbidden_characters():
 
     logging.debug("Load ontology...")
 
-    directory_name = "map_remove_forbidden_characters"
+    directory_name = "replace"
 
     bc = biocypher.BioCypher(
         biocypher_config_path="tests/" + directory_name + "/biocypher_config.yaml",
@@ -58,4 +58,4 @@ def test_map_remove_forbidden_characters():
     shutil.rmtree(output_dir)
 
 if __name__ == "__main__":
-    test_map_remove_forbidden_characters()
+    test_replace()

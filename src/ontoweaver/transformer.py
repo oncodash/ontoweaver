@@ -403,7 +403,7 @@ class string(base.Transformer):
             raise ValueError(f"Value `{self.value}` is invalid.")
 
 
-class map_remove_forbidden_characters(base.Transformer):
+class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
      The forbidden characters are defined by a regular expression pattern, and are substituted with a user-defined
      character or removed entirely. In case the cell value is made up of only forbidden characters, the node is not
@@ -418,11 +418,11 @@ class map_remove_forbidden_characters(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
-            forbidden_characters: The regular expression pattern to match forbidden characters.
+            forbidden: The regular expression pattern to match forbidden characters.
             substitute: The string to replace forbidden characters with.
         """
         super().__init__(target, properties_of, edge, columns, **kwargs)
-        self.forbidden_characters = kwargs.get("forbidden_characters", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
+        self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
         # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
         self.substitute = kwargs.get("substitute", "")
 
@@ -441,12 +441,12 @@ class map_remove_forbidden_characters(base.Transformer):
             Warning: If the processed cell value is invalid.
         """
         for key in self.columns:
-            logging.info(f"Setting forbidden characters: {self.forbidden_characters} for `map_remove_forbidden_characters` transformer, with substitute character: `{self.substitute}`.")
-            formatted = re.sub(self.forbidden_characters, self.substitute, row[key])
+            logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
+            formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
             if strip_formatted and self.valid(strip_formatted):
                 yield str(strip_formatted)
             else:
                 logging.warning(
                     f"Encountered an invalid value while removing forbidden characters at row {row} when mapping column: `{key}`, "
-                    f"using `map_remove_forbidden_characters` transformer. Skipping cell value: `{row[key]}`")
+                    f"using `replace` transformer. Skipping cell value: `{row[key]}`")
