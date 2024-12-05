@@ -19,7 +19,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Poetry
-        run: apt install python3-poetry
+        run: pipx install poetry
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v3
