@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main ]
+    branches: [ feat-ci-pipeline ]
   pull_request:
-    branches: [ main ]
+    branches: [ feat-ci-pipeline ]
 
 jobs:
   build_and_test:
@@ -19,10 +19,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Poetry
-        run: |
-          export POETRY_HOME=/opt/poetry
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$POETRY_HOME/bin" >> $GITHUB_PATH
+        run: apt install python3-poetry
 
       - name: Cache Poetry virtualenv
         uses: actions/cache@v3
