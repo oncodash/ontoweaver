@@ -233,81 +233,6 @@ for each patient, and an edge for each phenotype-patient pair:
            ╰───────────────────╯
 ```
 
-
-### How to Add an Edge Between Column Nodes
-
-If you need to add an edge between a column node to another (and not between
-the line node and a column node), you can use the `from_subject` predicate,
-for example:
-```yaml
-row:
-   map:
-      to_subject: phenotype
-transformers:
-    - map:
-        column: patient
-        to_object: case
-        via_relation: case_to_phenotype
-    - map:
-        column: disease
-        from_subject: case # The edge will start from this node type (and not from the "phenotype" subject)...
-        to_object: disease # ... to this node type.
-        via_relation: disease_to_entity_association_mixin
-```
-
-```
-           ╭───────────────────╮
-           │              ╔════╪════╦════════════════════╗
-           │              ║pati│ent ║      disease       ║
-           │              ╠════╪════╬════════════════════╣
-           │              ║    │    ║disease to          ║
-           │              ║    │    ║entity              ║
-╭──────────┴──────────╮   ║╭───┴───╮║  ↓    ╭───────────╮║
-│phenotypic feature: 0│   ║│case: A├╫───────┤ disease: X│║
-╰─────────────────────╯   ║╰───────╯║       ╰┬──────────╯║
-                          ╠═════════╬════════╪═══════════╣
-╭─────────────────────╮   ║╭───────╮║       ╭┼╌╌╌╌╌╌╌╌╌╌╮║
-│          1          │   ║│   B   ├╫────────╯    X     ┆║
-╰──────────┬──────────╯   ║╰───┬───╯║       ╰╌╌╌╌╌╌╌╌╌╌╌╯║
-           │              ╚════╪════╩════════════════════╝
-           ╰───────────────────╯
-```
-
-
-### How to Add Properties to Nodes and Edges
-
-If you do not need to create a new node, but simply attach some data to
-an existing node, use the `to_property` predicate, for example:
-```yaml
-row:
-   map:
-      to_subject: phenotype
-transformers:
-    - map:
-        column: patient
-        to_object: case
-        via_relation: case_to_phenotype
-    - map:
-        column: age
-        to_property: patient_age
-        for_object: case
-```
-This will add a "patient_age" property to nodes of type "case".
-
-Note that you can add the same property value to several property fields of
-several node types:
-```yaml
-    - map:
-        column: age
-        to_properties:
-            - patient_age
-            - age_patient
-        for_object:
-            - case
-            - phenotype
-```
-
-
 ### Available Transformers
 
 If you want to transform a data cell before exporting it as one or several
@@ -644,9 +569,43 @@ Here is the list of available synonyms:
 - `for_object` = `for_objects`
 
 
-### How To
+## How To
 
-#### How to Extract Additional Edges
+### How to Add Properties to Nodes and Edges
+
+If you do not need to create a new node, but simply attach some data to
+an existing node, use the `to_property` predicate, for example:
+```yaml
+row:
+   map:
+      to_subject: phenotype
+transformers:
+    - map:
+        column: patient
+        to_object: case
+        via_relation: case_to_phenotype
+    - map:
+        column: age
+        to_property: patient_age
+        for_object: case
+```
+This will add a "patient_age" property to nodes of type "case".
+
+Note that you can add the same property value to several property fields of
+several node types:
+```yaml
+    - map:
+        column: age
+        to_properties:
+            - patient_age
+            - age_patient
+        for_object:
+            - case
+            - phenotype
+```
+
+
+### How to Extract Additional Edges
 
 Edges can be extracted from the mapping configuration, by defining a
 `from_subject` and `to_object` in the mapping configuration,
@@ -692,7 +651,7 @@ to add the following section to the transformers in the mapping configuration:
 ```
 
 
-#### How to add the same metadata properties to all nodes and edges
+### How to add the same metadata properties to all nodes and edges
 
 Metadata can be added to nodes and edges by defining a `metadata` section
 in the mapping configuration. You can specify all the property keys and values
@@ -710,7 +669,7 @@ The metadata defined in the `metadata` section will be added to all nodes and
 edges created during the mapping process.
 
 
-#### How to add the column of origin as a property to all nodes
+### How to add the column of origin as a property to all nodes
 
 In addition to the user-defined metadata, a property field
 `add_source_column_names_as` is also available. It allows to indicate the column
@@ -736,7 +695,7 @@ the added node properties in the schema configuration file, to ensure that
 the properties are correctly added to the nodes.
 
 
-#### How to create user-defined adapters
+### How to create user-defined adapters
 
 You may manually define your own adapter class, inheriting
 from the OntoWeaver's class that manages tabular mappings.
@@ -771,7 +730,7 @@ and if you wish to define affix type as `suffix`, use
 `type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.suffix`.
 
 
-#### How to access dynamic Node and Edge Types
+### How to access dynamic Node and Edge Types
 
 OntoWeaver relies a lot on meta-programming, as it actually creates
 Python types while parsing the mapping configuration.
@@ -789,7 +748,7 @@ node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
 
-### Parallel Processing
+## Parallel Processing
 
 OntoWeaver provides a way to parallelize the extraction of nodes and edges from the provided database, with the aim of
 reducing the runtime of the extraction process. By default, the parallel processing is disabled, and the data frame
@@ -801,12 +760,14 @@ For example, to enable parallel processing with 16 workers, the user can call th
 ```python
 adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
 ```
+
 To enable parallel processing with a good default working on any machine, you can use the [approach suggested by the concurrent module](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor).
 ```python
 import os
 adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
+```
 
-### Information Fusion
+## Information Fusion
 
 When integrating several sources of information to create your own SKG,
 you will inevitably face a case where two sources provide different information
@@ -823,7 +784,7 @@ a single adapter, which reconciliate the data before producing nodes, which
 makes the task difficult and the adapter code even harder to understand.
 
 
-#### Reconciliation
+### Reconciliation
 
 OntoWeaver provides a way to solve the reconciliation problem
 with its *high-level information fusion* feature. The fusion features allow to
@@ -847,7 +808,7 @@ fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, separato
 # Then you can pass those to biocypher.write_nodes and biocypher.write_edges...
 ```
 
-##### High-level Interface
+#### High-level Interface
 
 OntoWeaver provides the `fusion.reconciliate` function, that implements a sane
 default reconciliation of nodes. It merges nodes having the same identifier and
@@ -872,7 +833,7 @@ Then, the result of the reconciliation step above would be:
 ```
 
 
-##### Mid-level Interfaces
+#### Mid-level Interfaces
 
 The simplest approach to fusion is to define how to:
 
@@ -986,7 +947,7 @@ they need to be converted back to Biocypher's tuples:
 ```
 
 
-##### Low-level Interfaces
+#### Low-level Interfaces
 
 Each of the steps mentioned in the previous section involves a functor class
 that implements a step of the fusion process. Users may provide their own

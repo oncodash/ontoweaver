@@ -1,0 +1,8 @@
+sphinx>=4.0
+furo
+pandas
+pyyaml
+biocypher
+owlready2
+pooch
+numpy
