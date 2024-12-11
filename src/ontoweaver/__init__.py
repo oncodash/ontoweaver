@@ -122,8 +122,10 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         schema_config_path = schema_path
     )
 
-    bc.write_nodes(fnodes)
-    bc.write_edges(fedges)
+    if fnodes:
+        bc.write_nodes(fnodes)
+    if fedges:
+        bc.write_edges(fedges)
     #bc.summary()
     import_file = bc.write_import_call()
 
