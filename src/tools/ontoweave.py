@@ -26,13 +26,13 @@ if __name__ == "__main__":
         help="The BioCypher schema file (the one managing node and edge types). [default: %(default)s]")
 
     do.add_argument("-p", "--parallel", metavar="NB_CORES", default="0",
-        help=f"Number of processor cores to use when processing with multi-threading. `0` means a sequantial processing (no parallelization, the default). Use 'auto' to let {name} do its best to use a good number. [default: %(default)s]")
+        help=f"Number of processor cores to use when processing with multi-threading. `0` means a sequential processing (no parallelization, the default). Use 'auto' to let {name} do its best to use a good number. [default: %(default)s]")
 
     do.add_argument("-i", "--import-script-run", action="store_true",
         help=f"If passed {name} will call the import scripts created by Biocypher for you.")
 
     do.add_argument("-S", "--prop-sep", metavar="CHARACTER", default = ";",
-        help="The character used to separate property values fusionned in the same property at the reconciliation step. [default: %(default)s]")
+        help="The character used to separate property values fused in the same property at the reconciliation step. [default: %(default)s]")
 
     do.add_argument("-a", "--type-affix", choices=["suffix","prefix","none"], default="none",
         help="Where to add the type string to the ID label. [default: %(default)s]")
@@ -101,7 +101,8 @@ if __name__ == "__main__":
     print(import_file)
 
     if asked.import_script_run:
-        logging.info(f"Run import scripts...")
-        subprocess.run(import_script)
+        shell = os.environ["SHELL"]
+        logging.info(f"Run import scripts with {shell}...")
+        subprocess.run([shell, import_file])
 
     logging.info("Done")
