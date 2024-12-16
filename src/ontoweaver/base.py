@@ -395,7 +395,7 @@ class Adapter(ErrorManager, metaclass = ABSTRACT):
             yield e
 
 
-class Transformer:
+class Transformer(ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
     def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):

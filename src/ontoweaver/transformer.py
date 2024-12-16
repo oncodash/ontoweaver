@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 
 from . import base
+from. import exceptions
 
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
@@ -31,7 +32,7 @@ def register(transformer_class):
     """
 
     if not issubclass(transformer_class, base.Transformer):
-        raise RuntimeError(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.")
+        self.error(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.", section="transformer.register", exception = exceptions.InterfaceInheritanceError)
     current = sys.modules[__name__]
     setattr(current, transformer_class.__name__, transformer_class)
 
@@ -165,7 +166,7 @@ class cat_format(base.Transformer):
             yield str(formatted_string)
 
         else:
-            raise Exception(f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.")
+            self.error(f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.", section="cat_format.call", exception = exceptions.TransformerConfigError)
 
 
 class rowIndex(base.Transformer):
@@ -234,13 +235,11 @@ class map(base.Transformer):
             Warning: If the cell value is invalid.
         """
         if not self.columns:
-            raise ValueError(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?")
+            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
         for key in self.columns:
             if key not in row:
-                msg = f"Column '{key}' not found in data"
-                logging.error(msg)
-                raise KeyError(msg)
+                self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
             if self.valid(row[key]):
                 yield str(row[key])
             else:
@@ -278,7 +277,7 @@ class translate(base.Transformer):
         translate_to = kwargs.get("translate_to", None)
 
         if translations and translations_file:
-            raise RuntimeError(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.")
+            self.error(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.", secton="translate", exception = exceptions.TransformerInterfaceError)
 
         if translations:
             self.translate = translations
@@ -286,9 +285,9 @@ class translate(base.Transformer):
         elif translations_file:
             logging.debug(f"\t\t\tGet translations from file: `{translations_file}`")
             if not translate_from:
-                raise ValueError(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_from` keyword?")
+                self.error(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_from` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
             if not translate_to:
-                raise ValueError(f"No translation target column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_to` keyword?")
+                self.error(f"No translation target column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_to` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
             else:
                 self.translations_file = translations_file
                 self.translate_from = translate_from
@@ -313,10 +312,10 @@ class translate(base.Transformer):
                 self.df = pd.read_csv(self.translations_file, **pd_args)
 
                 if self.translate_from not in self.df.columns:
-                    raise ValueError(f"Source column `{self.translate_from}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.")
+                    self.error(f"Source column `{self.translate_from}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.", section="translate.init", exception = exceptions.TransformerDataError)
 
                 if self.translate_to not in self.df.columns:
-                    raise ValueError(f"Target column `{self.translate_to}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.")
+                    self.error(f"Target column `{self.translate_to}` not found in {type(self).__name__} transformer’s translations file `{self.translations_file}`, available headers: `{','.join(self.df.columns)}`.", section="translate.init", exception = exceptions.TransformerDataError)
 
                 self.translate = {}
                 for i,row in self.df.iterrows():
@@ -326,11 +325,11 @@ class translate(base.Transformer):
                         logging.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{row[self.translate_from]}` => `{row[self.translate_to]}`. I will ignore this translation.")
 
         else:
-            raise RuntimeError(f"When using a {type(self).__name__} transformer, you must define either `translations` or `translations_file`.")
+            self.error(f"When using a {type(self).__name__} transformer, you must define either `translations` or `translations_file`.", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
 
         if not self.translate:
-            raise ValueError(f"No translation found, did you forget the `translations` keyword?")
+            self.error(f"No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
     def __call__(self, row, i):
         """
@@ -347,13 +346,11 @@ class translate(base.Transformer):
             Warning: If the cell value or the translation is invalid.
         """
         if not self.columns:
-            raise ValueError(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?")
+            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="translate", exception = exceptions.TransformerDataError)
 
         for key in self.columns:
             if key not in row:
-                msg = f"Column '{key}' not found in data"
-                logging.error(msg)
-                raise KeyError(msg)
+                self.error(f"Column '{key}' not found in data", section="translate", exception = exceptions.TransformerDataError)
             cell = row[key]
             if cell in self.translate:
                 row[key] = self.translate[cell]
@@ -395,12 +392,12 @@ class string(base.Transformer):
             Warning: If the cell value is invalid.
         """
         if not self.value:
-            raise ValueError(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?")
+            self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
         if self.valid(self.value):
             yield str(self.value)
         else:
-            raise ValueError(f"Value `{self.value}` is invalid.")
+            self.error(f"Value `{self.value}` is invalid.", section="string.call", exception = exceptions.TransformerInputError)
 
 
 class replace(base.Transformer):
