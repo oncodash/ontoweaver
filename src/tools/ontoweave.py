@@ -1,9 +1,31 @@
 #!/usr/bin/env python3
 
+import os
+import sys
+import logging
+
+error_codes = {
+    "ParsingError"    :  65, # "data format"
+    "RunError"        :  70, # "internal"
+    "ConfigError"     :  78, # "bad config"
+    "CannotAccessFile": 126, # "no perm"
+    "FileError"       : 127, # "not found"
+    "SubprocessError" : 128, # "bad exit"
+    "OntoWeaverError" : 254,
+    "Exception"       : 255,
+}
+
+def check_file(filename):
+    if not os.path.isfile(filename):
+        logging.error(f"File `{filename}` not found.")
+        sys.exit(error_codes["FileError"])
+
+    if not os.access(filename, os.R_OK):
+        logging.error(f"Cannot access file `{filename}`.")
+        sys.exit(error_codes["CannotAccessFile"])
+
+
 if __name__ == "__main__":
-    import os
-    import sys
-    import logging
     import argparse
     import subprocess
 
@@ -80,7 +102,7 @@ if __name__ == "__main__":
         if ":" not in data_map:
             msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
             logging.error(msg)
-            raise RuntimeError(msg)
+            sys.exit(error_codes["ConfigError"])
         data,map = data_map.split(":")
         mappings[data] = map
         logging.info(f"\t\t`{data}` => `{map}`")
@@ -91,18 +113,48 @@ if __name__ == "__main__":
         parallel = int(asked.parallel)
     logging.info(f"\tparallel: `{asked.parallel}`")
 
+    # Double check file inputs and exit on according errors.
+    check_file(asked.config)
+    check_file(asked.schema)
+    for file_map in asked.mapping:
+        data_file, map_file = file_map.split(":")
+        check_file(data_file)
+        check_file(map_file)
+
     # Late import to avoid useless Biocypher's logs when asking for --help.
     import ontoweaver
 
     logging.info(f"Running OntoWeaver...")
-    import_file = ontoweaver.extract_reconciliate_write(asked.config, asked.schema, mappings, parallel_mapping=parallel, separator=asked.prop_sep, affix=asked.type_affix, affix_separator = asked.type_affix_sep)
+    try:
+        import_file = ontoweaver.extract_reconciliate_write(asked.config, asked.schema, mappings, parallel_mapping=parallel, separator=asked.prop_sep, affix=asked.type_affix, affix_separator = asked.type_affix_sep)
+    except ontoweaver.exceptions.ConfigError as e:
+        logging.error(f"ERROR in configuration: "+e)
+        sys.exit(error_codes["ConfigError"])
+    except ontoweaver.exceptions.RunError as e:
+        logging.error(f"ERROR in content: "+e)
+        sys.exit(error_codes["RunError"])
+    except ontoweaver.exceptions.ParsingError as e:
+        logging.error(f"ERROR during parsing of the YAML mapping: "+e)
+        sys.exit(error_codes["ParsingError"])
+    except ontoweaver.exceptions.OntoWeaverError as e:
+        logging.error(f"ERROR: "+e)
+        sys.exit(error_codes["OntoWeaverError"])
+    except Exception as e:
+        logging.error(f"UNKNOWN ERROR: "+e)
+        sys.exit(error_codes["Exception"])
+    # FIXME manage all exceptions with specific error codes ?
 
     # Output import file on stdout, in case the user would want to capture it.
     print(import_file)
+    check_file(import_file)
 
     if asked.import_script_run:
         shell = os.environ["SHELL"]
         logging.info(f"Run import scripts with {shell}...")
-        subprocess.run([shell, import_file])
+        try:
+            subprocess.run([shell, import_file])
+        except Exception as e:
+            logging.error(e)
+            sys.exit(error_codes["SubprocessError"])
 
     logging.info("Done")
