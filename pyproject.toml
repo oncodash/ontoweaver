@@ -28,4 +28,3 @@ pythonpath = "src"
 testpaths = [
     "tests",
 ]
-
