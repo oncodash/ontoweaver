@@ -66,8 +66,10 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
         schema_config_path = schema_path
     )
 
-    bc.write_nodes(fnodes)
-    bc.write_edges(fedges)
+    if fnodes:
+        bc.write_nodes(fnodes)
+    if fedges:
+        bc.write_edges(fedges)
     import_file = bc.write_import_call()
 
     return import_file
