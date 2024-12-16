@@ -20,6 +20,30 @@ from . import serialize
 #         return elem1 is elem2
 # FIXME use hash functions for comparison.
 
+class ErrorManager:
+    def __init__(self, raise_errors = True):
+        self.raise_errors = raise_errors
+
+    def error(self, msg, section = None, index = None, exception = RuntimeError, indent = 0):
+        location = ""
+        if section:
+            location = f" [for {section}"
+            if index:
+                location += f" #{index}"
+            location += "]"
+
+        err = "\t"*indent
+        err += msg
+        err += location
+
+        logging.error(err)
+
+        if self.raise_errors:
+            raise exception(err)
+
+        return err
+
+
 class Element(metaclass = ABSTRACT):
     """Base class for either Node or Edge.
 
@@ -313,10 +337,10 @@ class GenericEdge(Edge):
         return Node
 
 
-class Adapter(metaclass = ABSTRACT):
+class Adapter(ErrorManager, metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
 
-    def __init__(self,
+    def __init__(self, raise_errors = True
     ):
         """Allow to indicate which Element subclasses and which property fields
         are allowed to be exported by Biocypher.
@@ -328,6 +352,7 @@ class Adapter(metaclass = ABSTRACT):
         self._nodes = []
         self._edges = []
         self.errors = []
+        super().__init__(raise_errors)
 
     def nodes_append(self, node_s) -> None:
         """Append an Node (or each Node in a list of nodes) to the internal list of nodes."""
