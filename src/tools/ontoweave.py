@@ -36,8 +36,6 @@ if __name__ == "__main__":
         epilog = f"Example usage:\n  {name} table.csv:mapping.yaml\n  {name} --config biocypher_config.yaml --schema schema.yaml table1.csv:mapping1.yaml table2.tsv:mapping1.yaml table3.parquet:mapping2.yaml --import-script-run",
         formatter_class = argparse.RawTextHelpFormatter)
 
-    # {name} --map data_stuff.csv:stuff_mapping.yaml --map data_stiff.csv:stiff_mapping.yaml --config biocypher_config.yaml --schema schema.yaml --call-import-script
-
     do.add_argument("mapping", metavar="FILE:MAPPING", nargs="+",
         help=f"Run the given YAML MAPPING to extract data from the tabular FILE (usually a CSV). Several mappings can be passed to {name}. You may also use the same mapping on different data files. If set to `STDIN`, wil read the list of mappings from standard input.")
 
