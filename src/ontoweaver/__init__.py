@@ -23,7 +23,7 @@ from . import fusion
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion']
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings,  parallel_mapping = 0, separator = None):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
     """Calls several mappings, each on the related Pandas-redable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -35,6 +35,8 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
            data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+           affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+           affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
 
        Returns:
            The path to the import file.
@@ -51,7 +53,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
         with open(mapping_file) as fd:
             mapping = yaml.full_load(fd)
 
-        adapter = tabular.extract_all(table, mapping, parallel_mapping = parallel_mapping, affix = "none")
+        adapter = tabular.extract_all(table, mapping, parallel_mapping = parallel_mapping, affix = affix, separator = affix_separator)
 
         nodes += adapter.nodes
         edges += adapter.edges
@@ -69,7 +71,8 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
 
     return import_file
 
-def extract(data_mappings: dict, parallel_mapping = 0, affix="suffix", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
+
+def extract(data_mappings: dict, parallel_mapping = 0, affix="none", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -78,6 +81,7 @@ def extract(data_mappings: dict, parallel_mapping = 0, affix="suffix", separator
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         separator (str, optional): The separator to use for splitting ID and type. Defaults to None.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+        affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
 
     Returns:
         tuple: Two lists of tuples containing nodes and edges.
@@ -100,6 +104,7 @@ def extract(data_mappings: dict, parallel_mapping = 0, affix="suffix", separator
         edges += adapter.edges
 
     return nodes, edges
+
 
 def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None) -> str:
     """
