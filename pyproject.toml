@@ -6,7 +6,7 @@ authors = ["Johann Dreo <johann.dro@pasteur.fr>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 biocypher = "^0.6.1"
 pooch = "^1.7.0" # Dep of biocypher
 pandas = "^2.0.1"
@@ -28,4 +28,3 @@ pythonpath = "src"
 testpaths = [
     "tests",
 ]
-
