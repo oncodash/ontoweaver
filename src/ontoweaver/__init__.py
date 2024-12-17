@@ -19,8 +19,9 @@ from . import congregate
 from . import merge
 from . import fuse
 from . import fusion
+from . import exceptions
 
-__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion']
+__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions']
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
