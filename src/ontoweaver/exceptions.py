@@ -40,3 +40,13 @@ class CardinalityError(ParsingDeclarationsError):
 class MissingDataError(ParsingDeclarationsError):
     pass
 
+
+class InterfaceInheritanceError(TransformerError):
+    pass
+
+class TransformerConfigError(TransformerError):
+    pass
+
+class TransformerInputError(TransformerError):
+    pass
+

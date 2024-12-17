@@ -13,6 +13,7 @@ import pandas as pd
 from . import base
 from . import types
 from . import transformer
+from . import exceptions
 
 class MetaEnum(EnumMeta):
     """
@@ -160,7 +161,7 @@ class PandasAdapter(base.Adapter):
             logging.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
             return id
         else:
-            self.error(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`")
+            self.error(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`", exception = exceptions.DeclarationError)
 
 
     def valid(self, val):
@@ -277,7 +278,7 @@ class PandasAdapter(base.Adapter):
             logging.debug("\tCreate subject node:")
             ids = list(self.subject_transformer(row, i))
             if (len(ids) > 1):
-                local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. Subject Transformer `{self.subject_transformer}` produced multiple IDs: {ids}", indent=2))
+                local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. Subject Transformer `{self.subject_transformer}` produced multiple IDs: {ids}", indent=2, exception = exceptions.TransformerInterfaceError))
             source_id = ids[0]
             source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
@@ -288,7 +289,7 @@ class PandasAdapter(base.Adapter):
                                                                              row, i, self.subject_transformer,
                                                                              node=True)))
             else:
-                local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.", indent=2))
+                local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.", indent=2, exception = exceptions.DeclarationError))
 
             # Loop over list of transformer instances and create corresponding nodes and edges.
             # FIXME the transformer variable here shadows the transformer module.
@@ -336,7 +337,7 @@ class PandasAdapter(base.Adapter):
                                                               properties=self.properties(transformer.edge.fields(),
                                                                                          row, i, transformer)))
                     else:
-                        local_errors.append(self.error(f"No valid target node identifier from {transformer} for {i}th row.", indent=2, section="transformers", index=j))
+                        local_errors.append(self.error(f"No valid target node identifier from {transformer} for {i}th row.", indent=2, section="transformers", index=j, exception = exceptions.TransformerDataError))
                         continue
 
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
@@ -381,7 +382,7 @@ class PandasAdapter(base.Adapter):
 
         else:
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
-                       f" Pass 0 for sequential processing, or the number of workers for parallel processing.")
+                       f" Pass 0 for sequential processing, or the number of workers for parallel processing.", exception = exceptions.ConfigError)
 
         # Final logging
         if self.errors:
@@ -552,7 +553,7 @@ class Declare(base.ErrorManager):
             parent_t = getattr(transformer, transformer_type)
             kwargs.setdefault("subclass", parent_t)
             if not issubclass(parent_t, base.Transformer):
-                self.error(f"Object `{transformer_type}` is not an existing transformer.", exception=TypeError)
+                self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
             else:
                 if node_type:
                     nt = node_type.__name__
@@ -562,7 +563,7 @@ class Declare(base.ErrorManager):
                 return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, **kwargs)
         else:
             # logging.debug(dir(generators))
-            self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception=TypeError)
+            self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
 
 
 class YamlParser(Declare):
@@ -741,7 +742,7 @@ class YamlParser(Declare):
         for n_transformer,transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
-                    self.error(f"There is no field for the {n_transformer}th transformer: '{transformer_type}', did you forget an indentation?", "transformers", n_transformer)
+                    self.error(f"There is no field for the {n_transformer}th transformer: '{transformer_type}', did you forget an indentation?", "transformers", n_transformer, exception = exceptions.MissingFieldError)
 
                 if any(field in field_dict for field in k_properties):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
@@ -798,7 +799,7 @@ class YamlParser(Declare):
                         prop = self.get(k_properties, field_dict)
                         target = self.get(k_target, field_dict)
                         self.error(f"ERROR in transformer '{transformer_type}': one cannot "
-                                      f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers", n_transformer)
+                                      f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers", n_transformer, exception = exceptions.CardinalityError)
                     continue
                 else:
                     if type(field_dict) != dict:
@@ -812,15 +813,15 @@ class YamlParser(Declare):
 
                     target = self.get(k_target, pconfig=field_dict)
                     if type(target) == list:
-                        self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1)
+                        self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
                     subject = self.get(k_subject, pconfig=field_dict)
                     if type(subject) == list:
-                        self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1)
+                        self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
                     edge = self.get(k_edge, pconfig=field_dict)
                     if type(edge) == list:
-                        self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1)
+                        self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.", section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
 
@@ -848,7 +849,7 @@ class YamlParser(Declare):
                             properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
                         logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
-                        self.error(f"\t\tCannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`)", "transformers", n_transformer)
+                        self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
