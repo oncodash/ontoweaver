@@ -753,18 +753,18 @@ edge_types  = types.all.edges()
 OntoWeaver provides a way to parallelize the extraction of nodes and edges from the provided database, with the aim of
 reducing the runtime of the extraction process. By default, the parallel processing is disabled, and the data frame
 is processed in a sequential manner. To enable parallel processing, the user can pass the maximum number of workers to 
-the `extract_all` function. 
+the `extract_table` function. 
 
 For example, to enable parallel processing with 16 workers, the user can call the function as follows:
 
 ```python
-adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
+adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = 16)
 ```
 
 To enable parallel processing with a good default working on any machine, you can use the [approach suggested by the concurrent module](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor).
 ```python
 import os
-adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
+adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
 ```
 
 ## Information Fusion
@@ -795,8 +795,8 @@ The generic workflow is to first produce nodes and edges —as usual—
 then call the `fusion.reconciliate` function on the produced nodes and edges:
 ```python
 # Call the mappings:
-adapter_A = ontoweaver.tabular.extract_all(input_table_A, mapping_A)
-adapter_B = ontoweaver.tabular.extract_all(input_table_B, mapping_B)
+adapter_A = ontoweaver.tabular.extract_table(input_table_A, mapping_A)
+adapter_B = ontoweaver.tabular.extract_table(input_table_B, mapping_B)
 
 # Aggregate the nodes and edges:
 nodes = adapter_A.nodes + adapter_B.nodes
