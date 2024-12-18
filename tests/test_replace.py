@@ -31,7 +31,7 @@ def test_replace():
 
     logging.debug("Run the adapter...")
 
-    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="prefix", separator="___")
+    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___")
 
     time.sleep(1) # Sleep for 1 second to allow the previous csv outputs to be removed. Test otherwise fails because
                   # the directory contains the BioCypher output of previous tests.

@@ -404,7 +404,7 @@ class PandasAdapter(base.Adapter):
                 f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
-def extract_all(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":"):
+def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":"):
     """
     Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration.

@@ -18,7 +18,7 @@ def main():
     with open("oim.yaml") as fd:
         mapping = yaml.full_load(fd)
 
-    adapter = ontoweaver.tabular.extract_all(table, mapping)
+    adapter = ontoweaver.tabular.extract_table(table, mapping)
     assert(adapter)
 
     assert(adapter.nodes)

@@ -34,7 +34,7 @@ def test_multiple_databases():
         mapping = yaml.full_load(fd)
 
     logging.debug("Run the adapter (CGI)...")
-    adapter_cgi = ontoweaver.tabular.extract_all(table, mapping)
+    adapter_cgi = ontoweaver.tabular.extract_table(table, mapping)
     assert (adapter_cgi)
 
     logging.debug("Add CGI nodes...")
@@ -55,7 +55,7 @@ def test_multiple_databases():
         mapping = yaml.full_load(fd)
 
     logging.debug("Run the adapter (OncoKB)...")
-    adapter_oncokb = ontoweaver.tabular.extract_all(table, mapping)
+    adapter_oncokb = ontoweaver.tabular.extract_table(table, mapping)
     assert (adapter_oncokb)
 
     time.sleep(1) # Sleep for 1 second to allow the previous csv outputs to be removed. Test otherwise fails because
