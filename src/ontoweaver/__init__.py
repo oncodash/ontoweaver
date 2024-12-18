@@ -1,8 +1,9 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import biocypher
 import yaml
 import pandas as pd
+from networkx.classes import nodes
 
 from . import base
 Node = base.Node
@@ -24,16 +25,17 @@ from . import exceptions
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions']
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
-    """Calls several mappings, each on the related Pandas-redable tabular data file,
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings = None, loaded_data_mappings = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
+    """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
        Returns the path to the resulting import file.
 
        Args:
-           biocypher_config_path: the BioCypher configuration file
-           schema_path: the assembling schema file
-           data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+           biocypher_config_path: the BioCypher configuration file.
+           schema_path: the assembling schema file.
+           data_mappings: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+           loaded_data_mappings: a dictionary mapping loaded Pandas data frame to the  mapping yaml file.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
@@ -42,22 +44,38 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
        Returns:
            The path to the import file.
    """
-
-    assert(type(data_mappings) == dict) # data_file => mapping_file
-
     nodes = []
     edges = []
 
-    for data_file, mapping_file in data_mappings.items():
-        table = pd.read_csv(data_file)
+    if data_mappings:
 
-        with open(mapping_file) as fd:
-            mapping = yaml.full_load(fd)
+        assert(type(data_mappings) == dict) # data_file => mapping_file
 
-        adapter = tabular.extract_all(table, mapping, parallel_mapping = parallel_mapping, affix = affix, separator = affix_separator)
+        for data_file, mapping_file in data_mappings.items():
+            table = pd.read_csv(data_file)
 
-        nodes += adapter.nodes
-        edges += adapter.edges
+            with open(mapping_file) as fd:
+                mapping = yaml.full_load(fd)
+
+            adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
+                                            separator=affix_separator)
+
+            nodes += adapter.nodes
+            edges += adapter.edges
+
+    if loaded_data_mappings:
+
+        assert(type(loaded_data_mappings) == dict) # data_frame => mapping_file
+
+        for data_frame, mapping_file in loaded_data_mappings.items():
+            with open(mapping_file) as fd:
+                mapping = yaml.full_load(fd)
+
+            adapter = tabular.extract_table(data_frame, mapping, parallel_mapping=parallel_mapping, affix=affix,
+                                            separator=affix_separator)
+
+            nodes += adapter.nodes
+            edges += adapter.edges
 
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
@@ -75,14 +93,14 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_mappings
     return import_file
 
 
-def extract(data_mappings: dict, parallel_mapping = 0, affix="none", separator=":") -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_mappings = None, loaded_data_mappings = None, parallel_mapping = 0, affix="none", affix_separator=":") -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+        data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+        loaded_data_mappings (dict): a dictionary mapping loaded Pandas data frame to the  mapping yaml file.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-        separator (str, optional): The separator to use for splitting ID and type. Defaults to None.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
 
@@ -90,21 +108,38 @@ def extract(data_mappings: dict, parallel_mapping = 0, affix="none", separator="
         tuple: Two lists of tuples containing nodes and edges.
     """
 
-    assert(type(data_mappings) == dict) # data_file => mapping_file
-
     nodes = []
     edges = []
 
-    for data_file, mapping_file in data_mappings.items():
-        table = pd.read_csv(data_file, sep = None)
+    if data_mappings:
 
-        with open(mapping_file) as fd:
-            mapping = yaml.full_load(fd)
+        assert(type(data_mappings) == dict) # data_file => mapping_file
 
-        adapter = tabular.extract_all(table, mapping, parallel_mapping=parallel_mapping, affix=affix, separator=separator)
+        for data_file, mapping_file in data_mappings.items():
+            table = pd.read_csv(data_file)
 
-        nodes += adapter.nodes
-        edges += adapter.edges
+            with open(mapping_file) as fd:
+                mapping = yaml.full_load(fd)
+
+            adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
+                                            separator=affix_separator)
+
+            nodes += adapter.nodes
+            edges += adapter.edges
+
+    if loaded_data_mappings:
+
+        assert(type(loaded_data_mappings) == dict) # data_frame => mapping_file
+
+        for data_frame, mapping_file in loaded_data_mappings.items():
+            with open(mapping_file) as fd:
+                mapping = yaml.full_load(fd)
+
+            adapter = tabular.extract_table(data_frame, mapping, parallel_mapping=parallel_mapping, affix=affix,
+                                            separator=affix_separator)
+
+            nodes += adapter.nodes
+            edges += adapter.edges
 
     return nodes, edges
 
