@@ -1,9 +1,8 @@
-from typing import Tuple, Optional
+from typing import Tuple
 
 import biocypher
 import yaml
 import pandas as pd
-from networkx.classes import nodes
 
 from . import base
 Node = base.Node
