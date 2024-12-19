@@ -314,8 +314,12 @@ class PandasAdapter(base.Adapter):
                         # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
                         if hasattr(transformer, "from_subject"):
+
+                            found_valid_subject = False
+
                             for t in self.transformers:
                                 if transformer.from_subject == t.target.__name__:
+                                    found_valid_subject = True
                                     for s_id in t(row, i):
                                         subject_id = s_id
                                         subject_node_id = self.make_id(t.target.__name__, subject_id)
@@ -328,9 +332,12 @@ class PandasAdapter(base.Adapter):
                                                                                       row, i, t)))
 
                                 else:
-                                    local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
-                                                                   f" The subject you declared in the `from_subject` directive: `{transformer.from_subject}` must not be the same as the default subject type.",
-                                                                   exception=exceptions.ConfigError))
+                                    continue
+
+                            if not found_valid_subject:
+                                local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
+                                                               f" The subject you declared in the `from_subject` directive: `{transformer.from_subject}` must not be the same as the default subject type.",
+                                                               exception=exceptions.ConfigError))
 
 
                         else: # no attribute `from_subject` in `transformer`
