@@ -6,14 +6,14 @@ edges from the provided database, with the aim of reducing the runtime
 of the extraction process. By default, the parallel processing is
 disabled, and the data frame is processed in a sequential manner. To
 enable parallel processing, the user can pass the maximum number of
-workers to the ``extract_all`` function.
+workers to the ``extract_table`` function.
 
 For example, to enable parallel processing with 16 workers, the user can
 call the function as follows:
 
 .. code:: python
 
-   adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
+   adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = 16)
 
 To enable parallel processing with a good default working on any
 machine, you can use the `approach suggested by the concurrent
@@ -22,4 +22,4 @@ module <https://docs.python.org/3/library/concurrent.futures.html#concurrent.fut
 .. code:: python
 
    import os
-   adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
+   adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
