@@ -31,8 +31,8 @@ edges:
 .. code:: python
 
    # Call the mappings:
-   adapter_A = ontoweaver.tabular.extract_all(input_table_A, mapping_A)
-   adapter_B = ontoweaver.tabular.extract_all(input_table_B, mapping_B)
+   adapter_A = ontoweaver.tabular.extract_table(input_table_A, mapping_A)
+   adapter_B = ontoweaver.tabular.extract_table(input_table_B, mapping_B)
 
    # Aggregate the nodes and edges:
    nodes = adapter_A.nodes + adapter_B.nodes
