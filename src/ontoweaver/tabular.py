@@ -328,7 +328,10 @@ class PandasAdapter(base.Adapter):
                                                                                       row, i, t)))
 
                                 else:
-                                    continue
+                                    local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
+                                                                   f" The subject you declared in the `from_subject` directive: `{transformer.from_subject}` must not be the same as the default subject type.",
+                                                                   exception=exceptions.ConfigError))
+
 
                         else: # no attribute `from_subject` in `transformer`
                             logging.debug(f"\t\tMake edge from {source_node_id} toward {target_node_id}")
