@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.13'
+        id: setup-python
 
       - name: Install Poetry
         run: pipx install poetry
@@ -36,3 +37,5 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest
+        env:
+          SHELL: /bin/bash
