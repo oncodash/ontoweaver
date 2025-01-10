@@ -19,6 +19,7 @@ error_codes = {
 }
 
 def check_file(filename):
+    """Exit if the given filename does not exists or is not readable."""
     if not os.path.isfile(filename):
         logging.error(f"File `{filename}` not found.")
         sys.exit(error_codes["FileError"])
@@ -29,6 +30,7 @@ def check_file(filename):
 
 
 def config_directories(appname = "ontoweave"):
+    """Yield standard configuration directories (as defined by XDG under MocOS/Unix)."""
     os = platform.system()
     logging.debug(f"Detected OS: {os}")
 
@@ -53,15 +55,29 @@ def config_directories(appname = "ontoweave"):
 
 
 def config_paths(appname = "ontoweave"):
+    """Yield any path named <appname>.yaml in standard configuration directories."""
     dirs = config_directories()
     for p in dirs:
         yield str(p / (appname+".yaml"))
+
+
+def import_from_path(file_path):
+    """Import the given Python file path as a module."""
+    # See https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+    module_name = pathlib.Path(file_path).stem
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 if __name__ == "__main__":
     import jsonargparse
     import argparse
     import subprocess
+    import importlib
+    import inspect
 
     appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
@@ -97,6 +113,9 @@ if __name__ == "__main__":
     do.add_argument("-i", "--import-script-run", action="store_true",
         help=f"If passed {appname} will call the import scripts created by Biocypher for you.")
 
+    do.add_argument("-r", "--register", metavar="PYTHON_MODULE", nargs="*", default=[],
+        help="Register all transformers available in the given module.")
+
     do.add_argument("-S", "--prop-sep", metavar="CHARACTER", default = ";",
         help="The character used to separate property values fused in the same property at the reconciliation step. [default: %(default)s]")
 
@@ -116,16 +135,16 @@ if __name__ == "__main__":
 
     logger.info("OntoWeave parameters:")
 
-    logger.info(f"\tconfig files: {config_files}")
-    logger.info(f"\tconfig: `{asked.biocypher_config}`")
-    logger.info(f"\tschema: `{asked.biocypher_schema}`")
-    logger.info(f"\tprop-sep: `{asked.prop_sep}`")
-    logger.info(f"\ttype-affix: `{asked.type_affix}`")
-    logger.info(f"\ttype-affix-sep: `{asked.type_affix_sep}`")
-    logger.info(f"\timport-script-run: `{asked.import_script_run}`")
-    logger.info(f"\tlog-level: `{asked.log_level}`")
+    logger.info(f"    config files: {config_files}")
+    logger.info(f"    config: `{asked.biocypher_config}`")
+    logger.info(f"    schema: `{asked.biocypher_schema}`")
+    logger.info(f"    prop-sep: `{asked.prop_sep}`")
+    logger.info(f"    type-affix: `{asked.type_affix}`")
+    logger.info(f"    type-affix-sep: `{asked.type_affix_sep}`")
+    logger.info(f"    import-script-run: `{asked.import_script_run}`")
+    logger.info(f"    log-level: `{asked.log_level}`")
 
-    logger.info(f"\tasked mappings: `{asked.mapping}`")
+    logger.info(f"    asked mappings: `{asked.mapping}`")
     asked_mapping = []
     if asked.mapping == ["STDIN"]:
         while True:
@@ -141,7 +160,7 @@ if __name__ == "__main__":
     else:
         asked_mapping = asked.mapping
 
-    logger.info(f"\tparsed mappings:")
+    logger.info(f"    parsed mappings:")
     mappings = {}
     for data_map in asked_mapping:
         if ":" not in data_map:
@@ -150,13 +169,28 @@ if __name__ == "__main__":
             sys.exit(error_codes["ConfigError"])
         data,map = data_map.split(":")
         mappings[data] = map
-        logger.info(f"\t\t`{data}` => `{map}`")
+        logger.info(f"    `{data}` => `{map}`")
 
     if asked.parallel == "auto":
         parallel = min(32, (os.process_cpu_count() or 1) + 4)
     else:
         parallel = int(asked.parallel)
-    logger.info(f"\tparallel: `{asked.parallel}`")
+    logger.info(f"    parallel: `{asked.parallel}`")
+
+    # Late import to avoid useless Biocypher's logs when asking for --help.
+    import ontoweaver
+
+    # Register all transformers existing in the given modules.
+    for mpath in asked.register:
+        check_file(mpath)
+        logger.info(f"Look for transformers in `{mpath}`")
+        mod = import_from_path(mpath)
+        for name,cls in mod.__dict__.items():
+            if inspect.isclass(cls):
+                logger.debug(f"{cls}")
+                if issubclass(cls, ontoweaver.base.Transformer):
+                    logger.info(f"    Register transformer: `{cls}`")
+                    ontoweaver.transformer.register(cls)
 
     # Double check file inputs and exit on according errors.
     check_file(asked.biocypher_config)
@@ -165,9 +199,6 @@ if __name__ == "__main__":
         data_file, map_file = file_map.split(":")
         check_file(data_file)
         check_file(map_file)
-
-    # Late import to avoid useless Biocypher's logs when asking for --help.
-    import ontoweaver
 
     logger.info(f"Running OntoWeaver...")
     try:
