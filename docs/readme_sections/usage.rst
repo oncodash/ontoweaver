@@ -50,7 +50,7 @@ or you can capture the import script path and run it yourself:
 
 .. code:: sh
 
-   script=$(ontoweave my_data.csv:my_mapping.yaml) # Capture.
+   script="$(ontoweave my_data.csv:my_mapping.yaml)" # Capture.
    $script # Run.
 
 You will find more options by running the help command:
