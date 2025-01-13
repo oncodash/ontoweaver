@@ -11,7 +11,7 @@ OntoWeaver allows writing a simple declarative mapping to express how
 columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
 converted as typed nodes or edges in an SKG.
 
-|image1|
+|OntoWeaver logo|
 
 It provides a simple layer of abstraction on top of
 `Biocypher <https://biocypher.org>`__, which remains responsible for
@@ -1092,4 +1092,4 @@ If you need to decide how to fuse whole *sets* of duplicated nodes (for
 instance if you need to know all duplicated nodes before deciding which
 type to set), implement a ``fusion.Fusioner`` directly.
 
-.. |image1| image:: docs/OntoWeaver_logo__big.svg
+.. |OntoWeaver logo| image:: docs/OntoWeaver_logo__big.svg
