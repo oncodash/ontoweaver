@@ -4,6 +4,7 @@ import biocypher
 import yaml
 import pandas as pd
 
+from test import adapter
 from . import base
 Node = base.Node
 Edge = base.Edge
@@ -45,6 +46,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
    """
     nodes = []
     edges = []
+    adapter = None
 
     if filename_to_mapping:
 
@@ -59,9 +61,6 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
                                             separator=affix_separator)
 
-            nodes += adapter.nodes
-            edges += adapter.edges
-
     if dataframe_to_mapping:
 
         assert(type(dataframe_to_mapping) == dict) # data_frame => yaml_object
@@ -71,8 +70,9 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             adapter = tabular.extract_table(data_frame, yaml_object, parallel_mapping=parallel_mapping, affix=affix,
                                             separator=affix_separator)
 
-            nodes += adapter.nodes
-            edges += adapter.edges
+    if adapter:
+        nodes += adapter.nodes
+        edges += adapter.edges
 
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
@@ -107,6 +107,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
 
     nodes = []
     edges = []
+    adapter = None
 
     if filename_to_mapping:
 
@@ -121,8 +122,6 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
             adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
                                             separator=affix_separator)
 
-            nodes += adapter.nodes
-            edges += adapter.edges
 
     if dataframe_to_mapping:
 
@@ -133,8 +132,9 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
             adapter = tabular.extract_table(data_frame, yaml_object, parallel_mapping=parallel_mapping, affix=affix,
                                             separator=affix_separator)
 
-            nodes += adapter.nodes
-            edges += adapter.edges
+    if adapter:
+        nodes += adapter.nodes
+        edges += adapter.edges
 
     return nodes, edges
 
