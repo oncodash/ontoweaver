@@ -4,7 +4,6 @@ import biocypher
 import yaml
 import pandas as pd
 
-from test import adapter
 from . import base
 Node = base.Node
 Edge = base.Edge
