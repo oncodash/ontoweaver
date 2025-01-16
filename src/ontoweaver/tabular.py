@@ -7,13 +7,17 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
+import yaml
 
 import pandas as pd
+import pandera as pa
+from numpy.ma.core import set_fill_value
 
 from . import base
 from . import types
 from . import transformer
 from . import exceptions
+from . import validate
 
 class MetaEnum(EnumMeta):
     """
@@ -70,6 +74,7 @@ class PandasAdapter(base.Adapter):
                  subject_transformer: base.Transformer,
                  transformers: Iterable[base.Transformer],
                  metadata: Optional[dict] = None,
+                 validator: Optional[validate.InputValidator] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  parallel_mapping: int = 0,
@@ -98,6 +103,8 @@ class PandasAdapter(base.Adapter):
         logging.info("\n" + str(df))
         self.df = df
 
+        self.validator = validator
+
         if not type_affix in TypeAffixes:
             raise ValueError(f"`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})")
         else:
@@ -108,6 +115,7 @@ class PandasAdapter(base.Adapter):
         self.subject_transformer = subject_transformer
         self.transformers = transformers
         self.metadata = metadata
+        self.schema = validator
         # logging.debug(self.properties_of)
         self.parallel_mapping = parallel_mapping
 
@@ -246,7 +254,6 @@ class PandasAdapter(base.Adapter):
             The created edge.
         """
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
-
 
     def run(self):
         """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
@@ -436,6 +443,7 @@ def extract_all(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = t
     return adapter
 
 
+
 class Declare(base.ErrorManager):
     """
     Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
@@ -574,7 +582,6 @@ class Declare(base.ErrorManager):
         else:
             # logging.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
-
 
 class YamlParser(Declare):
     """
@@ -730,6 +737,7 @@ class YamlParser(Declare):
         k_transformer = ["transformers"]
         k_metadata = ["metadata"]
         k_metadata_column = ["add_source_column_names_as"]
+        k_validate = ["validate"]
 
         transformers_list = self.get(k_transformer)
 
@@ -870,9 +878,14 @@ class YamlParser(Declare):
                         if extracted_metadata:
                             metadata.update(extracted_metadata)
 
+        # Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
+        validation_rules = self.get(k_validate)
+        yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
+        validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
+
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
         logging.debug(f"transformers: {transformers}")
         logging.debug(f"metadata: {metadata}")
-        return subject_transformer, transformers, metadata
+        return subject_transformer, transformers, metadata, validate.InputValidator(validation_schema)
 
