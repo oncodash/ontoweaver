@@ -5,6 +5,29 @@ import pandas as pd
 
 from . import base
 from. import exceptions
+from . import validate
+
+# TODO add return function instead of writing validation at each yielding point of each transformer.
+
+# def validate_and_return(return_value: str, output_validator: validate.OutputValidator):
+#     """
+#     Validate the return value against the output validator schema.
+#
+#     Args:
+#         return_value: The return value of the transformer to validate.
+#         output_validator: The OutputValidator object used for validating transformer output.
+#
+#     Returns:
+#         str: The return value if valid.
+#
+#     Raises:
+#         Warning: If the return value is invalid.
+#     """
+#     if output_validator(pd.DataFrame([return_value], columns=["cell_value"])):
+#         return return_value
+#     else:
+#         logging.warning(f"Encountered invalid content in transformer output. Skipping cell value: `{return_value}`")
+
 
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
@@ -45,7 +68,7 @@ class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Initialize the split transformer.
 
@@ -55,8 +78,9 @@ class split(base.Transformer):
             edge: The edge type (optional).
             columns: The columns to be processed.
             sep: Character(s) to use for splitting.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -70,11 +94,10 @@ class split(base.Transformer):
             str: Each split item from the cell value.
         """
         for key in self.columns:
-            if self.valid(row[key]):
-                assert(type(row[key]) == str)
+            if self.output_validator(pd.DataFrame([row[key]], columns=["cell_value"])):
                 items = row[key].split(self.separator)
                 for item in items:
-                    if self.valid(item):
+                    if self.output_validator(pd.DataFrame([str(item)], columns=["cell_value"])):
                         yield str(item)
                     else:
                         logging.warning(
@@ -87,7 +110,7 @@ class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Initialize the cat transformer.
 
@@ -96,8 +119,9 @@ class cat(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -113,7 +137,7 @@ class cat(base.Transformer):
         formatted_items = ""
 
         for key in self.columns:
-            if self.valid(row[key]):
+            if self.output_validator(pd.DataFrame([str(row[key])], columns=["cell_value"])):
                 formatted_items += str(row[key])
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `cat` transformer. Skipping cell value: `{row[key]}`")
@@ -125,7 +149,7 @@ class cat_format(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Initialize the cat_format transformer.
 
@@ -135,8 +159,9 @@ class cat_format(base.Transformer):
             edge: The edge type (optional).
             columns: The columns to be processed.
             format_string: A format string containing the column names to assemble.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -155,7 +180,7 @@ class cat_format(base.Transformer):
         if self.format_string:
             for column_name in self.columns:
                 column_value = row.get(column_name, '')
-                if self.valid(column_value):
+                if self.output_validator(pd.DataFrame([str(column_value)], columns=["cell_value"])):
                     continue
                 else:
                     logging.warning(
@@ -172,7 +197,7 @@ class cat_format(base.Transformer):
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Initialize the rowIndex transformer.
 
@@ -181,8 +206,9 @@ class rowIndex(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -198,7 +224,7 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        if self.valid(i):
+        if self.output_validator(pd.DataFrame([str(i)], columns=["cell_value"])):
             yield str(i)
         else:
             logging.warning(f"Encountered invalid content while mapping by row index in line: {i}. Skipping cell value: `{i}`")
@@ -208,7 +234,7 @@ class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Initialize the map transformer.
 
@@ -217,8 +243,9 @@ class map(base.Transformer):
             properties_of: Properties of the node.
             edge: The edge type (optional).
             columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -240,7 +267,7 @@ class map(base.Transformer):
         for key in self.columns:
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
-            if self.valid(row[key]):
+            if self.output_validator(pd.DataFrame([str(row[key])], columns=["cell_value"])):
                 yield str(row[key])
             else:
                 logging.warning(
@@ -250,7 +277,7 @@ class map(base.Transformer):
 class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Constructor.
 
@@ -265,10 +292,11 @@ class translate(base.Transformer):
             translations_file: A filename pointing to a tabular file readable by Pandas' csv_read.
             translate_from: The column in the file containing what to replace.
             translate_to: The column in the file containing the replacement string.
+            output_validator: the OutputValidator object used for validating transformer output.
             kwargs: Additional arguments to pass to Pandas' read_csv (if "sep=TAB", reads the translations_file as tab-separated).
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
-        self.map = map(target, properties_of, edge, columns)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
+        self.map = map(target, properties_of, edge, columns, output_validator)
 
         # Since we cannot expand kwargs, let's recover what we have inside.
         translations = kwargs.get("translations", None)
@@ -363,7 +391,7 @@ class translate(base.Transformer):
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Constructor.
 
@@ -373,8 +401,9 @@ class string(base.Transformer):
             edge: The edge type (optional).
             columns: The columns to be processed.
             value: The string to use.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
         self.value = kwargs.get("value", None)
 
     def __call__(self, row, i):
@@ -394,7 +423,7 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        if self.valid(self.value):
+        if self.output_validator(pd.DataFrame([str(self.value)], columns=["cell_value"])):
             yield str(self.value)
         else:
             self.error(f"Value `{self.value}` is invalid.", section="string.call", exception = exceptions.TransformerInputError)
@@ -406,7 +435,7 @@ class replace(base.Transformer):
      character or removed entirely. In case the cell value is made up of only forbidden characters, the node is not
      created and a warning is logged."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, **kwargs):
         """
         Constructor.
 
@@ -417,8 +446,9 @@ class replace(base.Transformer):
             columns: The columns to be processed.
             forbidden: The regular expression pattern to match forbidden characters.
             substitute: The string to replace forbidden characters with.
+            output_validator: the OutputValidator object used for validating transformer output.
         """
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
         self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
         # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
         self.substitute = kwargs.get("substitute", "")
@@ -441,7 +471,7 @@ class replace(base.Transformer):
             logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
-            if strip_formatted and self.valid(strip_formatted):
+            if strip_formatted and self.output_validator(pd.DataFrame([str(strip_formatted)], columns=["cell_value"])):
                 yield str(strip_formatted)
             else:
                 logging.warning(
