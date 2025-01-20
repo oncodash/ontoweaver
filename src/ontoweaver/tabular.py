@@ -791,7 +791,14 @@ class YamlParser(Declare):
                         assert(type(column_names) == str)
                         column_names = [column_names]
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, **gen_data)
+
+                    # Parse the validation rules for the output of the property transformer.
+                    p_output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                    p_yaml_output_validation_rules = yaml.dump(p_output_validation_rules, default_flow_style=False)
+                    p_output_validator = validate.OutputValidator()
+                    p_output_validator.update_rules(pa.DataFrameSchema.from_yaml(p_yaml_output_validation_rules))
+
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, output_validator=p_output_validator, **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
