@@ -1,8 +1,10 @@
+import logging
 from typing import Tuple
 
 import biocypher
 import yaml
 import pandas as pd
+import pandera as pa
 
 from . import base
 Node = base.Node
@@ -136,3 +138,37 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     import_file = bc.write_import_call()
 
     return import_file
+
+def validate_only(data_mappings: dict):
+    """
+    Validates the data files based on provided mapping configuration.
+
+    Args:
+        data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+
+    Returns:
+        bool: True if the data is valid, False otherwise.
+    """
+
+    for data_file, mapping_file in data_mappings.items():
+        table = pd.read_csv(data_file)
+
+        with open(mapping_file) as fd:
+            yaml_mapping = yaml.full_load(fd)
+
+        parser = tabular.YamlParser(yaml_mapping, types)
+        mapping = parser()
+
+        adapter = tabular.PandasAdapter(
+            table,
+            *mapping,
+        )
+
+        if adapter:
+            try:
+                adapter.validator(table)
+                return True
+            except pa.errors.SchemaErrors as exc:
+                logging.info(exc.failure_cases)
+                return False
+
