@@ -549,7 +549,7 @@ class Declare(base.ErrorManager):
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, **kwargs):
+    def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, output_validator=None, **kwargs):
         """
         Create a transformer class with the given parameters.
 
@@ -559,6 +559,7 @@ class Declare(base.ErrorManager):
             properties: The properties of the transformer.
             edge: The edge type of the transformer.
             columns: The columns to be processed by the transformer.
+            output_validator: validate.OutputValidator instance for transformer output validation.
             **kwargs: Additional keyword arguments.
 
         Returns:
@@ -578,7 +579,7 @@ class Declare(base.ErrorManager):
                 else:
                     nt = "."
                 logging.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, **kwargs)
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, **kwargs)
         else:
             # logging.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -738,6 +739,7 @@ class YamlParser(Declare):
         k_metadata = ["metadata"]
         k_metadata_column = ["add_source_column_names_as"]
         k_validate = ["validate"]
+        k_validate_output = ["validate_output"]
 
         transformers_list = self.get(k_transformer)
 
@@ -754,6 +756,12 @@ class YamlParser(Declare):
             subject_columns = [subject_columns]
         logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
                       f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
+
+        # Parse the validation rules for the output of the subject transformer.
+        s_output_validation_rules = self.get(k_validate_output, subject_dict[subject_transformer_class])
+        s_yaml_output_validation_rules = yaml.dump(s_output_validation_rules, default_flow_style=False)
+        s_output_validator = validate.OutputValidator()
+        s_output_validator.update_rules(pa.DataFrameSchema.from_yaml(s_yaml_output_validation_rules))
 
         # Then, parse property mappings.
         logging.debug(f"Parse properties...")
@@ -798,7 +806,7 @@ class YamlParser(Declare):
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
-            node_type=source_t, properties=properties_of.get(subject_type, {}), **subject_kwargs)
+            node_type=source_t, properties=properties_of.get(subject_type, {}), output_validator=s_output_validator, **subject_kwargs)
         logging.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
@@ -861,10 +869,16 @@ class YamlParser(Declare):
                             logging.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
+                        # Parse the validation rules for the output of the transformer.
+                        output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                        yaml_output_validation_rules = yaml.dump(output_validation_rules, default_flow_style=False)
+                        output_validator = validate.OutputValidator()
+                        output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
+
                         logging.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=target_t,
-                            properties=properties_of.get(target, {}), edge=edge_t, columns=columns, **gen_data))
+                            properties=properties_of.get(target, {}), edge=edge_t, columns=columns, output_validator=output_validator, **gen_data))
                         logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
