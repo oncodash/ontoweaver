@@ -168,7 +168,7 @@ def validate_only(data_mappings: dict):
             adapter.validator(table)
             return True
         except pa.errors.SchemaErrors as exc:
-            logging.info(f"Validation failed for {exc.failure_cases}.")
+            logging.error(f"Validation failed for {exc.failure_cases}.")
             return False
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
