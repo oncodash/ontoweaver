@@ -1,0 +1,52 @@
+row:
+   rowIndex:
+      to_subject: variant
+      validate_output:
+          columns:
+              cell_value:
+                dtype: str
+                checks:
+                    isin:
+                        value:
+                            - '0'
+                            - '1'
+                            - '2'
+                            - '3'
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+        validate_output:
+            columns:
+                cell_value:
+                    dtype: str
+                    checks:
+                        isin:
+                            value:
+                                - A
+                                - B
+                                - C
+validate:
+  columns:
+    variant_id:
+      dtype: int64
+      checks:
+        in_range:
+          min_value: 0
+          max_value: 3
+          include_min: true
+          include_max: true
+    patient:
+      dtype: str
+      checks:
+        isin:
+          value:
+            - A
+            - B
+            - C
+
+
+
+
