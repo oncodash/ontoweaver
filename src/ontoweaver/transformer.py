@@ -7,6 +7,19 @@ from . import base
 from. import exceptions
 from . import validate
 
+def valid(extracted_value, output_validator):
+    """
+    Validate the extracted value using the output validator.
+
+    Args:
+        extracted_value: The extracted value to be validated.
+        output_validator: The output validator of the transformer.
+
+    Returns:
+        bool: True if the extracted value is valid, False otherwise.
+    """
+    return output_validator(pd.DataFrame([str(extracted_value)], columns=["cell_value"]))
+
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
 
@@ -72,10 +85,10 @@ class split(base.Transformer):
             str: Each split item from the cell value.
         """
         for key in self.columns:
-            if self.output_validator(pd.DataFrame([row[key]], columns=["cell_value"])):
+            if valid(row[key], self.output_validator):
                 items = row[key].split(self.separator)
                 for item in items:
-                    if self.output_validator(pd.DataFrame([str(item)], columns=["cell_value"])):
+                    if valid(item, self.output_validator):
                         yield str(item)
                     else:
                         logging.warning(
@@ -115,7 +128,7 @@ class cat(base.Transformer):
         formatted_items = ""
 
         for key in self.columns:
-            if self.output_validator(pd.DataFrame([str(row[key])], columns=["cell_value"])):
+            if valid(row[key], self.output_validator):
                 formatted_items += str(row[key])
             else:
                 logging.warning(f"Encountered invalid content when mapping column: `{key}`, line: {i}, in `cat` transformer. Skipping cell value: `{row[key]}`")
@@ -158,7 +171,7 @@ class cat_format(base.Transformer):
         if self.format_string:
             for column_name in self.columns:
                 column_value = row.get(column_name, '')
-                if self.output_validator(pd.DataFrame([str(column_value)], columns=["cell_value"])):
+                if valid(column_value, self.output_validator):
                     continue
                 else:
                     logging.warning(
@@ -202,7 +215,7 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        if self.output_validator(pd.DataFrame([str(i)], columns=["cell_value"])):
+        if valid(i, self.output_validator):
             yield str(i)
         else:
             logging.warning(f"Encountered invalid content while mapping by row index in line: {i}. Skipping cell value: `{i}`")
@@ -245,7 +258,7 @@ class map(base.Transformer):
         for key in self.columns:
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
-            if self.output_validator(pd.DataFrame([str(row[key])], columns=["cell_value"])):
+            if valid(row[key], self.output_validator):
                 yield str(row[key])
             else:
                 logging.warning(
@@ -401,7 +414,7 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        if self.output_validator(pd.DataFrame([str(self.value)], columns=["cell_value"])):
+        if valid(self.value, self.output_validator):
             yield str(self.value)
         else:
             self.error(f"Value `{self.value}` is invalid.", section="string.call", exception = exceptions.TransformerInputError)
@@ -449,7 +462,7 @@ class replace(base.Transformer):
             logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
-            if strip_formatted and self.output_validator(pd.DataFrame([str(strip_formatted)], columns=["cell_value"])):
+            if strip_formatted and valid(strip_formatted, self.output_validator):
                 yield str(strip_formatted)
             else:
                 logging.warning(

@@ -2,7 +2,7 @@ import logging
 import subprocess
 import os
 
-def test_ontoweave():
+def test_validate_input():
     logging.basicConfig(level=logging.DEBUG)
 
     logging.debug(f"From: {os.getcwd()}")
@@ -20,4 +20,4 @@ def test_ontoweave():
         raise Exception(f"Test failed: Expected exit code 76 but got {result.returncode}.")
 
 if __name__ == "__main__":
-    test_ontoweave()
+    test_validate_input()
