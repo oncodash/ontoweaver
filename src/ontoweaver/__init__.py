@@ -139,18 +139,20 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
 
     return import_file
 
-def validate_only(data_mappings: dict):
+def validate_input_data(filename_to_mapping: dict):
     """
-    Validates the data files based on provided mapping configuration.
+    Validates the data files based on provided rules in configuration.
 
     Args:
-        data_mappings (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them
+        filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file.
 
     Returns:
         bool: True if the data is valid, False otherwise.
     """
 
-    for data_file, mapping_file in data_mappings.items():
+    assert(type(filename_to_mapping) == dict) # data_file => mapping_file
+
+    for data_file, mapping_file in filename_to_mapping.items():
         table = pd.read_csv(data_file)
 
         with open(mapping_file) as fd:
@@ -166,6 +168,41 @@ def validate_only(data_mappings: dict):
 
         try:
             adapter.validator(table)
+            return True
+        except pa.errors.SchemaErrors as exc:
+            logging.error(f"Validation failed for {exc.failure_cases}.")
+            return False
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+            return False
+
+
+def validate_input_data_loaded(dataframe_to_mapping: dict):
+    """
+    Validates the data files based on provided rules in configuration.
+
+    Args:
+         dataframe_to_mapping (dict): a dictionary mapping data frame to the OntoWeaver mapping yaml file.
+
+    Returns:
+        bool: True if the data is valid, False otherwise.
+    """
+
+
+    assert (type(dataframe_to_mapping) == dict)  # data_frame => yaml_object
+
+    for data_frame, yaml_object in dataframe_to_mapping.items():
+
+        parser = tabular.YamlParser(yaml_object, types)
+        mapping = parser()
+
+        adapter = tabular.PandasAdapter(
+            data_frame,
+            *mapping,
+        )
+
+        try:
+            adapter.validator(data_frame)
             return True
         except pa.errors.SchemaErrors as exc:
             logging.error(f"Validation failed for {exc.failure_cases}.")

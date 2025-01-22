@@ -63,22 +63,6 @@ class InputValidator(Validator):
         super().__call__(df)
 
 
-def valid(val):
-    """Check if a value is valid.
-    Args:
-        val: The value to check.
-    """
-    
-    if pd.api.types.is_numeric_dtype(type(val)):
-        if (math.isnan(val) or val == float("nan")):
-            return False
-
-    elif str(val).lower() == "nan" or val == "":
-        return False
-
-    return True
-
-
 class OutputValidator(Validator):
     """Class used for transformer output data validation against a schema.
     The schema contains some general rules for the output data frame expected by default. The user can add additional rules
@@ -86,10 +70,20 @@ class OutputValidator(Validator):
 
     def __init__(self,
                 validation_rules: pa.DataFrameSchema = pa.DataFrameSchema({
-                "cell_value": Column(
-                    object,  # Use object to allow multiple types
-                    checks=Check(valid, element_wise=True, error="Invalid value found.")
-                )
+                    "cell_value": Column(
+                        pa.Object,
+                        checks=[
+                            Check(
+                                lambda s: (
+                                        s.apply(lambda x: pd.api.types.is_numeric_dtype(type(x)) and not pd.isna(x))
+                                        | s.apply(lambda x: not pd.api.types.is_numeric_dtype(type(x)) and str(
+                                    x).lower() != "nan" and x != "")
+                                ),
+                                error="Invalid value detected"
+                            )
+                        ],
+                        nullable=False
+                    )
             })):
         """Constructor for the OutputValidator class.
 
@@ -113,7 +107,8 @@ class OutputValidator(Validator):
             try:
                 self.validation_rules.validate(df)
                 return True
-            except:
+            except Exception as exc:
+                logging.error(f"Validation failed with error: {exc}")
                 return False
 
         else:

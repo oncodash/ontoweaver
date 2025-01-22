@@ -115,7 +115,6 @@ class PandasAdapter(base.Adapter):
         self.subject_transformer = subject_transformer
         self.transformers = transformers
         self.metadata = metadata
-        self.schema = validator
         # logging.debug(self.properties_of)
         self.parallel_mapping = parallel_mapping
 
@@ -902,11 +901,17 @@ class YamlParser(Declare):
         # Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
         validation_rules = self.get(k_validate)
         yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
-        validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
+        validator = None
+
+        try:
+            validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
+            validator = validate.InputValidator(validation_schema)
+        except Exception as e:
+            self.error(f"Failed to parse the input validation schema: {e}", exception = exceptions.ConfigError)
 
         logging.debug(f"source class: {source_t}")
         logging.debug(f"properties_of: {properties_of}")
         logging.debug(f"transformers: {transformers}")
         logging.debug(f"metadata: {metadata}")
-        return subject_transformer, transformers, metadata, validate.InputValidator(validation_schema)
+        return subject_transformer, transformers, metadata, validator
 

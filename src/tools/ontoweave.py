@@ -96,8 +96,6 @@ if __name__ == "__main__":
         logger = logger, # FIXME jsonargparse seems to override any later config of logging, this seems like a bug.
     )
 
-    #FIXME add --validate-only option and error code 0 for correct and if not 76
-
     do.add_argument("mapping", metavar="FILE:MAPPING", nargs="+",
         help=f"Run the given YAML MAPPING to extract data from the tabular FILE (usually a CSV). Several mappings can be passed to {appname}. You may also use the same mapping on different data files. If set to `STDIN`, will read the list of mappings from standard input.")
 
@@ -189,13 +187,12 @@ if __name__ == "__main__":
 
     # Validate the input data if asked.
     if asked.validate_only:
-        logger.setLevel("INFO")
         logger.info(f"Validating input data frame...")
-        if ontoweaver.validate_only(mappings):
+        if ontoweaver.validate_input_data(filename_to_mapping=mappings):
             logger.info(f"  Input data is valid according to provided rules.")
             sys.exit(0)
         else:
-            logger.info(f"  Input data is invalid according to provided rules.")
+            logger.error(f"  Input data is invalid according to provided rules.")
             sys.exit(error_codes["DataValidationError"])
 
     # Register all transformers existing in the given modules.

@@ -2,16 +2,13 @@ row:
    rowIndex:
       to_subject: variant
       validate_output:
-          columns:
-              cell_value:
-                dtype: str
-                checks:
-                    isin:
-                        value:
-                            - '0'
-                            - '1'
-                            - '2'
-                            - '3'
+              checks:
+                  isin:
+                      value:
+                          - '0'
+                          - '1'
+                          - '2'
+                          - '3'
 transformers:
     - map:
         columns:
@@ -19,15 +16,12 @@ transformers:
         to_object: patient
         via_relation: patient_has_variant
         validate_output:
-            columns:
-                cell_value:
-                    dtype: str
-                    checks:
-                        isin:
-                            value:
-                                - A
-                                - B
-                                - C
+                  checks:
+                      isin:
+                          value:
+                              - A
+                              - B
+                              - C
 validate:
   columns:
     variant_id:

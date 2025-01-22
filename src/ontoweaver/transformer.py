@@ -7,28 +7,6 @@ from . import base
 from. import exceptions
 from . import validate
 
-# TODO add return function instead of writing validation at each yielding point of each transformer.
-
-# def validate_and_return(return_value: str, output_validator: validate.OutputValidator):
-#     """
-#     Validate the return value against the output validator schema.
-#
-#     Args:
-#         return_value: The return value of the transformer to validate.
-#         output_validator: The OutputValidator object used for validating transformer output.
-#
-#     Returns:
-#         str: The return value if valid.
-#
-#     Raises:
-#         Warning: If the return value is invalid.
-#     """
-#     if output_validator(pd.DataFrame([return_value], columns=["cell_value"])):
-#         return return_value
-#     else:
-#         logging.warning(f"Encountered invalid content in transformer output. Skipping cell value: `{return_value}`")
-
-
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
 
