@@ -85,7 +85,8 @@ class OutputValidator(Validator):
                         nullable=False
                     )
             })):
-        """Constructor for the OutputValidator class.
+        """Constructor for the OutputValidator class. By default, the output validator is instantiated with a schema that
+        checks for numeric and non - numeric NaN values, and empty strings.
 
         Args:
             validation_rules: The schema used for validation.

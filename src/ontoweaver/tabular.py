@@ -875,7 +875,8 @@ class YamlParser(Declare):
                             logging.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
-                        # Parse the validation rules for the output of the transformer.
+                        # Parse the validation rules for the output of the transformer. Each transformer gets its own
+                        # instance of the OutputValidator with (at least) the default output validation rules.
                         output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
                         yaml_output_validation_rules = yaml.dump(output_validation_rules, default_flow_style=False)
                         output_validator = validate.OutputValidator()
