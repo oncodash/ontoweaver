@@ -8,7 +8,7 @@ OntoWeaver allows writing a simple declarative mapping to express how
 columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
 converted as typed nodes or edges in an SKG.
 
-|image1|
+|OntoWeaver logo|
 
 It provides a simple layer of abstraction on top of
 `Biocypher <https://biocypher.org>`__, which remains responsible for
@@ -40,4 +40,5 @@ looking like:
        - source: "My OntoWeaver adapter"
        - version: "v1.2.3"
 
-.. |image1| image:: docs/OntoWeaver_logo__big.svg
+
+.. |OntoWeaver logo| image:: docs/OntoWeaver_logo__big.svg
