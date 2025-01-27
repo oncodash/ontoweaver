@@ -150,7 +150,7 @@ options:
 
 .. code:: sh
 
-   ontoweave --config biocypher_config.yaml --schema schema_config.yaml data-1.1.csv:map-1.yaml data-1.2.csv:map-1.yaml data-A.csv:map-A.yaml
+   ontoweave --biocypher-config biocypher_config.yaml --biocypher-schema schema_config.yaml data-1.1.csv:map-1.yaml data-1.2.csv:map-1.yaml data-A.csv:map-A.yaml
 
 note that you can use the same mapping on several data files, and/or
 several mappings.
