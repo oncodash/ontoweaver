@@ -32,7 +32,7 @@ def test_translate_file():
     table = pd.read_csv(csv_file)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
+    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="none")
 
     assert(adapter)
     assert(adapter.nodes)

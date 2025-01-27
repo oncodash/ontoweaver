@@ -63,10 +63,10 @@ P2,V2-2,S3"""
 
 
     logging.debug("Run the plural adapter...")
-    plural_adapter = ontoweaver.tabular.extract_all(table, plural_map, affix="none")
+    plural_adapter = ontoweaver.tabular.extract_table(table, plural_map, affix="none")
 
     logging.debug("Run the singular adapter...")
-    singular_adapter = ontoweaver.tabular.extract_all(table, singular_map, affix="none")
+    singular_adapter = ontoweaver.tabular.extract_table(table, singular_map, affix="none")
 
     assert(list(plural_adapter.nodes) == list(singular_adapter.nodes))
     assert(list(plural_adapter.edges) == list(singular_adapter.edges))

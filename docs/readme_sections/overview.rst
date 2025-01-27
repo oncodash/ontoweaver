@@ -1,3 +1,5 @@
+Overview
+--------
 
 OntoWeaver is a tool for importing table data in Semantic Knowledge
 Graphs (SKG) databases.
@@ -5,6 +7,8 @@ Graphs (SKG) databases.
 OntoWeaver allows writing a simple declarative mapping to express how
 columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
 converted as typed nodes or edges in an SKG.
+
+|OntoWeaver logo|
 
 It provides a simple layer of abstraction on top of
 `Biocypher <https://biocypher.org>`__, which remains responsible for
@@ -35,3 +39,6 @@ looking like:
    metadata: # Optional properties added to every node and edge.
        - source: "My OntoWeaver adapter"
        - version: "v1.2.3"
+
+
+.. |OntoWeaver logo| image:: docs/OntoWeaver_logo__big.svg

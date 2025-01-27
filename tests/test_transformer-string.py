@@ -53,7 +53,7 @@ P2,V2-2,S3"""
     map = yaml.safe_load(mapping)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_all(table, map, affix="none")
+    adapter = ontoweaver.tabular.extract_table(table, map, affix="none")
 
     for node in adapter.nodes:
         assert(node[2]["something"] == "Whatever it is")

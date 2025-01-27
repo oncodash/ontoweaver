@@ -11,7 +11,7 @@ OntoWeaver allows writing a simple declarative mapping to express how
 columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
 converted as typed nodes or edges in an SKG.
 
-.. image:: docs/OntoWeaver_logo__big.svg
+|OntoWeaver logo|
 
 It provides a simple layer of abstraction on top of
 `Biocypher <https://biocypher.org>`__, which remains responsible for
@@ -128,74 +128,53 @@ populate the configured database. By default, the output script file is
 saved in a subdirectory of ``./biocypher-out/``, which name is a
 timestamp from when the adapter has been executed.
 
-To actually insert data in an SKG database, you will have to use
-Biocypher export API:
+To configure your data mapping, you will have to first define the
+mapping that you want to apply on your data. Then, you will need a
+BioCypher configuration file (which mainly indiciate your ontologoy and
+backend), and a schema configuration file (indicating which node and
+edge types you want).
 
-.. code:: python
+To actually do something, you need to run OntoWeaver mapping onto your
+data. We provide a command line interface to do so, called
+``ontoweave``.
 
-       import yaml
-       import pandas as pd
-       import biocypher
-       import ontoweaver
+If you use some default config file (usually ``biocypher_config.yaml``)
+and schema (usually ``schema_config.yaml``), the simplest call would be:
 
-       # Load ontology
-       bc = biocypher.BioCypher(
-           biocypher_config_path = "tests/simplest/biocypher_config.yaml",
-           schema_config_path = "tests/simplest/schema_config.yaml"
-       )
+.. code:: sh
 
-       # Load data
-       table = pd.read_csv("tests/simplest/data.csv")
+   ontoweave my_data.csv:my_mapping.yaml
 
-       # Load mapping
-       with open("tests/simplest/mapping.yaml") as fd:
-           mapping = yaml.full_load(fd)
+If you want to indicate your own configuration files, pass their name as
+options:
 
-       # Run the adapter
-       adapter = ontoweaver.tabular.extract_all(table, mapping)
+.. code:: sh
 
-       # Write nodes
-       bc.write_nodes( adapter.nodes )
+   ontoweave --biocypher-config biocypher_config.yaml --biocypher-schema schema_config.yaml data-1.1.csv:map-1.yaml data-1.2.csv:map-1.yaml data-A.csv:map-A.yaml
 
-       # Write edges
-       bc.write_edges( adapter.edges )
+note that you can use the same mapping on several data files, and/or
+several mappings.
 
-       # Write import script
-       bc.write_import_call()
+To actually insert data in an SKG database, you need to run the import
+files that are prepared by the previous command. Either you ask
+*ontoweave* to run it for you:
 
-       # Now you have a script that you can run to actually insert data.
+.. code:: sh
 
-Additionally, you will have to define a strategy for the naming of
-mapped items when creating nodes, by defining an ``affix`` and
-``separator`` to be used during node creation. The ``affix`` used will
-represent the ontology type of the item in question. Unless otherwise
-defined, the ``affix`` defaults to ``suffix`` and ``separator`` defaults
-to ``:``. This can be modified by changing the variables in the
-``extract_all()`` function. ``Affix`` can be either a ``prefix``,
-``suffix`` or ``none`` - in case you decide not to include the ontology
-type in the node naming strategy. Special care should be exercised in
-case there are several types of the same name in the database. There is
-a possibility that nodes of the same name will be merged together during
-mapping, so an ``affix`` should be present. Below are some examples of
-node naming strategies. ``NAME`` refers to the name of the item in
-question in your database, and ``TYPE`` refers to the type of the item
-in the ontology.
+   ontoweave my_data.csv:my_mapping.yaml --import-script-run
 
-.. code:: python
+or you can capture the import script path and run it yourself:
 
-   [...]
+.. code:: sh
 
-      # Affix defaults to "suffix", and separator defaults to ":"
-      # Node represented as [NAME]:[TYPE]
-      adapter = ontoweaver.tabular.extract_all(table, mapping)
+   script=$(ontoweave my_data.csv:my_mapping.yaml) # Capture.
+   $script # Run.
 
-      # Node represented as [TYPE]-[NAME]
-      adapter = ontoweaver.tabular.extract_all(table, mapping, affix = "prefix", separator = "-")
+You will find more options by running the help command:
 
-      # Node represented as [NAME]
-      adapter = ontoweaver.tabular.extract_all(table, mapping, affix = "none")
+.. code:: sh
 
-   [...]
+   ontoweave --help
 
 Mapping API
 -----------
@@ -205,9 +184,9 @@ of a mapping from a table to ontology types. As such, its core input is
 a dictionary, that takes the form of a YAML file. This configuration
 file indicates:
 
--  to which (node) type to map each line of the table,
--  to which (node) type to map columns of the table,
--  with which (edge) types to map relationships between nodes.
+- to which (node) type to map each line of the table,
+- to which (node) type to map columns of the table,
+- with which (edge) types to map relationships between nodes.
 
 The following explanations assume that you are familiar with
 `Biocypher’s
@@ -522,7 +501,7 @@ characters will be removed and substituted with an underscore, in case
 they are located inbetween allowed characters.
 
 By default, the transformer will allow alphanumeric characters (A-Z,
-a-z, 0-9), underscore (_), backtick (`), dot (.), and parentheses (),
+a-z, 0-9), underscore (\_), backtick (\`), dot (.), and parentheses (),
 and the substitute will be an empty string. If you wish to use the
 default settings, you can write:
 
@@ -637,13 +616,13 @@ the mapping configurations.
 
 Here is the list of available synonyms:
 
--  ``subject`` = ``row`` = ``entry`` = ``line`` = ``source``
--  ``column`` = ``columns`` = ``fields``
--  ``to_object`` = ``to_target`` = ``to_node``
--  ``from_subject`` = ``from_source``
--  ``via_relation`` = ``via_edge`` = ``via_predicate``
--  ``to_property`` = ``to_properties``
--  ``for_object`` = ``for_objects``
+- ``subject`` = ``row`` = ``entry`` = ``line`` = ``source``
+- ``column`` = ``columns`` = ``fields``
+- ``to_object`` = ``to_target`` = ``to_node``
+- ``from_subject`` = ``from_source``
+- ``via_relation`` = ``via_edge`` = ``via_predicate``
+- ``to_property`` = ``to_properties``
+- ``for_object`` = ``for_objects``
 
 How To
 ------
@@ -845,14 +824,14 @@ edges from the provided database, with the aim of reducing the runtime
 of the extraction process. By default, the parallel processing is
 disabled, and the data frame is processed in a sequential manner. To
 enable parallel processing, the user can pass the maximum number of
-workers to the ``extract_all`` function.
+workers to the ``extract_table`` function.
 
 For example, to enable parallel processing with 16 workers, the user can
 call the function as follows:
 
 .. code:: python
 
-   adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = 16)
+   adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = 16)
 
 To enable parallel processing with a good default working on any
 machine, you can use the `approach suggested by the concurrent
@@ -861,7 +840,7 @@ module <https://docs.python.org/3/library/concurrent.futures.html#concurrent.fut
 .. code:: python
 
    import os
-   adapter = ontoweaver.tabular.extract_all(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
+   adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping = min(32, (os.process_cpu_count() or 1) + 4))
 
 Information Fusion
 ------------------
@@ -896,8 +875,8 @@ edges:
 .. code:: python
 
    # Call the mappings:
-   adapter_A = ontoweaver.tabular.extract_all(input_table_A, mapping_A)
-   adapter_B = ontoweaver.tabular.extract_all(input_table_B, mapping_B)
+   adapter_A = ontoweaver.tabular.extract_table(input_table_A, mapping_A)
+   adapter_B = ontoweaver.tabular.extract_table(input_table_B, mapping_B)
 
    # Aggregate the nodes and edges:
    nodes = adapter_A.nodes + adapter_B.nodes
@@ -955,9 +934,9 @@ A node being composed of an identifier, a type label, and a properties
 dictionary, the ``serialize`` module provides function objects
 reflecting the useful combinations of those components:
 
--  ``ID`` (only the identifier)
--  ``IDLabel`` (the identifier and the type label)
--  ``All`` (the identifier, the type label, and the properties)
+- ``ID`` (only the identifier)
+- ``IDLabel`` (the identifier and the type label)
+- ``All`` (the identifier, the type label, and the properties)
 
 The user can instantiate those function objects, and pass them to the
 ``congregate`` module, to find which nodes are duplicates of each other.
@@ -974,27 +953,27 @@ For steps 2 to 4, OntoWeaver provides the ``merge`` module, which
 provides ways to merge two nodes’ components into a single one. It is
 separated into two submodules, depending on the type of the component:
 
--  ``string`` for components that are strings (i.e. identifier and type
-   label),
--  ``dictry`` for components that are dictionaries (i.e. properties).
+- ``string`` for components that are strings (i.e. identifier and type
+  label),
+- ``dictry`` for components that are dictionaries (i.e. properties).
 
 The ``string`` submodule provides:
 
--  ``UseKey``: replace the identifier with the serialization used at the
-   congregation step,
--  ``UseFirst``/``UseLast``: replace the type label with the first/last
-   one seen,
--  ``EnsureIdentical``: if two nodes’ components are not equal, raise an
-   error,
--  ``OrderedSet``: aggregate all the components of all the seen nodes
-   into a single, lexicographically ordered list (joined by a
-   user-defined separator).
+- ``UseKey``: replace the identifier with the serialization used at the
+  congregation step,
+- ``UseFirst``/``UseLast``: replace the type label with the first/last
+  one seen,
+- ``EnsureIdentical``: if two nodes’ components are not equal, raise an
+  error,
+- ``OrderedSet``: aggregate all the components of all the seen nodes
+  into a single, lexicographically ordered list (joined by a
+  user-defined separator).
 
 The ``dictry`` submodule provides:
 
--  ``Append``: merge all seen dictionaries in a single one, and
-   aggregate all the values of all the duplicated fields into a single
-   lexicographically ordered list (joined by a user-defined separator).
+- ``Append``: merge all seen dictionaries in a single one, and aggregate
+  all the values of all the duplicated fields into a single
+  lexicographically ordered list (joined by a user-defined separator).
 
 For example, to fuse “congregated” nodes, one can do:
 
@@ -1112,3 +1091,5 @@ deciding their type based on their properties), implement a
 If you need to decide how to fuse whole *sets* of duplicated nodes (for
 instance if you need to know all duplicated nodes before deciding which
 type to set), implement a ``fusion.Fusioner`` directly.
+
+.. |OntoWeaver logo| image:: docs/OntoWeaver_logo__big.svg

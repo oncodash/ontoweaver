@@ -31,7 +31,7 @@ def test_oncokb():
     logging.debug("Run the adapter...")
     from tests.oncokb import types
 
-    adapter = ontoweaver.tabular.extract_all(table, mapping)
+    adapter = ontoweaver.tabular.extract_table(table, mapping)
 
     assert (adapter)
 

@@ -29,7 +29,7 @@ def test_affix_separator():
 
     logging.debug("Run the adapter...")
 
-    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="prefix", separator="___")
+    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___")
 
     assert (adapter)
 

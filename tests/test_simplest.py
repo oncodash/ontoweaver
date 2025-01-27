@@ -27,7 +27,7 @@ def test_simplest():
 
     logging.debug("Run the adapter...")
 
-    adapter = ontoweaver.tabular.extract_all(table, mapping, affix="none")
+    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="none")
 
     assert (adapter)
 
