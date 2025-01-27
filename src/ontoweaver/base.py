@@ -509,11 +509,11 @@ class Transformer(ErrorManager):
         try:
             res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                yield res
+                return res
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
-            logging.error(msg)
-            raise exceptions.DataValidationError(msg)
+            self.error(msg, exception = exceptions.DataValidationError)
+            return False
 
 class All:
     """Gathers lists of subclasses of Element and their fields

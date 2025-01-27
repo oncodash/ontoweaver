@@ -74,11 +74,11 @@ class split(base.Transformer):
         for key in self.columns:
             items = str(row[key]).split(self.separator)
             for item in items:
-                gen =  self.create(item)
-                try:
-                    yield next(gen)
-                except StopIteration:
-                    pass
+                res = self.create(item)
+                if res:
+                    yield res
+                else:
+                    continue
 
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
@@ -112,11 +112,11 @@ class cat(base.Transformer):
 
         for key in self.columns:
             formatted_items += str(row[key])
-            gen = self.create(formatted_items)
-            try:
-                yield next(gen)
-            except StopIteration:
-                pass
+            res = self.create(formatted_items)
+            if res:
+                yield res
+            else:
+                continue
 
 
 class cat_format(base.Transformer):
@@ -153,10 +153,10 @@ class cat_format(base.Transformer):
         """
         if self.format_string:
             formatted_string = self.format_string.format_map(row)
-            gen = self.create(formatted_string)
-            try:
-                yield next(gen)
-            except StopIteration:
+            res = self.create(formatted_string)
+            if res:
+                yield res
+            else:
                 pass
 
         else:
@@ -193,10 +193,10 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        gen = self.create(i)
-        try:
-            yield next(gen)
-        except StopIteration:
+        res = self.create(i)
+        if res:
+            yield res
+        else:
             pass
 
 
@@ -237,11 +237,12 @@ class map(base.Transformer):
         for key in self.columns:
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
-            gen = self.create(row[key])
-            try:
-                yield next(gen)
-            except StopIteration:
-                pass
+            res = self.create(row[key])
+            if res:
+                yield res
+            else:
+                continue
+
 
 class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
@@ -392,11 +393,12 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        gen = self.create(self.value)
-        try:
-            yield next(gen)
-        except StopIteration:
+        res = self.create(self.value)
+        if res:
+            yield res
+        else:
             pass
+
 
 
 class replace(base.Transformer):
@@ -441,8 +443,9 @@ class replace(base.Transformer):
             logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
-            gen = self.create(strip_formatted)
-            try:
-                yield next(gen)
-            except StopIteration:
-                pass
+            logging.debug(f"Formatted value: {strip_formatted}")
+            res = self.create(strip_formatted)
+            if res:
+                yield res
+            else:
+                continue

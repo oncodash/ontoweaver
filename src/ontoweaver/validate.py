@@ -74,6 +74,9 @@ class OutputValidator(Validator):
                         pa.Object,
                         checks=[
                             Check(
+                                # We pass a lambda function which checks if the value is numeric or non-numeric NaN,
+                                # or an empty string. This is meant to be the default behavior of any instance of the
+                                # OutputValidator class.
                                 lambda s: (
                                         s.apply(lambda x: pd.api.types.is_numeric_dtype(type(x)) and not pd.isna(x))
                                         | s.apply(lambda x: not pd.api.types.is_numeric_dtype(type(x)) and str(
@@ -82,6 +85,8 @@ class OutputValidator(Validator):
                                 error="Invalid value detected"
                             )
                         ],
+
+                        # We additionally set that a cell value cannot be null.
                         nullable=False
                     )
             })):
@@ -109,7 +114,7 @@ class OutputValidator(Validator):
                 self.validation_rules.validate(df)
                 return True
             except Exception as exc:
-                logging.error(f"Validation failed with error: {exc}")
+                logging.error(f"Validation failed with error: {exc.failure_cases}." if issubclass(type(exc), pa.errors.SchemaErrors) else f"Validation failed with error: {exc}.")
                 return False
 
         else:

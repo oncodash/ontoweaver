@@ -131,7 +131,7 @@ if __name__ == "__main__":
         help="Configure the log level. [default: %(default)s]")
 
     do.add_argument("-v", "--validate-only", action="store_true",
-                    help="Only validate the given input data with mapping file configuration.")
+                    help="Only validate the given input data, do not apply the mapping.")
 
     asked = do.parse_args()
 
