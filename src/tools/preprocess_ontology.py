@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Pre-processing of ontologies in order to be compatible with the requirements of Biocypher.
 
@@ -19,11 +21,13 @@ Each element of bc_classes_mapping.json file is a json input with the folloging 
 
 '''
 import os
+import re
 import sys
 import owlready2 as owl
 import types
 import json
 import copy
+import io
 
 chars_to_be_removed = [' ', "%", "-"]
 chars_to_be_replaced = ["_"]
@@ -70,7 +74,8 @@ def to_bc_ontology(ontology_file, format="rdfxml", json_f=None):
         #print("Thing new label =", owl.Thing.label)
 
         for c in onto.classes():
-            #print(c)
+            # print(c, file=sys.stderr)
+            # print(dir(c), file=sys.stderr)
             old_labels = c.label
 
             # labels = [l for l in c.label]
@@ -112,7 +117,19 @@ def to_bc_ontology(ontology_file, format="rdfxml", json_f=None):
         with open(json_f, 'w') as fp:
             json.dump(translation_dict, fp, indent=4)
 
-    onto.save(sys.stdout.buffer, format)
+    # Save ontology file in a buffer.
+    by_io = io.BytesIO()
+    onto.save(by_io, format)
+
+    # Replace "<label…</label>" by "<rdfs:label</rdfs:label>"
+    # Because Biocypher needs rdfs:label, or else it does not found any class.
+    # Because OwlReady2 does not allow label with prefixes,
+    # we rely on regexp substitution.
+    by_str = by_io.getvalue()
+    text = by_str.decode("UTF-8")
+    text = re.sub(r"<label", "<rdfs:label", text)
+    text = re.sub(r"</label>", "</rdfs:label>", text)
+    sys.stdout.write(text)
 
 
 def update_initial_types_on_neo4j(type_mapping_file):
