@@ -1,13 +1,15 @@
 import logging
-import math
-import pandas as pd
 from collections.abc import Iterable, Generator
 from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
+import pandas as pd
+import pandera as pa
 
+from . import validate
 from . import serialize
+from . import exceptions
 
 # TODO? Strategy using a user defined __eq__ method, enabling a more flexible comparison of objects, but in O(n2).
 # class Comparer(metaclass=ABCMeta):
@@ -398,7 +400,7 @@ class Adapter(ErrorManager, metaclass = ABSTRACT):
 class Transformer(ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, **kwargs):
+    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator() = None, **kwargs):
         """
         Instantiate transformers.
 
@@ -406,6 +408,9 @@ class Transformer(ErrorManager):
         :param properties_of: the properties of each node type.
         :param edge: the edge type to use in the mapping.
         :param columns: the columns to use in the mapping.
+        :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
+        each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
+        the tabular module.
 
         """
 
@@ -413,6 +418,7 @@ class Transformer(ErrorManager):
         self.properties_of = properties_of
         self.edge = edge
         self.columns = columns
+        self.output_validator = output_validator
         self.parameters = kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -445,16 +451,6 @@ class Transformer(ErrorManager):
     @classmethod
     def source_type(cls):
        return cls.edge_type().source_type()
-
-    def valid(self, val):
-        if pd.api.types.is_numeric_dtype(type(val)):
-            if (math.isnan(val) or val == float("nan")):
-                return False
-
-        elif str(val).lower() == "nan" or val == "":
-            return False
-
-        return True
 
     def __repr__(self):
         if hasattr(self, "from_subject"):
@@ -507,6 +503,17 @@ class Transformer(ErrorManager):
                 raise ValueError(f"Column `{c}` is not a string, did you mistype a leading colon?")
 
         return f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>"
+
+    def create(self, item):
+
+        try:
+            res = str(item)
+            if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
+                return res
+        except pa.errors.SchemaErrors as error:
+            msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
+            self.error(msg, exception = exceptions.DataValidationError)
+            return False
 
 class All:
     """Gathers lists of subclasses of Element and their fields

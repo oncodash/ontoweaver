@@ -5,7 +5,6 @@ class OntoWeaverError(Exception):
 class ConfigError(OntoWeaverError):
     pass
 
-
 class RunError(OntoWeaverError):
     pass
 
@@ -21,6 +20,8 @@ class TransformerInterfaceError(TransformerError):
 class TransformerDataError(TransformerError):
     pass
 
+class DataValidationError(TransformerError):
+    pass
 
 class ParsingError(OntoWeaverError):
     pass

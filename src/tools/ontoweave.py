@@ -10,6 +10,7 @@ import xdg_base_dirs as xdg
 error_codes = {
     "ParsingError"    :  65, # "data format"
     "RunError"        :  70, # "internal"
+    "DataValidationError": 76,  # "protocol"
     "ConfigError"     :  78, # "bad config"
     "CannotAccessFile": 126, # "no perm"
     "FileError"       : 127, # "not found"
@@ -129,6 +130,9 @@ if __name__ == "__main__":
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help="Configure the log level. [default: %(default)s]")
 
+    do.add_argument("-v", "--validate-only", action="store_true",
+                    help="Only validate the given input data, do not apply the mapping.")
+
     asked = do.parse_args()
 
     logger.setLevel(asked.log_level)
@@ -146,6 +150,7 @@ if __name__ == "__main__":
 
     logger.info(f"    asked mappings: `{asked.mapping}`")
     asked_mapping = []
+
     if asked.mapping == ["STDIN"]:
         while True:
             try:
@@ -179,6 +184,16 @@ if __name__ == "__main__":
 
     # Late import to avoid useless Biocypher's logs when asking for --help.
     import ontoweaver
+
+    # Validate the input data if asked.
+    if asked.validate_only:
+        logger.info(f"Validating input data frame...")
+        if ontoweaver.validate_input_data(filename_to_mapping=mappings):
+            logger.info(f"  Input data is valid according to provided rules.")
+            sys.exit(0)
+        else:
+            logger.error(f"  Input data is invalid according to provided rules.")
+            sys.exit(error_codes["DataValidationError"])
 
     # Register all transformers existing in the given modules.
     for mpath in asked.register:
@@ -232,5 +247,6 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(e)
             sys.exit(error_codes["SubprocessError"])
+
 
     logger.info("Done")

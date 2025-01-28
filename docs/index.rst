@@ -16,5 +16,6 @@ Overview
    How to <./readme_sections/how_to.rst>
    Parallel Processing <./readme_sections/parallel_processing.rst>
    Information Fusion <./readme_sections/information_fusion.rst>
+   Data Validation <./readme_sections/data_validation.rst>
    ontoweaver
    tools
