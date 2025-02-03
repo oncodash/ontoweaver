@@ -1,4 +1,3 @@
-import sys
 import math
 import yaml
 import logging
@@ -218,7 +217,7 @@ class PandasAdapter(base.Adapter):
 
         for prop_transformer, property_name in properity_dict.items():
             self.property_transformers.append(prop_transformer)
-            for property in prop_transformer(row, i):
+            for property, none_node, none_edge in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
 
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
@@ -292,15 +291,16 @@ class PandasAdapter(base.Adapter):
             local_rows += 1
             # There can be only one subject, so transformers yielding multiple IDs cannot be used.
             logger.debug("\tCreate subject node:")
-            ids = list(self.subject_transformer(row, i))
-            if (len(ids) > 1):
-                local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. Subject Transformer `{self.subject_transformer}` produced multiple IDs: {ids}", indent=2, exception = exceptions.TransformerInterfaceError))
-            source_id = ids[0]
-            source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
+            subject_generator_list = list(self.subject_transformer(row, i))
+            if (len(subject_generator_list) > 1):
+                local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. Subject Transformer `{self.subject_transformer}` produced multiple IDs: {subject_generator_list}", indent=2, exception = exceptions.TransformerInterfaceError))
+
+            source_id, subject_edge, subject_node = subject_generator_list[0]
+            source_node_id = self.make_id(subject_node.__name__, source_id)
 
             if source_node_id:
                 logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
-                local_nodes.append(self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
+                local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
                                                   properties=self.properties(self.subject_transformer.properties_of,
                                                                              row, i, self.subject_transformer,
                                                                              node=True)))
@@ -312,12 +312,12 @@ class PandasAdapter(base.Adapter):
             for j,transformer in enumerate(self.transformers):
                 local_transformations += 1
                 logger.debug(f"\tCalling transformer: {transformer}...")
-                for target_id in transformer(row, i):
+                for target_id, target_edge, target_node in transformer(row, i):
                     local_nb_nodes += 1
-                    if target_id:
-                        target_node_id = self.make_id(transformer.target.__name__, target_id)
+                    if target_id and target_edge and target_node:
+                        target_node_id = self.make_id(target_node.__name__, target_id)
                         logger.debug(f"\t\tMake node {target_node_id}")
-                        local_nodes.append(self.make_node(node_t=transformer.target, id=target_node_id,
+                        local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
                                                           properties=self.properties(transformer.properties_of, row,
                                                                                      i, transformer, node=True)))
 
@@ -336,7 +336,7 @@ class PandasAdapter(base.Adapter):
                             for t in self.transformers:
                                 if transformer.from_subject == t.target.__name__:
                                     found_valid_subject = True
-                                    for s_id in t(row, i):
+                                    for s_id, s_edge, s_node in t(row, i):
                                         subject_id = s_id
                                         subject_node_id = self.make_id(t.target.__name__, subject_id)
                                         logger.debug(
@@ -357,8 +357,8 @@ class PandasAdapter(base.Adapter):
 
 
                         else: # no attribute `from_subject` in `transformer`
-                            logger.debug(f"\t\tMake edge {transformer.edge.__name__} from {source_node_id} toward {target_node_id}")
-                            local_edges.append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id,
+                            logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
+                            local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
                                                               id_source=source_node_id,
                                                               properties=self.properties(transformer.edge.fields(),
                                                                                          row, i, transformer)))
@@ -600,8 +600,7 @@ class Declare(errormanager.ErrorManager):
                 else:
                     nt = "."
                 logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-                logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, raise_errors = self.raise_errors, **kwargs)
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, **kwargs)
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)

@@ -80,7 +80,7 @@ class split(base.Transformer):
             for item in items:
                 res = self.create(item)
                 if res:
-                    yield res
+                    yield res, self.edge, self.target
                 else:
                     continue
 
@@ -119,7 +119,7 @@ class cat(base.Transformer):
             formatted_items += str(row[key])
             res = self.create(formatted_items)
             if res:
-                yield res
+                yield res, self.edge, self.target
             else:
                 continue
 
@@ -161,7 +161,7 @@ class cat_format(base.Transformer):
             formatted_string = self.format_string.format_map(row)
             res = self.create(formatted_string)
             if res:
-                yield res
+                yield res, self.edge, self.target
             else:
                 pass
 
@@ -202,7 +202,7 @@ class rowIndex(base.Transformer):
         """
         res = self.create(i)
         if res:
-            yield res
+            yield res, self.edge, self.target
         else:
             pass
 
@@ -247,7 +247,7 @@ class map(base.Transformer):
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
             res = self.create(row[key])
             if res:
-                yield res
+                yield res, self.edge, self.target
             else:
                 continue
 
@@ -365,7 +365,7 @@ class translate(base.Transformer):
                 logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
 
         for e in self.map(row, i):
-            yield e
+            yield e, self.edge, self.target
 
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
@@ -405,7 +405,7 @@ class string(base.Transformer):
 
         res = self.create(self.value)
         if res:
-            yield res
+            yield res, self.edge, self.target
         else:
             pass
 
@@ -457,6 +457,6 @@ class replace(base.Transformer):
             logger.debug(f"Formatted value: {strip_formatted}")
             res = self.create(strip_formatted)
             if res:
-                yield res
+                yield res, self.edge, self.target
             else:
                 continue
