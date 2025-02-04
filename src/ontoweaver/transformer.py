@@ -211,7 +211,7 @@ class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multy_type_branching = None, raise_errors = raise_errors, **kwargs):
         """
         Initialize the map transformer.
 
@@ -223,7 +223,7 @@ class map(base.Transformer):
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, raise_errors = raise_errors, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, multy_type_branching, raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -246,6 +246,7 @@ class map(base.Transformer):
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
             res = self.create(row[key])
+            self.edge, self.target = self.branch(self.multy_type_branching, res)
             if res:
                 yield res, self.edge, self.target
             else:

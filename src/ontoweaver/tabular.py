@@ -752,7 +752,7 @@ class YamlParser(Declare):
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
         k_subject_type = ["to_subject"]
-        k_columns = ["columns", "fields", "column"]
+        k_columns = ["columns", "fields", "column", "match_column"]
         k_target = ["to_target", "to_object", "to_node"]
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -887,6 +887,34 @@ class YamlParser(Declare):
                         gen_data['from_subject'] = gen_data['from_source']
                         del gen_data['from_source']
 
+                    multy_type_branching = {}
+
+                    if "branch_on_type" in gen_data:
+                        for entry in gen_data['branch_on_type']:
+                                for k, v in entry.items():
+                                    if isinstance(v, dict):
+                                        key = k
+                                        multy_type_branching[key] = {k1: v1 for k1, v1 in v.items()}
+                                        alt_target = self.get(k_target, v)
+                                        alt_target_t = self.make_node_class(alt_target,
+                                                                            properties_of.get(alt_target, {}))
+                                        alt_edge = self.get(k_edge, v)
+                                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
+                                                                          properties_of.get(alt_edge, {}))
+                                        multy_type_branching[key] = {
+                                            'to_object': alt_target_t,
+                                            'via_relation': alt_edge_t
+                                        }
+
+                        multy_type_branching.update(properties_of)
+
+                    # Parse the validation rules for the output of the transformer. Each transformer gets its own
+                    # instance of the OutputValidator with (at least) the default output validation rules.
+                    output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                    yaml_output_validation_rules = yaml.dump(output_validation_rules, default_flow_style=False)
+                    output_validator = validate.OutputValidator()
+                    output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
+
                     if target and edge:
                         logger.debug(f"\tDeclare node .target for `{target}`...")
                         target_t = self.make_node_class(target, properties_of.get(target, {}))
@@ -913,6 +941,11 @@ class YamlParser(Declare):
                         logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
+
+                    elif multy_type_branching and not target and not edge:
+                        transformers.append(self.make_transformer_class(
+                            transformer_type=transformer_type, node_type=None, columns=columns,  properties={},
+                            output_validator=output_validator, multy_type_branching=multy_type_branching, **gen_data))
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
