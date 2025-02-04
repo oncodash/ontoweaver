@@ -246,7 +246,8 @@ class map(base.Transformer):
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
             res = self.create(row[key])
-            self.edge, self.target = self.branch(self.multy_type_branching, res)
+            if self.multy_type_branching:
+                self.edge, self.target = self.branch(self.multy_type_branching, res)
             if res:
                 yield res, self.edge, self.target
             else:

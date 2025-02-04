@@ -887,7 +887,7 @@ class YamlParser(Declare):
                         gen_data['from_subject'] = gen_data['from_source']
                         del gen_data['from_source']
 
-                    multy_type_branching = {}
+                    multy_type_branching = None
 
                     if "branch_on_type" in gen_data:
                         for entry in gen_data['branch_on_type']:
