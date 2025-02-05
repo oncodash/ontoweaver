@@ -360,7 +360,7 @@ class PandasAdapter(base.Adapter):
                             logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
                             local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
                                                               id_source=source_node_id,
-                                                              properties=self.properties(transformer.edge.fields(),
+                                                              properties=self.properties(target_edge.fields(),
                                                                                          row, i, transformer)))
                     else:
                         local_errors.append(self.error(f"No valid target node identifier from {transformer} for {i}th row.", indent=2, section="transformers", index=j, exception = exceptions.TransformerDataError))
@@ -887,26 +887,27 @@ class YamlParser(Declare):
                         gen_data['from_subject'] = gen_data['from_source']
                         del gen_data['from_source']
 
-                    multy_type_branching = None
+                    multi_type_transformer = None
 
                     if "branch_on_type" in gen_data:
+                        multi_type_transformer = {}
                         for entry in gen_data['branch_on_type']:
                                 for k, v in entry.items():
                                     if isinstance(v, dict):
                                         key = k
-                                        multy_type_branching[key] = {k1: v1 for k1, v1 in v.items()}
+                                        multi_type_transformer[key] = {k1: v1 for k1, v1 in v.items()}
                                         alt_target = self.get(k_target, v)
                                         alt_target_t = self.make_node_class(alt_target,
                                                                             properties_of.get(alt_target, {}))
                                         alt_edge = self.get(k_edge, v)
                                         alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
                                                                           properties_of.get(alt_edge, {}))
-                                        multy_type_branching[key] = {
+                                        multi_type_transformer[key] = {
                                             'to_object': alt_target_t,
                                             'via_relation': alt_edge_t
                                         }
 
-                        multy_type_branching.update(properties_of)
+                        multi_type_transformer.update(properties_of)
 
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
@@ -942,10 +943,10 @@ class YamlParser(Declare):
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 
-                    elif multy_type_branching and not target and not edge:
+                    elif multi_type_transformer and not target and not edge:
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=None, columns=columns,  properties={},
-                            output_validator=output_validator, multy_type_branching=multy_type_branching, **gen_data))
+                            output_validator=output_validator, multi_type_transformer=multi_type_transformer, **gen_data))
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:

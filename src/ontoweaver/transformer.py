@@ -78,9 +78,9 @@ class split(base.Transformer):
         for key in self.columns:
             items = str(row[key]).split(self.separator)
             for item in items:
-                res = self.create(item)
+                res, edge, node = self.create(item, self.edge, self.target, self.multi_type_transformer)
                 if res:
-                    yield res, self.edge, self.target
+                    yield res, edge, node
                 else:
                     continue
 
@@ -100,7 +100,7 @@ class cat(base.Transformer):
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, raise_errors = raise_errors, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -117,9 +117,9 @@ class cat(base.Transformer):
 
         for key in self.columns:
             formatted_items += str(row[key])
-            res = self.create(formatted_items)
+            res, edge, node = self.create(formatted_items, self.edge, self.target, self.multi_type_transformer)
             if res:
-                yield res, self.edge, self.target
+                yield res, edge, node
             else:
                 continue
 
@@ -159,9 +159,9 @@ class cat_format(base.Transformer):
         """
         if self.format_string:
             formatted_string = self.format_string.format_map(row)
-            res = self.create(formatted_string)
+            res, edge, node = self.create(formatted_string, self.edge, self.target, self.multi_type_transformer)
             if res:
-                yield res, self.edge, self.target
+                yield res, edge, node
             else:
                 pass
 
@@ -200,9 +200,9 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        res = self.create(i)
+        res, edge, node = self.create(i, self.edge, self.target, self.multi_type_transformer)
         if res:
-            yield res, self.edge, self.target
+            yield res, edge, node
         else:
             pass
 
@@ -211,7 +211,7 @@ class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multy_type_branching = None, raise_errors = raise_errors, **kwargs):
+    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Initialize the map transformer.
 
@@ -223,7 +223,7 @@ class map(base.Transformer):
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multy_type_branching, raise_errors = raise_errors, **kwargs)
+        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -245,11 +245,9 @@ class map(base.Transformer):
         for key in self.columns:
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
-            res = self.create(row[key])
-            if self.multy_type_branching:
-                self.edge, self.target = self.branch(self.multy_type_branching, res)
+            res, edge, node = self.create(row[key], self.edge, self.target, self.multi_type_transformer)
             if res:
-                yield res, self.edge, self.target
+                yield res, edge, node
             else:
                 continue
 
@@ -366,8 +364,8 @@ class translate(base.Transformer):
             else:
                 logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
 
-        for e in self.map(row, i):
-            yield e, self.edge, self.target
+        for e, edge, node in self.map(row, i):
+            yield e, edge, node
 
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
@@ -405,9 +403,9 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        res = self.create(self.value)
+        res, edge, node = self.create(self.value, self.edge, self.target, self.multi_type_transformer)
         if res:
-            yield res, self.edge, self.target
+            yield res, edge, node
         else:
             pass
 
@@ -457,8 +455,8 @@ class replace(base.Transformer):
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
             logger.debug(f"Formatted value: {strip_formatted}")
-            res = self.create(strip_formatted)
+            res, edge, node = self.create(strip_formatted, self.edge, self.target, self.multi_type_transformer)
             if res:
-                yield res, self.edge, self.target
+                yield res, edge, node
             else:
                 continue

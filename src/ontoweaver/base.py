@@ -49,6 +49,7 @@ class ErrorManager:
 
         return err
 
+
 class Element(metaclass = ABSTRACT):
     """Base class for either Node or Edge.
 
@@ -405,7 +406,7 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator() = None, multy_type_branching = None, raise_errors = True, **kwargs):
+    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
@@ -420,15 +421,15 @@ class Transformer(errormanager.ErrorManager):
         """
         super().__init__(raise_errors)
 
-        self.target = target
+        self.target = target # FIXME remove
         self.properties_of = properties_of
-        self.edge = edge
+        self.edge = edge #fixme REMOVE
         self.columns = columns
         self.output_validator = output_validator
         if not self.output_validator:
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
-        self.multy_type_branching = multy_type_branching
+        self.multi_type_transformer = multi_type_transformer
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -514,49 +515,30 @@ class Transformer(errormanager.ErrorManager):
         return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
 
 
-    def create(self, item):
-        """Checks that the given item is valid,
-        while ignoring items that are converted to empty strings.
+    def create(self, item, edge_t, node_t, multi_type_transformer = None,):
 
-        Raises:
-            exceptions.DataValidationError: if the item string failed to pass data validation.
-
-        Returns:
-            False, it the item is invalid, the string of the item if it can be created.
-        """
-
-        res = str(item)
-        if not res:
-            # Silently pass empty strings.
-            logger.debug(f"\t\tSilently pass an empty item encountered in {self.__repr__()}.")
-            return False
-
-        else:
-            try:
-                if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                    return res
-            except pa.errors.SchemaError as exc:
-                msg = f"Transformer {self.__repr__()} did not produce valid data on `{item}`: {exc.check.error}."
-                self.error(msg, exception = exceptions.DataValidationError)
-                return False
-
-    def branch(self, branching_dict, item):
-
-        for key, value in branching_dict.items():
-            if isinstance(key, str):
-                try:
-                    if re.match(key, item):
-                        p = branching_dict.get(value["to_object"].__name__, {})
-                        self.properties_of = p
-                        return value["via_relation"], value["to_object"]
-                except re.error:
-                    pass
-            elif key == item:
-                p = branching_dict.get(value["to_object"].__name__, {})
-                self.properties_of = p
-                return value["via_relation"], value["to_object"]
-
+        try:
+            res = str(item)
+            if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
+                if multi_type_transformer:
+                    return self.branch(multi_type_transformer, res)
+                else:
+                    return res, edge_t, node_t
             else:
+                return None, None, None
+        except pa.errors.SchemaErrors as error:
+            msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
+            self.error(msg, exception = exceptions.DataValidationError)
+
+    def branch(self, multi_type_transformer, item): #FIXME add option to pass explicit types and not branch on dict
+
+        for key, value in multi_type_transformer.items():
+            try:
+                if re.match(key, item):
+                    p = multi_type_transformer.get(value["to_object"].__name__, {})
+                    self.properties_of = p
+                    return item, value["via_relation"], value["to_object"]
+            except re.error:
                 raise ValueError(f"Branching key {key} is not a string or regex.")
 
 class All:
