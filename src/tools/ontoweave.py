@@ -82,6 +82,7 @@ if __name__ == "__main__":
 
     appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
+    logging.basicConfig()
     logger = logging.getLogger(appname)
 
     config_files = list(config_paths(appname))
@@ -136,6 +137,7 @@ if __name__ == "__main__":
     asked = do.parse_args()
 
     logger.setLevel(asked.log_level)
+    logging.getLogger("ontoweaver").setLevel(asked.log_level)
 
     logger.info("OntoWeave parameters:")
 
@@ -184,6 +186,8 @@ if __name__ == "__main__":
 
     # Late import to avoid useless Biocypher's logs when asking for --help.
     import ontoweaver
+    from biocypher._logger import get_logger as biocypher_logger
+    biocypher_logger("biocypher").setLevel(asked.log_level)
 
     # Validate the input data if asked.
     if asked.validate_only:

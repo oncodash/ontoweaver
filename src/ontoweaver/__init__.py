@@ -23,7 +23,9 @@ from . import fuse
 from . import fusion
 from . import exceptions
 
-__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions']
+logger = logging.getLogger("ontoweaver")
+
+__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions', 'logger']
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
@@ -203,10 +205,10 @@ def validate_input_data(filename_to_mapping: dict):
             adapter.validator(table)
             return True
         except pa.errors.SchemaErrors as exc:
-            logging.error(f"Validation failed for {exc.failure_cases}.")
+            logger.error(f"Validation failed for {exc.failure_cases}.")
             return False
         except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
+            logger.error(f"An unexpected error occurred: {e}")
             return False
 
 
@@ -238,9 +240,9 @@ def validate_input_data_loaded(dataframe_to_mapping: dict):
             adapter.validator(data_frame)
             return True
         except pa.errors.SchemaErrors as exc:
-            logging.error(f"Validation failed for {exc.failure_cases}.")
+            logger.error(f"Validation failed for {exc.failure_cases}.")
             return False
         except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
+            logger.error(f"An unexpected error occurred: {e}")
             return False
 

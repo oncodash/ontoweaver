@@ -5,6 +5,8 @@ from collections import OrderedDict
 
 from . import base
 
+logger = logging.getLogger("ontoweaver")
+
 class Merger(metaclass=ABCMeta):
     """Interface for classes merging two member variable of Elements.
 
@@ -50,10 +52,10 @@ class Merger(metaclass=ABCMeta):
             rhs: variable of interest 
         """
 
-        # logging.debug(f"Call Merger `{type(self).__name__}`")
+        # logger.debug(f"Call Merger `{type(self).__name__}`")
         self.precheck(key, lhs, rhs)
         self.merge(key, lhs, rhs)
-        # logging.debug(f"Merger `{type(self).__name__}` called: {self.merged}")
+        # logger.debug(f"Merger `{type(self).__name__}` called: {self.merged}")
 
     def precheck(self, key, lhs, rhs) -> None:
         """A function where a subclass may check pre-conditions at each call.
@@ -68,7 +70,7 @@ class Merger(metaclass=ABCMeta):
     def reset(self) -> None:
         """Reset the `self.merged` member, to erase whatever state was seen
         while processing the last list of duplicates."""
-        # logging.debug(f"Init Merger `{type(self).__name__}`")
+        # logger.debug(f"Init Merger `{type(self).__name__}`")
         self.merged = None
 
     def set(self, value) -> None:
@@ -92,7 +94,7 @@ class Merger(metaclass=ABCMeta):
 
     def get(self):
         """Return the actually merged variable, representing de-duplicated data."""
-        # logging.debug(f"Get Merger `{type(self).__name__}`")
+        # logger.debug(f"Get Merger `{type(self).__name__}`")
         return self.merged
 
 

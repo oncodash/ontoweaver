@@ -8,6 +8,8 @@ from . import merge
 from . import congregate
 from . import serialize
 
+logger = logging.getLogger("ontoweaver")
+
 class Fusioner(metaclass=ABCMeta):
     """"Interface for classes going over a list of duplicates to decide how to fuse them.
 
@@ -45,28 +47,28 @@ class Reduce(Fusioner):
         fusioned = set()
         for key, elem_list in congregater.duplicates.items():
             self.fuser.reset()
-            logging.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
+            logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
             assert(elem_list)
             assert(len(elem_list) > 0)
 
             # Manual functools.reduce without initial state.
             it = iter(elem_list)
             lhs = next(it)
-            logging.debug(f"  Fuse element with ID `{lhs}`...")
-            logging.debug(f"    with itself: {repr(lhs)}")
+            logger.debug(f"  Fuse element with key `{lhs}`...")
+            logger.debug(f"    with itself: {repr(lhs)}")
             self.fuser(key, lhs, lhs)
-            logging.debug(f"      = {repr(self.fuser.get())}")
+            logger.debug(f"      = {repr(self.fuser.get())}")
             for rhs in it:
-                logging.debug(f"    with `{rhs}`: {repr(rhs)}")
+                logger.debug(f"    with `{rhs}`: {repr(rhs)}")
                 self.fuser(key, lhs, rhs)
-                logging.debug(f"      = {repr(self.fuser.get())}")
+                logger.debug(f"      = {repr(self.fuser.get())}")
 
             # Convert to final string.
             f = self.fuser.get()
-            logging.debug(f"  Fused: {repr(f)}")
+            logger.debug(f"  Fused: {repr(f)}")
             assert(issubclass(type(f), base.Element))
             fusioned.add(f)
-        logging.debug(f"Fusioned {len(fusioned)} elements.")
+        logger.debug(f"Fusioned {len(fusioned)} elements.")
         return fusioned
 
 
@@ -143,9 +145,9 @@ def reconciliate_nodes(nodes, separator = None):
 
     nodes_fusioner = Reduce(node_fuser)
     fusioned_nodes = nodes_fusioner(nodes_congregater)
-    # logging.debug("Fusioned nodes:")
+    # logger.debug("Fusioned nodes:")
     # for n in fusioned_nodes:
-    #     logging.debug("\t"+repr(n))
+    #     logger.debug("\t"+repr(n))
 
     return fusioned_nodes, node_fuser.ID_mapping
 
@@ -193,9 +195,9 @@ def reconciliate_edges(edges, separator = None):
 
     edges_fusioner = Reduce(edge_fuser)
     fusioned_edges = edges_fusioner(edges_congregater)
-    # logging.debug("Fusioned edges:")
+    # logger.debug("Fusioned edges:")
     # for n in fusioned_edges:
-    #     logging.debug("\t"+repr(n))
+    #     logger.debug("\t"+repr(n))
 
     return fusioned_edges
 
@@ -226,9 +228,9 @@ def reconciliate(nodes, edges, separator = None):
     # If one change this, you may want to remap like this:
     if len(ID_mapping) > 0:
         remaped_edges = remap_edges(edges, ID_mapping)
-        # logging.debug("Remaped edges:")
+        # logger.debug("Remaped edges:")
         # for n in remaped_edges:
-        #     logging.debug("\t"+repr(n))
+        #     logger.debug("\t"+repr(n))
     else:
         remaped_edges = edges
 

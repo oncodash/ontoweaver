@@ -7,6 +7,9 @@ from . import base
 from. import exceptions
 from . import validate
 
+logger = logging.getLogger("ontoweaver")
+
+
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
 
@@ -279,9 +282,9 @@ class translate(base.Transformer):
 
         if translations:
             self.translate = translations
-            logging.debug(f"\t\t\tManual translations: `{self.translate}`")
+            logger.debug(f"\t\t\tManual translations: `{self.translate}`")
         elif translations_file:
-            logging.debug(f"\t\t\tGet translations from file: `{translations_file}`")
+            logger.debug(f"\t\t\tGet translations from file: `{translations_file}`")
             if not translate_from:
                 self.error(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_from` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
             if not translate_to:
@@ -301,11 +304,11 @@ class translate(base.Transformer):
                 pd_args = {k:v for k,v in kwargs.items() if k in pd_read_csv_args}
 
                 if "sep" in pd_args and pd_args["sep"] == "TAB":
-                    logging.debug(f"\t\t\tMapping asked for sep:TAB, enable Pandas' read_csv engine:python to avoid a warning.")
+                    logger.debug(f"\t\t\tMapping asked for sep:TAB, enable Pandas' read_csv engine:python to avoid a warning.")
                     pd_args["sep"] = '\t'
                     pd_args["engine"] = "python"
 
-                logging.debug(f"\t\t\tArguments passed to pandas.read_csv: `{pd_args}`")
+                logger.debug(f"\t\t\tArguments passed to pandas.read_csv: `{pd_args}`")
 
                 self.df = pd.read_csv(self.translations_file, **pd_args)
 
@@ -320,7 +323,7 @@ class translate(base.Transformer):
                     if row[self.translate_from] and row[self.translate_to]:
                         self.translate[row[self.translate_from]] = row[self.translate_to]
                     else:
-                        logging.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{row[self.translate_from]}` => `{row[self.translate_to]}`. I will ignore this translation.")
+                        logger.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{row[self.translate_from]}` => `{row[self.translate_to]}`. I will ignore this translation.")
 
         else:
             self.error(f"When using a {type(self).__name__} transformer, you must define either `translations` or `translations_file`.", section="translate.init", exception = exceptions.TransformerInterfaceError)
@@ -353,7 +356,7 @@ class translate(base.Transformer):
             if cell in self.translate:
                 row[key] = self.translate[cell]
             else:
-                logging.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
+                logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
 
         for e in self.map(row, i):
             yield e
@@ -440,10 +443,10 @@ class replace(base.Transformer):
             Warning: If the processed cell value is invalid.
         """
         for key in self.columns:
-            logging.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
+            logger.info(f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
-            logging.debug(f"Formatted value: {strip_formatted}")
+            logger.debug(f"Formatted value: {strip_formatted}")
             res = self.create(strip_formatted)
             if res:
                 yield res
