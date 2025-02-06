@@ -6,27 +6,55 @@ import json
 import rdflib
 from rdflib import URIRef, Literal, Namespace
 from rdflib.namespace import RDF, RDFS, OWL
+from urllib.parse import quote_plus as url_quote
 
 import logging
 logger = logging.getLogger("biocypher_to_owl")
 
+def clean_affix_uri(name, remove_affix = "none", affix_sep = ":"):
+    affix_sep = url_quote(affix_sep)
+
+    if remove_affix != "none":
+        if remove_affix == "prefix":
+            matched = re.search(r"(.+)#\w+" +affix_sep+ r"([\w%]*)$", name)
+            if matched:
+                assert len(matched.groups()) == 2
+                clean = matched.groups()[0] + matched.groups()[1]
+        elif remove_affix == "suffix":
+            matched = re.search(r"(.+#[\w%]*)" +affix_sep+ r"\w+$", name)
+            if matched:
+                assert len(matched.groups()) == 1
+                clean = matched.groups()[0]
+    if matched:
+        return clean
+    else:
+        return None
+
+def clean_affix_literal(name, remove_affix = "none", affix_sep = ":"):
+    if remove_affix != "none":
+        if remove_affix == "prefix":
+            matched = re.search(r"^\w+" +affix_sep+ r"([\w%]*)$", name)
+            if matched:
+                assert len(matched.groups()) == 1
+                clean = matched.groups()[0]
+        elif remove_affix == "suffix":
+            matched = re.search(r"^([\w%]*)" +affix_sep+ r"\w+$", name)
+            if matched:
+                assert len(matched.groups()) == 1
+                clean = matched.groups()[0]
+    if matched:
+        return clean
+    else:
+        return None
+
 def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
-    logger.debug("Restore labels...")
+    logger.debug(f"Remove {remove_affix} in labels")
     for uri,p,label in graph.triples((None, RDFS.label, None)):
 
         if remove_affix != "none":
-            if remove_affix == "prefix":
-                matched = re.search(r"\w+:(.*)", str(label))
-                if matched:
-                    assert len(matched.groups()) == 1
-                    clean_label = matched.groups()[0]
-            elif remove_affix == "suffix":
-                matched = re.search(r"(.*):\w+", str(label))
-                if matched:
-                    assert len(matched.groups()) == 1
-                    clean_label = matched.groups()[0]
+            clean_label = clean_affix_literal(label, remove_affix, affix_sep)
 
-            if matched:
+            if clean_label:
                 logger.debug(f"Remove {remove_affix} from: {label} to {clean_label}")
 
                 graph.remove((
@@ -40,22 +68,67 @@ def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
                     p,
                     Literal(clean_label)
                 ))
+            else:
+                logger.debug(f"Label {label} does not need cleaning.")
 
+        logging.debug(f"Translate biocypherized labels back")
         iri = str(uri)
         if iri in restoration:
-            logger.info(f"Remove {restoration[iri]['biocypher_label']} label from {iri}")
+            logger.info(f"\tRemove {restoration[iri]['biocypher_label']} label from {iri}")
             graph.remove((
                 uri,
                 RDFS.label,
                 rdflib.Literal(restoration[iri]["biocypher_label"])
             ))
             for label in restoration[iri]["origin_labels"]:
-                logger.info(f"Add {label} label to {iri}")
+                logger.info(f"\tAdd {label} label to {iri}")
                 graph.add((
                     uri,
                     rdflib.namespaces.RDFS.label,
                     rdflib.Literal(label)
                 ))
+
+    logging.debug(f"Remove {remove_affix} from IRIs in subjects")
+    if remove_affix != "none":
+        for uri,p,obj in graph.triples((None, None, None)):
+            clean_uri = clean_affix_uri(uri, remove_affix, affix_sep)
+            if clean_uri:
+                logger.debug(f"Remove subject {remove_affix} from: {uri} to {clean_uri}")
+
+                graph.remove((
+                    uri,
+                    p,
+                    obj
+                ))
+
+                graph.add((
+                    URIRef(clean_uri),
+                    p,
+                    obj
+                ))
+            else:
+                logger.debug(f"Subject {uri} does not need cleaning.")
+
+    logging.debug(f"Remove {remove_affix} from IRIs in objects")
+    if remove_affix != "none":
+        for uri,p,obj in graph.triples((None, None, None)):
+            clean_obj = clean_affix_uri(obj, remove_affix, affix_sep)
+            if clean_obj:
+                logger.debug(f"Remove object {remove_affix} from: {obj} to {clean_obj}")
+
+                graph.remove((
+                    uri,
+                    p,
+                    obj
+                ))
+
+                graph.add((
+                    uri,
+                    p,
+                    URIRef(clean_obj)
+                ))
+            else:
+                logger.debug(f"Object {obj} does not need cleaning.")
 
     logger.debug("Remove the BioCypherRoot...")
     bcns = Namespace("https://biocypher.org/biocypher#")
