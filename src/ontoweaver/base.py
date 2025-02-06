@@ -415,6 +415,7 @@ class Transformer(errormanager.ErrorManager):
         :param edge: the edge type to use in the mapping.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
+        :param multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
         the tabular module.
 
@@ -515,31 +516,61 @@ class Transformer(errormanager.ErrorManager):
         return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
 
 
-    def create(self, item, edge_t, node_t, multi_type_transformer = None,):
+    def create(self, item, multi_type_transformer):
+        """"
+        Function used to validate the output of the transformer and return the value with the correct type and relation.
+        
+        Args:
+                       
+            item (any): The item to be validated and transformed.
+            multi_type_transformer (dict): A dictionary holding regex patterns for node and edge type branching based on cell values.
+    
+        Returns:
+            
+            tuple: A tuple containing the validated item, the relation type, and the target object type.
+                   Returns (None, None, None) if validation fails.
+        """""
 
         try:
             res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                if multi_type_transformer:
-                    return self.branch(multi_type_transformer, res)
-                else:
-                    return res, edge_t, node_t
+                return self.branch(multi_type_transformer, res)
             else:
                 return None, None, None
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def branch(self, multi_type_transformer, item): #FIXME add option to pass explicit types and not branch on dict
+    def branch(self, multi_type_transformer, item):
+        """"
+        Branch on the correct edge and node type based on the regex input matching the item returned by the transformer.
 
-        for key, value in multi_type_transformer.items():
-            try:
-                if re.match(key, item):
-                    p = multi_type_transformer.get(value["to_object"].__name__, {})
-                    self.properties_of = p
-                    return item, value["via_relation"], value["to_object"]
-            except re.error:
-                raise ValueError(f"Branching key {key} is not a string or regex.")
+        Parameters:
+            
+            multi_type_transformer (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
+            as well as the target object type.
+            item (str): The validated item to be branched on.
+    
+        Returns:
+            
+            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_transformer
+            dictionary is not passed - returns the item, None, None.
+            
+        
+        """""
+
+        if multi_type_transformer:
+            for key, value in multi_type_transformer.items():
+                try:
+                    if re.match(key, item):
+                        p = multi_type_transformer.get(value["to_object"].__name__, {})
+                        self.__setattr__("target_type", value["to_object"].__name__)
+                        # self.properties_of = p
+                        return item, value["via_relation"], value["to_object"]
+                except re.error:
+                    raise ValueError(f"Branching key {key} is not a string or regex.")
+        else:
+            return item, None, None
 
 class All:
     """Gathers lists of subclasses of Element and their fields

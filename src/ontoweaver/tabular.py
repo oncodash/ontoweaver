@@ -197,7 +197,7 @@ class PandasAdapter(base.Adapter):
         return True
 
 
-    def properties(self, properity_dict, row, i, transformer, node = False):
+    def properties(self, properity_dict, row, i, edge_t, node_t, node = False):
 
         """
         Extract properties of each property category for the given node type.
@@ -207,7 +207,8 @@ class PandasAdapter(base.Adapter):
             properity_dict: Dictionary of property mappings.
             row: The current row of the DataFrame.
             i: The index of the current row.
-            transformer: The transformer instance creating the node or edge class at hand.
+            edge_t: The type of the edge of the current transformer.
+            node_t: The type of the node of the current transformer.
             node: True if the object created is a node, False otherwise.
 
         Returns:
@@ -223,9 +224,9 @@ class PandasAdapter(base.Adapter):
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
         if self.metadata:
             if node:
-                elem = transformer.target
+                elem = node_t
             else:
-                elem = transformer.edge
+                elem = edge_t
             if elem.__name__ in self.metadata:
                 for key, value in self.metadata[elem.__name__].items():
                     properties[key] = value
@@ -302,7 +303,7 @@ class PandasAdapter(base.Adapter):
                 logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
                 local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
                                                   properties=self.properties(self.subject_transformer.properties_of,
-                                                                             row, i, self.subject_transformer,
+                                                                             row, i, subject_edge, subject_node,
                                                                              node=True)))
             else:
                 local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.", indent=2, exception = exceptions.DeclarationError))
@@ -319,7 +320,7 @@ class PandasAdapter(base.Adapter):
                         logger.debug(f"\t\tMake node {target_node_id}")
                         local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
                                                           properties=self.properties(transformer.properties_of, row,
-                                                                                     i, transformer, node=True)))
+                                                                                     i, target_edge, target_node, node=True)))
 
                         # If a `from_subject` attribute is present in the transformer, loop over the transformer
                         # list to find the transformer instance mapping to the correct type, and then create new
@@ -334,18 +335,18 @@ class PandasAdapter(base.Adapter):
                             found_valid_subject = False
 
                             for t in self.transformers:
-                                if transformer.from_subject == t.target.__name__:
+                                if transformer.from_subject == t.target_type:
                                     found_valid_subject = True
                                     for s_id, s_edge, s_node in t(row, i):
                                         subject_id = s_id
-                                        subject_node_id = self.make_id(t.target.__name__, subject_id)
-                                        logger.debug(
-                                            f"\t\tMake edge {transformer.edge.__name__} from {subject_node_id} toward {target_node_id}")
+                                        subject_node_id = self.make_id(t.target_type, subject_id)
+                                        logging.debug(
+                                            f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
                                         local_edges.append(
-                                            self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
+                                            self.make_edge(edge_t=target_edge, id_source=subject_node_id,
                                                            id_target=target_node_id,
                                                            properties=self.properties(transformer.properties_of,
-                                                                                      row, i, t)))
+                                                                                      row, i, s_edge, s_node)))
 
                                 else:
                                     continue
@@ -361,7 +362,7 @@ class PandasAdapter(base.Adapter):
                             local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
                                                               id_source=source_node_id,
                                                               properties=self.properties(target_edge.fields(),
-                                                                                         row, i, transformer)))
+                                                                                         row, i, target_edge, target_node)))
                     else:
                         local_errors.append(self.error(f"No valid target node identifier from {transformer} for {i}th row.", indent=2, section="transformers", index=j, exception = exceptions.TransformerDataError))
                         continue
@@ -832,11 +833,17 @@ class YamlParser(Declare):
 
         metadata_list = self.get(k_metadata)
 
-        logger.debug(f"Parse subject transformer...")
+        logging.debug(f"Parse subject transformer...")
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+
+        # '[\s\S]*' is used to match any type of string, in case no branching is needed.
+        subject_multi_type_transformer = {'[\s\S]*': {
+            'to_object': source_t,
+            'via_relation': None
+        }}
         subject_transformer = self.make_transformer_class(
-            columns=subject_columns, transformer_type=subject_transformer_class,
-            node_type=source_t, properties=properties_of.get(subject_type, {}), output_validator=s_output_validator, **subject_kwargs)
+            columns=subject_columns, transformer_type=subject_transformer_class, multi_type_transformer=subject_multi_type_transformer,
+            properties=properties_of.get(subject_type, {}), output_validator=s_output_validator, **subject_kwargs)
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
@@ -887,10 +894,9 @@ class YamlParser(Declare):
                         gen_data['from_subject'] = gen_data['from_source']
                         del gen_data['from_source']
 
-                    multi_type_transformer = None
+                    multi_type_transformer = {}
 
                     if "branch_on_type" in gen_data:
-                        multi_type_transformer = {}
                         for entry in gen_data['branch_on_type']:
                                 for k, v in entry.items():
                                     if isinstance(v, dict):
@@ -928,6 +934,12 @@ class YamlParser(Declare):
                             logger.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
+                        # '[\s\S]*' is used to match any type of string, in case no branching is needed.
+                        multi_type_transformer['[\s\S]*'] = {
+                            'to_object': target_t,
+                            'via_relation': edge_t
+                        }
+
                         # Parse the validation rules for the output of the transformer. Each transformer gets its own
                         # instance of the OutputValidator with (at least) the default output validation rules.
                         output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
@@ -937,9 +949,9 @@ class YamlParser(Declare):
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(
-                            transformer_type=transformer_type, node_type=target_t,
-                            properties=properties_of.get(target, {}), edge=edge_t, columns=columns, output_validator=output_validator, **gen_data))
-                        logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
+                            transformer_type=transformer_type, multi_type_transformer=multi_type_transformer,
+                            properties=properties_of.get(target, {}), columns=columns, output_validator=output_validator, **gen_data))
+                        logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 

@@ -1,6 +1,6 @@
 
 
-def test_simplest():
+def test_properties_metadata():
     import yaml
     import logging
     from . import testing_functions
@@ -52,4 +52,4 @@ def test_simplest():
 
 
 if __name__ == "__main__":
-    test_simplest()
+    test_properties_metadata()

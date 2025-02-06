@@ -10,7 +10,7 @@ class user_transformer(ontoweaver.base.Transformer):
 
     def __call__(self, row, i):
         for key in self.columns:
-            res, edge, node = self.create(row[key], self.edge, self.target)
+            res, edge, node = self.create(row[key], self.multi_type_transformer)
             if res:
                 yield res, edge, node
             else:
