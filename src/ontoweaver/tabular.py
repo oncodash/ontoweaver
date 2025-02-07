@@ -19,6 +19,8 @@ from . import transformer
 from . import exceptions
 from . import validate
 
+logger = logging.getLogger("ontoweaver")
+
 class MetaEnum(EnumMeta):
     """
     Metaclass for Enum to allow checking if an item is in the Enum.
@@ -95,12 +97,12 @@ class PandasAdapter(base.Adapter):
         """
         super().__init__(raise_errors)
 
-        logging.info("DataFrame info:")
-        # logging.info(df.info())
-        logging.debug("Columns:")
+        logger.info("DataFrame info:")
+        # logger.info(df.info())
+        logger.debug("Columns:")
         for c in df.columns:
-            logging.debug(f"\t`{c}`")
-        logging.info("\n" + str(df))
+            logger.debug(f"\t`{c}`")
+        logger.info("\n" + str(df))
         self.df = df
 
         self.validator = validator
@@ -115,7 +117,7 @@ class PandasAdapter(base.Adapter):
         self.subject_transformer = subject_transformer
         self.transformers = transformers
         self.metadata = metadata
-        # logging.debug(self.properties_of)
+        # logger.debug(self.properties_of)
         self.parallel_mapping = parallel_mapping
 
     def source_type(self, row):
@@ -154,7 +156,7 @@ class PandasAdapter(base.Adapter):
         """
         assert(type(entry_type) == str)
         if type(entry_name) != str:
-            logging.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
+            logger.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
             entry_name = str(entry_name)
 
         if self.type_affix == TypeAffixes.prefix:
@@ -165,7 +167,7 @@ class PandasAdapter(base.Adapter):
             id = f'{entry_name}'
 
         if id:
-            logging.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
+            logger.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
             return id
         else:
             self.error(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`", exception = exceptions.DeclarationError)
@@ -278,10 +280,10 @@ class PandasAdapter(base.Adapter):
             local_transformations = 0
             local_nb_nodes = 0
 
-            logging.debug(f"Process row {i}...")
+            logger.debug(f"Process row {i}...")
             local_rows += 1
             # There can be only one subject, so transformers yielding multiple IDs cannot be used.
-            logging.debug("\tCreate subject node:")
+            logger.debug("\tCreate subject node:")
             ids = list(self.subject_transformer(row, i))
             if (len(ids) > 1):
                 local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. Subject Transformer `{self.subject_transformer}` produced multiple IDs: {ids}", indent=2, exception = exceptions.TransformerInterfaceError))
@@ -289,7 +291,7 @@ class PandasAdapter(base.Adapter):
             source_node_id = self.make_id(self.subject_transformer.target.__name__, source_id)
 
             if source_node_id:
-                logging.debug(f"\t\tDeclared subject ID: {source_node_id}")
+                logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
                 local_nodes.append(self.make_node(node_t=self.subject_transformer.target, id=source_node_id,
                                                   properties=self.properties(self.subject_transformer.properties_of,
                                                                              row, i, self.subject_transformer,
@@ -301,12 +303,12 @@ class PandasAdapter(base.Adapter):
             # FIXME the transformer variable here shadows the transformer module.
             for j,transformer in enumerate(self.transformers):
                 local_transformations += 1
-                logging.debug(f"\tCalling transformer: {transformer}...")
+                logger.debug(f"\tCalling transformer: {transformer}...")
                 for target_id in transformer(row, i):
                     local_nb_nodes += 1
                     if target_id:
                         target_node_id = self.make_id(transformer.target.__name__, target_id)
-                        logging.debug(f"\t\tMake node {target_node_id}")
+                        logger.debug(f"\t\tMake node {target_node_id}")
                         local_nodes.append(self.make_node(node_t=transformer.target, id=target_node_id,
                                                           properties=self.properties(transformer.properties_of, row,
                                                                                      i, transformer, node=True)))
@@ -329,8 +331,8 @@ class PandasAdapter(base.Adapter):
                                     for s_id in t(row, i):
                                         subject_id = s_id
                                         subject_node_id = self.make_id(t.target.__name__, subject_id)
-                                        logging.debug(
-                                            f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
+                                        logger.debug(
+                                            f"\t\tMake edge {transformer.edge.__name__} from {subject_node_id} toward {target_node_id}")
                                         local_edges.append(
                                             self.make_edge(edge_t=transformer.edge, id_source=subject_node_id,
                                                            id_target=target_node_id,
@@ -347,7 +349,7 @@ class PandasAdapter(base.Adapter):
 
 
                         else: # no attribute `from_subject` in `transformer`
-                            logging.debug(f"\t\tMake edge from {source_node_id} toward {target_node_id}")
+                            logger.debug(f"\t\tMake edge {transformer.edge.__name__} from {source_node_id} toward {target_node_id}")
                             local_edges.append(self.make_edge(edge_t=transformer.edge, id_target=target_node_id,
                                                               id_source=source_node_id,
                                                               properties=self.properties(transformer.edge.fields(),
@@ -364,7 +366,7 @@ class PandasAdapter(base.Adapter):
         nb_nodes = 0
 
         if self.parallel_mapping > 0:
-            logging.info(f"Processing dataframe in parallel. Number of workers set to: {self.parallel_mapping} ...")
+            logger.info(f"Processing dataframe in parallel. Number of workers set to: {self.parallel_mapping} ...")
             # Process the dataset in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor() as executor:
                 # Map the process_row function across the dataframe
@@ -386,7 +388,7 @@ class PandasAdapter(base.Adapter):
                     nb_nodes += local_nb_nodes
 
         elif self.parallel_mapping == 0:
-            logging.info(f"Processing dataframe sequentially...")
+            logger.info(f"Processing dataframe sequentially...")
             for i, row in self.df.iterrows():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 self.nodes_append(local_nodes)
@@ -400,13 +402,13 @@ class PandasAdapter(base.Adapter):
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
                        f" Pass 0 for sequential processing, or the number of workers for parallel processing.", exception = exceptions.ConfigError)
 
-        # Final logging
+        # Final logger
         if self.errors:
-            logging.error(
+            logger.error(
                 f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
-            # logging.debug("\n".join(self.errors))
+            # logger.debug("\n".join(self.errors))
         else:
-            logging.info(
+            logger.info(
                 f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
@@ -474,11 +476,11 @@ class Declare(base.ErrorManager):
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
-            logging.debug(
+            logger.debug(
                 f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
             for p in properties.values():
                 if p not in cls.fields():
-                    logging.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
+                    logger.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
             return cls
 
         def fields():
@@ -489,7 +491,7 @@ class Declare(base.ErrorManager):
             "fields": staticmethod(fields),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
+        logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -510,11 +512,11 @@ class Declare(base.ErrorManager):
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
-            logging.info(
+            logger.info(
                 f"\t\tEdge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
             for t, p in properties.items():
                 if p not in cls.fields():
-                    logging.warning(f"\t\tProperty `{p}` not found in fields.")
+                    logger.warning(f"\t\tProperty `{p}` not found in fields.")
 
             tt_list = cls.target_type()
 
@@ -544,7 +546,7 @@ class Declare(base.ErrorManager):
             "target_type": staticmethod(tt),
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logging.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
+        logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
 
@@ -577,10 +579,10 @@ class Declare(base.ErrorManager):
                     nt = node_type.__name__
                 else:
                     nt = "."
-                logging.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+                logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
                 return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, **kwargs)
         else:
-            # logging.debug(dir(generators))
+            # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
 
 class YamlParser(Declare):
@@ -638,7 +640,7 @@ class YamlParser(Declare):
         super().__init__(module)
         self.config = config
 
-        logging.debug(f"Classes will be created in module '{self.module}'")
+        logger.debug(f"Classes will be created in module '{self.module}'")
 
     def get_not(self, keys, pconfig=None):
         """
@@ -701,11 +703,13 @@ class YamlParser(Declare):
                         key_name = metadata[type][key]
                         # Remove the k_metadata_column key from the metadata dictionary.
                         if key_name in metadata[type]:
-                            msg = f"They key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
-                            logging.error(msg)
-                            raise KeyError(msg)
+                            msg = f"The key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
+                            # FIXME is it an error or a warning?
+                            # self.error(msg)
+                            logger.warning(msg)
                         del metadata[type][key]
                         if columns:
+                            # TODO make the separator a parameter.
                             metadata[type][key_name] = ", ".join(columns)
 
                 return metadata
@@ -719,7 +723,7 @@ class YamlParser(Declare):
         Returns:
             tuple: The subject transformer and a list of transformers.
         """
-        logging.debug(f"Parse mapping:")
+        logger.debug(f"Parse mapping:")
 
         properties_of = {}
         transformers = []
@@ -743,17 +747,17 @@ class YamlParser(Declare):
         transformers_list = self.get(k_transformer)
 
         # First, parse subject's type
-        logging.debug(f"Declare subject type...")
+        logger.debug(f"Declare subject type...")
         subject_dict = self.get(k_row)
         subject_transformer_class = list(subject_dict.keys())[0]
         subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
         subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
         subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
         if subject_columns != None and type(subject_columns) != list:
-            logging.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
+            logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
             assert(type(subject_columns) == str)
             subject_columns = [subject_columns]
-        logging.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
+        logger.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
                       f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
 
         # Parse the validation rules for the output of the subject transformer.
@@ -763,7 +767,7 @@ class YamlParser(Declare):
         s_output_validator.update_rules(pa.DataFrameSchema.from_yaml(s_yaml_output_validation_rules))
 
         # Then, parse property mappings.
-        logging.debug(f"Parse properties...")
+        logger.debug(f"Parse properties...")
         for n_transformer,transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
@@ -773,20 +777,20 @@ class YamlParser(Declare):
                     object_types = self.get(k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(k_properties, pconfig=field_dict)
                     if type(property_names) != list:
-                        logging.debug(f"\tDeclared singular property")
+                        logger.debug(f"\tDeclared singular property")
                         assert(type(property_names) == str)
                         property_names = [property_names]
                     if not object_types:
-                        logging.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject `{subject_type}`")
+                        logger.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject `{subject_type}`")
                         object_types = [subject_type]
                     if type(object_types) != list:
-                        logging.debug(f"\tDeclared singular for_object: `{object_types}`")
+                        logger.debug(f"\tDeclared singular for_object: `{object_types}`")
                         assert(type(object_types) == str)
                         object_types = [object_types]
 
                     column_names = self.get(k_columns, pconfig=field_dict)
                     if  column_names != None and type(column_names) != list:
-                        logging.debug(f"\tDeclared singular column `{column_names}`")
+                        logger.debug(f"\tDeclared singular column `{column_names}`")
                         assert(type(column_names) == str)
                         column_names = [column_names]
                     gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
@@ -803,17 +807,17 @@ class YamlParser(Declare):
                         properties_of.setdefault(object_type, {})
                         for property_name in property_names:
                             properties_of[object_type].setdefault(prop_transformer, property_name)
-                        logging.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
+                        logger.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
 
         metadata_list = self.get(k_metadata)
 
-        logging.debug(f"Parse subject transformer...")
+        logger.debug(f"Parse subject transformer...")
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
         subject_transformer = self.make_transformer_class(
             columns=subject_columns, transformer_type=subject_transformer_class,
             node_type=source_t, properties=properties_of.get(subject_type, {}), output_validator=s_output_validator, **subject_kwargs)
-        logging.debug(f"\tDeclared subject transformer: {subject_transformer}")
+        logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
         if extracted_metadata:
@@ -821,7 +825,7 @@ class YamlParser(Declare):
 
 
         # Then, declare types.
-        logging.debug(f"Declare types...")
+        logger.debug(f"Declare types...")
         for n_transformer,transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
@@ -839,7 +843,7 @@ class YamlParser(Declare):
 
                     columns = self.get(k_columns, pconfig=field_dict)
                     if type(columns) != list:
-                        logging.debug(f"\tDeclared singular column")
+                        logger.debug(f"\tDeclared singular column")
                         assert(type(columns) == str)
                         columns = [columns]
 
@@ -864,15 +868,15 @@ class YamlParser(Declare):
                         del gen_data['from_source']
 
                     if target and edge:
-                        logging.debug(f"\tDeclare node .target for `{target}`...")
+                        logger.debug(f"\tDeclare node .target for `{target}`...")
                         target_t = self.make_node_class(target, properties_of.get(target, {}))
-                        logging.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
+                        logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
                         if subject:
-                            logging.debug(f"\tDeclare subject for `{subject}`...")
+                            logger.debug(f"\tDeclare subject for `{subject}`...")
                             subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
                             edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
                         else:
-                            logging.debug(f"\tDeclare edge for `{edge}`...")
+                            logger.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
                         # Parse the validation rules for the output of the transformer. Each transformer gets its own
@@ -882,11 +886,11 @@ class YamlParser(Declare):
                         output_validator = validate.OutputValidator()
                         output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
 
-                        logging.debug(f"\tDeclare transformer `{transformer_type}`...")
+                        logger.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(
                             transformer_type=transformer_type, node_type=target_t,
                             properties=properties_of.get(target, {}), edge=edge_t, columns=columns, output_validator=output_validator, **gen_data))
-                        logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
+                        logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 
@@ -910,9 +914,9 @@ class YamlParser(Declare):
         except Exception as e:
             self.error(f"Failed to parse the input validation schema: {e}", exception = exceptions.ConfigError)
 
-        logging.debug(f"source class: {source_t}")
-        logging.debug(f"properties_of: {properties_of}")
-        logging.debug(f"transformers: {transformers}")
-        logging.debug(f"metadata: {metadata}")
+        logger.debug(f"source class: {source_t}")
+        logger.debug(f"properties_of: {properties_of}")
+        logger.debug(f"transformers: {transformers}")
+        logger.debug(f"metadata: {metadata}")
         return subject_transformer, transformers, metadata, validator
 

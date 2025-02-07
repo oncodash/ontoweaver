@@ -4,6 +4,8 @@ from abc import ABCMeta, abstractmethod
 from . import base
 from . import merge
 
+logger = logging.getLogger("ontoweaver")
+
 class Fuser(merge.Merger):
     """Interface for Merger classes merging elements of a given type
     (usually a base.Element subclass).
@@ -15,7 +17,7 @@ class Fuser(merge.Merger):
     """
 
     def __init__(self, cls):
-        logging.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
+        logger.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
         self.cls = cls
         self.ID_mapping = {}
 
@@ -74,9 +76,9 @@ class Members(Fuser):
         super().__init__(cls)
 
         self.merged = Members.Mergers(merge_ID, merge_label, merge_prop, merge_source, merge_target)
-        logging.debug(f"  ID    : {type(self.merged.ID).__name__}")
-        logging.debug(f"  label : {type(self.merged.label).__name__}")
-        logging.debug(f"  prop  : {type(self.merged.prop).__name__}")
+        logger.debug(f"  ID    : {type(self.merged.ID).__name__}")
+        logger.debug(f"  label : {type(self.merged.label).__name__}")
+        logger.debug(f"  prop  : {type(self.merged.prop).__name__}")
 
         self.members = {
             "id": None,
@@ -88,8 +90,8 @@ class Members(Fuser):
                 "id_source": None,
                 "id_target": None,
             })
-            logging.debug(f"  source: {type(self.merged.source).__name__}")
-            logging.debug(f"  target: {type(self.merged.target).__name__}")
+            logger.debug(f"  source: {type(self.merged.source).__name__}")
+            logger.debug(f"  target: {type(self.merged.target).__name__}")
 
         self._ID_seen = set()
 

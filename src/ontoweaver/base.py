@@ -11,6 +11,8 @@ from . import validate
 from . import serialize
 from . import exceptions
 
+logger = logging.getLogger("ontoweaver")
+
 # TODO? Strategy using a user defined __eq__ method, enabling a more flexible comparison of objects, but in O(n2).
 # class Comparer(metaclass=ABCMeta):
 #     @abstractmethod
@@ -38,7 +40,7 @@ class ErrorManager:
         err += msg
         err += location
 
-        logging.error(err)
+        logger.error(err)
 
         if self.raise_errors:
             raise exception(err)
@@ -132,11 +134,11 @@ class Element(metaclass = ABSTRACT):
         # Sanity checks:
         assert(properties is not None)
         assert(type(properties) == dict)
-        # logging.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
+        # logger.debug(f"Properties of `{type(self).__name__}`: {list(properties.keys())}, available: {list(self.available())}")
         # TODO enable the usage of available() function to disable / enable parts of ontology / certain nodes
         # for p in properties:
         #     if p not in self.available():
-        #         logging.error(f"\t\tProperty `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
+        #         logger.error(f"\t\tProperty `{p}` should be available for type `{type(self).__name__}`, available ones: `{list(self.available())}`")
         #         assert(p in self.available())
         self._properties = properties
 
@@ -363,9 +365,9 @@ class Adapter(ErrorManager, metaclass = ABSTRACT):
         else:
             nodes = node_s
 
-        # logging.debug(f"Nodes: {nodes}.")
+        # logger.debug(f"Nodes: {nodes}.")
         for node in nodes:
-            # logging.debug(f"\tAppend node {node}.")
+            # logger.debug(f"\tAppend node {node}.")
             # Checking for duplicates in reconciliation, otherwise complexity too high.
             self._nodes.append(node.as_tuple())
             # return True
@@ -377,9 +379,9 @@ class Adapter(ErrorManager, metaclass = ABSTRACT):
         else:
             edges = edge_s
 
-        # logging.debug(f"Edges: {edges}.")
+        # logger.debug(f"Edges: {edges}.")
         for edge in edges:
-            # logging.debug(f"\tAppend edge {edge}.")
+            # logger.debug(f"\tAppend edge {edge}.")
             # Checking for duplicates in reconciliation, otherwise complexity too high.
             self._edges.append(edge.as_tuple())
             # return True
@@ -541,9 +543,9 @@ class All:
             and m[c].__module__ == self.module.__name__ \
             and issubclass(m[c], asked):
                 classes.append(m[c])
-                logging.debug(f"Found `{asked.__name__}` class: `{m[c]}` (prop: `{m[c].fields()}`).")
+                logger.debug(f"Found `{asked.__name__}` class: `{m[c]}` (prop: `{m[c].fields()}`).")
                 # t = m[c]
-                # logging.debug(f"\t\t#### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
+                # logger.debug(f"\t\t#### {t.mro()[:-3]}/{t.__name__} => {t.fields()}")
         return classes
 
     def nodes(self) -> list[Node]:
@@ -563,12 +565,3 @@ class All:
         for c in self.edges():
             names += c.fields()
         return names
-
-
-
-
-
-
-
-
-

@@ -4,6 +4,9 @@ from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 from . import base
 from . import serialize
 
+logger = logging.getLogger("ontoweaver")
+
+
 class Congregater(metaclass=ABCMeta):
     """Interface for classes detecting duplicated elements (nodes or edges) in BioCypher's tuple lists.
 
@@ -48,7 +51,7 @@ class Congregate(Congregater):
             elem_cls: the class of the Elements that will be processed.
             serializer: a serialize.Serializer object giving the key on which to detect duplicated elements.
         """
-        logging.debug(f"Instantiate Congregate {type(self).__name__} for element {elem_cls.__name__} with serializer {type(serializer).__name__}")
+        logger.debug(f"Instantiate Congregate {type(self).__name__} for element {elem_cls.__name__} with serializer {type(serializer).__name__}")
         assert(issubclass(elem_cls, base.Element))
         self._elem_cls = elem_cls
         super().__init__(serializer)
@@ -59,14 +62,14 @@ class Congregate(Congregater):
         Args:
             biocypher_tuples: a list of tuples in the BioCypher format for nodes xor edges.
         """
-        logging.debug(f"Call Congregate...")
+        logger.debug(f"Call Congregate...")
         for t in biocypher_tuples:
             elem = self._elem_cls.from_tuple(t, serializer = self.serializer)
             self._duplicates[elem] = self._duplicates.get(elem, []) + [elem]
         if __debug__:
-            logging.debug(f"Congregated in {len(self._duplicates)} keys:")
+            logger.debug(f"Congregated in {len(self._duplicates)} keys:")
             for k,l in self._duplicates.items():
-                logging.debug(f"  Key `{k}` => {len(l)} elements")
+                logger.debug(f"  Key `{k}` => {len(l)} elements")
 
 
 class Nodes(Congregate):

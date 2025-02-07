@@ -6,6 +6,7 @@ import pandas as pd
 import pandera as pa
 from pandera import Column, Check
 
+logger = logging.getLogger("ontoweaver")
 
 class Validator(metaclass=ABCMeta):
     """Class used for data validation against a schema. The class uses the Pandera package to validate the data frame."""
@@ -114,7 +115,7 @@ class OutputValidator(Validator):
                 self.validation_rules.validate(df)
                 return True
             except Exception as exc:
-                logging.error(f"Validation failed with error: {exc.failure_cases}." if issubclass(type(exc), pa.errors.SchemaErrors) else f"Validation failed with error: {exc}.")
+                logger.error(f"Validation failed with error: {exc.failure_cases}." if issubclass(type(exc), pa.errors.SchemaErrors) else f"Validation failed with error: {exc}.")
                 return False
 
         else:
