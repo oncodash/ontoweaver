@@ -28,7 +28,7 @@ logger = logging.getLogger("ontoweaver")
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions', 'logger']
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":"):
+def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", raise_errors = True):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -60,8 +60,14 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
 
-            adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
-                                            separator=affix_separator)
+            adapter = tabular.extract_table(
+                table,
+                mapping,
+                parallel_mapping=parallel_mapping,
+                affix=affix,
+                separator=affix_separator,
+                raise_errors = raise_errors,
+            )
 
             nodes += adapter.nodes
             edges += adapter.edges
@@ -72,8 +78,14 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
 
         for data_frame, yaml_object in dataframe_to_mapping.items():
 
-            adapter = tabular.extract_table(data_frame, yaml_object, parallel_mapping=parallel_mapping, affix=affix,
-                                            separator=affix_separator)
+            adapter = tabular.extract_table(
+                data_frame,
+                yaml_object,
+                parallel_mapping=parallel_mapping,
+                affix=affix,
+                separator=affix_separator,
+                raise_errors = raise_errors,
+            )
 
             nodes += adapter.nodes
             edges += adapter.edges
@@ -94,7 +106,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
     return import_file
 
 
-def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":") -> Tuple[list[Tuple], list[Tuple]]:
+def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", raise_errors = True) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -122,8 +134,14 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
 
-            adapter = tabular.extract_table(table, mapping, parallel_mapping=parallel_mapping, affix=affix,
-                                            separator=affix_separator)
+            adapter = tabular.extract_table(
+                table,
+                mapping,
+                parallel_mapping=parallel_mapping,
+                affix=affix,
+                separator=affix_separator,
+                raise_errors = raise_errors,
+            )
 
             nodes += adapter.nodes
             edges += adapter.edges
@@ -135,8 +153,14 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
 
         for data_frame, yaml_object in dataframe_to_mapping.items():
 
-            adapter = tabular.extract_table(data_frame, yaml_object, parallel_mapping=parallel_mapping, affix=affix,
-                                            separator=affix_separator)
+            adapter = tabular.extract_table(
+                data_frame,
+                yaml_object,
+                parallel_mapping=parallel_mapping,
+                affix=affix,
+                separator=affix_separator,
+                raise_errors = raise_errors,
+            )
 
             nodes += adapter.nodes
             edges += adapter.edges
@@ -144,7 +168,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
     return nodes, edges
 
 
-def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None) -> str:
+def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -174,7 +198,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
 
     return import_file
 
-def validate_input_data(filename_to_mapping: dict):
+def validate_input_data(filename_to_mapping: dict, raise_errors = True):
     """
     Validates the data files based on provided rules in configuration.
 
@@ -193,12 +217,13 @@ def validate_input_data(filename_to_mapping: dict):
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        parser = tabular.YamlParser(yaml_mapping, types)
+        parser = tabular.YamlParser(yaml_mapping, types, raise_errors = raise_errors)
         mapping = parser()
 
         adapter = tabular.PandasAdapter(
             table,
             *mapping,
+            raise_errors = raise_errors,
         )
 
         try:
@@ -212,7 +237,7 @@ def validate_input_data(filename_to_mapping: dict):
             return False
 
 
-def validate_input_data_loaded(dataframe_to_mapping: dict):
+def validate_input_data_loaded(dataframe_to_mapping: dict, raise_errors = True):
     """
     Validates the data files based on provided rules in configuration.
 
@@ -234,6 +259,7 @@ def validate_input_data_loaded(dataframe_to_mapping: dict):
         adapter = tabular.PandasAdapter(
             data_frame,
             *mapping,
+            raise_errors = raise_errors,
         )
 
         try:
