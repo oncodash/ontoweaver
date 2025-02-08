@@ -1,18 +1,21 @@
 import sys
 import math
-import threading
-import types as pytypes
+import yaml
 import logging
+import threading
+
+import types as pytypes
+import pandas as pd
+import pandera as pa
+
+from itertools import chain
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
-import yaml
-
-import pandas as pd
-import pandera as pa
 from numpy.ma.core import set_fill_value
 
+from . import errormanager
 from . import base
 from . import types
 from . import transformer
@@ -108,7 +111,7 @@ class PandasAdapter(base.Adapter):
         self.validator = validator
 
         if not type_affix in TypeAffixes:
-            raise ValueError(f"`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})")
+            self.error(f"`type_affix`={type_affix} is not one of the allowed values ({[t for t in TypeAffixes]})", exception = exceptions.ConfigError)
         else:
             self.type_affix = type_affix
 
@@ -116,6 +119,7 @@ class PandasAdapter(base.Adapter):
 
         self.subject_transformer = subject_transformer
         self.transformers = transformers
+        self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
         # logger.debug(self.properties_of)
         self.parallel_mapping = parallel_mapping
@@ -210,6 +214,7 @@ class PandasAdapter(base.Adapter):
         properties = {}
 
         for prop_transformer, property_name in properity_dict.items():
+            self.property_transformers.append(prop_transformer)
             for property in prop_transformer(row, i):
                 properties[property_name] = str(property).replace("'", "`")
 
@@ -403,16 +408,27 @@ class PandasAdapter(base.Adapter):
                        f" Pass 0 for sequential processing, or the number of workers for parallel processing.", exception = exceptions.ConfigError)
 
         # Final logger
+        error_count = {}
+        for transformer in chain([self.subject_transformer], self.transformers, self.property_transformers):
+            if transformer.output_validator:
+                for msg,err in transformer.output_validator.messages.items():
+                    desc = f"in {err['section']} with {transformer}: {msg}"
+                    # FIXME do we want the number of validation errors or the number of bad cell values?
+                    # error_count[desc] = error_count.get(desc, 0) + err['count']
+                    error_count[desc] = error_count.get(desc, err['count'])
+        for desc,count in error_count.items():
+            logger.error(f"Recorded {count} times a validation error {desc}")
+
         if self.errors:
             logger.error(
-                f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+                f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
             # logger.debug("\n".join(self.errors))
         else:
             logger.info(
-                f"Performed {nb_transformations} transformations with {len(self.transformers)} transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+                f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
-def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":"):
+def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", raise_errors = True):
     """
     Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration.
@@ -428,7 +444,7 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
     Returns:
         PandasAdapter: The configured adapter.
     """
-    parser = YamlParser(config, module)
+    parser = YamlParser(config, module, raise_errors = raise_errors)
     mapping = parser()
 
     adapter = PandasAdapter(
@@ -437,6 +453,7 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
         type_affix=affix,
         type_affix_sep=separator,
         parallel_mapping=parallel_mapping,
+        raise_errors = raise_errors,
     )
 
     adapter.run()
@@ -445,7 +462,7 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
 
 
 
-class Declare(base.ErrorManager):
+class Declare(errormanager.ErrorManager):
     """
     Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
     of the data frame.
@@ -580,7 +597,8 @@ class Declare(base.ErrorManager):
                 else:
                     nt = "."
                 logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, **kwargs)
+                logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, raise_errors = self.raise_errors, **kwargs)
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -629,7 +647,7 @@ class YamlParser(Declare):
     :return tuple: subject_transformer, transformers, metadata as needed by the Adapter.
     """
 
-    def __init__(self, config: dict, module=types):
+    def __init__(self, config: dict, module=types, raise_errors = True):
         """
         Initialize the YamlParser.
 
@@ -637,7 +655,7 @@ class YamlParser(Declare):
             config (dict): The configuration dictionary.
             module: The module in which to insert the types declared by the configuration.
         """
-        super().__init__(module)
+        super().__init__(module, raise_errors = raise_errors)
         self.config = config
 
         logger.debug(f"Classes will be created in module '{self.module}'")
@@ -763,7 +781,7 @@ class YamlParser(Declare):
         # Parse the validation rules for the output of the subject transformer.
         s_output_validation_rules = self.get(k_validate_output, subject_dict[subject_transformer_class])
         s_yaml_output_validation_rules = yaml.dump(s_output_validation_rules, default_flow_style=False)
-        s_output_validator = validate.OutputValidator()
+        s_output_validator = validate.OutputValidator(raise_errors = self.raise_errors)
         s_output_validator.update_rules(pa.DataFrameSchema.from_yaml(s_yaml_output_validation_rules))
 
         # Then, parse property mappings.
@@ -798,7 +816,7 @@ class YamlParser(Declare):
                     # Parse the validation rules for the output of the property transformer.
                     p_output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
                     p_yaml_output_validation_rules = yaml.dump(p_output_validation_rules, default_flow_style=False)
-                    p_output_validator = validate.OutputValidator()
+                    p_output_validator = validate.OutputValidator(raise_errors = self.raise_errors)
                     p_output_validator.update_rules(pa.DataFrameSchema.from_yaml(p_yaml_output_validation_rules))
 
                     prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, output_validator=p_output_validator, **gen_data)
@@ -839,7 +857,7 @@ class YamlParser(Declare):
                     continue
                 else:
                     if type(field_dict) != dict:
-                        raise Exception(str(field_dict)+" is not a dictionary")
+                        self.error(str(field_dict)+" is not a dictionary", exception = exceptions.ParsingDeclarationsError)
 
                     columns = self.get(k_columns, pconfig=field_dict)
                     if type(columns) != list:
@@ -883,7 +901,7 @@ class YamlParser(Declare):
                         # instance of the OutputValidator with (at least) the default output validation rules.
                         output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
                         yaml_output_validation_rules = yaml.dump(output_validation_rules, default_flow_style=False)
-                        output_validator = validate.OutputValidator()
+                        output_validator = validate.OutputValidator(raise_errors = self.raise_errors)
                         output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
@@ -910,7 +928,7 @@ class YamlParser(Declare):
 
         try:
             validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
-            validator = validate.InputValidator(validation_schema)
+            validator = validate.InputValidator(validation_schema, raise_errors = self.raise_errors)
         except Exception as e:
             self.error(f"Failed to parse the input validation schema: {e}", exception = exceptions.ConfigError)
 

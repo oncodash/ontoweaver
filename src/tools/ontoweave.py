@@ -127,6 +127,9 @@ if __name__ == "__main__":
     do.add_argument("-A", "--type-affix-sep", metavar="CHARACTER", default=":",
         help="Character used to separate the label from the type affix. [default: %(default)s]")
 
+    do.add_argument("-E", "--pass-errors", action="store_true",
+        help=f"When an error occurs, log is, and then try to continue processing. If not passed, the default behavior is to raise errors immediatly and stop execution.")
+
     do.add_argument("-l", "--log-level", default="WARNING",
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help="Configure the log level. [default: %(default)s]")
@@ -134,7 +137,19 @@ if __name__ == "__main__":
     do.add_argument("-v", "--validate-only", action="store_true",
                     help="Only validate the given input data, do not apply the mapping.")
 
+    do.add_argument("-D", "--debug", action="store_true",
+        help=f"Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
+
     asked = do.parse_args()
+
+    if asked.debug:
+        if asked.log_level != "DEBUG":
+            logger.setLevel("DEBUG")
+            logger.warning(f"You asked for --debug but set --log-level={asked.log_level}, I will ignore that and set --log-level=DEBUG")
+        if asked.pass_errors:
+            loger.warning(f"You asked for --debug but passed --pass-errors, I will ignore that.")
+        asked.log_level = "DEBUG"
+        asked.pass_errors = False
 
     logger.setLevel(asked.log_level)
     logging.getLogger("ontoweaver").setLevel(asked.log_level)
@@ -148,7 +163,9 @@ if __name__ == "__main__":
     logger.info(f"    type-affix: `{asked.type_affix}`")
     logger.info(f"    type-affix-sep: `{asked.type_affix_sep}`")
     logger.info(f"    import-script-run: `{asked.import_script_run}`")
+    logger.info(f"    debug: `{asked.debug}`")
     logger.info(f"    log-level: `{asked.log_level}`")
+    logger.info(f"    pass-errors: `{asked.pass_errors}`")
 
     logger.info(f"    asked mappings: `{asked.mapping}`")
     asked_mapping = []
@@ -192,7 +209,7 @@ if __name__ == "__main__":
     # Validate the input data if asked.
     if asked.validate_only:
         logger.info(f"Validating input data frame...")
-        if ontoweaver.validate_input_data(filename_to_mapping=mappings):
+        if ontoweaver.validate_input_data(filename_to_mapping=mappings, raise_errors = not asked.pass_errors):
             logger.info(f"  Input data is valid according to provided rules.")
             sys.exit(0)
         else:
@@ -220,24 +237,46 @@ if __name__ == "__main__":
         check_file(map_file)
 
     logger.info(f"Running OntoWeaver...")
-    try:
-        import_file = ontoweaver.extract_reconciliate_write(asked.biocypher_config, asked.biocypher_schema, mappings, parallel_mapping=parallel, separator=asked.prop_sep, affix=asked.type_affix, affix_separator = asked.type_affix_sep)
-    # Manage exceptions wih specific error codes:
-    except ontoweaver.exceptions.ConfigError as e:
-        logger.error(f"ERROR in configuration: "+e)
-        sys.exit(error_codes["ConfigError"])
-    except ontoweaver.exceptions.RunError as e:
-        logger.error(f"ERROR in content: "+e)
-        sys.exit(error_codes["RunError"])
-    except ontoweaver.exceptions.ParsingError as e:
-        logger.error(f"ERROR during parsing of the YAML mapping: "+e)
-        sys.exit(error_codes["ParsingError"])
-    except ontoweaver.exceptions.OntoWeaverError as e:
-        logger.error(f"ERROR: "+e)
-        sys.exit(error_codes["OntoWeaverError"])
-    except Exception as e:
-        logger.error(f"UNKNOWN ERROR: "+e)
-        sys.exit(error_codes["Exception"])
+    if asked.debug:
+        import_file = ontoweaver.extract_reconciliate_write(
+            asked.biocypher_config,
+            asked.biocypher_schema,
+            mappings,
+            parallel_mapping=parallel,
+            separator=asked.prop_sep,
+            affix=asked.type_affix,
+            affix_separator = asked.type_affix_sep,
+            raise_errors = not asked.pass_errors)
+    else:
+        try:
+            import_file = ontoweaver.extract_reconciliate_write(
+                asked.biocypher_config,
+                asked.biocypher_schema,
+                mappings,
+                parallel_mapping=parallel,
+                separator=asked.prop_sep,
+                affix=asked.type_affix,
+                affix_separator = asked.type_affix_sep,
+                raise_errors = not asked.pass_errors)
+        # Manage exceptions wih specific error codes:
+        except ontoweaver.exceptions.ConfigError as e:
+            logger.error(f"ERROR in configuration: "+str(e))
+            sys.exit(error_codes["ConfigError"])
+        except ontoweaver.exceptions.RunError as e:
+            logger.error(f"ERROR in content: "+str(e))
+            sys.exit(error_codes["RunError"])
+        except ontoweaver.exceptions.ParsingError as e:
+            logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+            sys.exit(error_codes["ParsingError"])
+        except ontoweaver.exceptions.DataValidationError as e:
+            logger.error(f"ERROR during data validation: "+str(e))
+            sys.exit(error_codes["DataValidationError"])
+        except ontoweaver.exceptions.OntoWeaverError as e:
+            logger.error(f"ERROR: "+str(e))
+            sys.exit(error_codes["OntoWeaverError"])
+        except Exception as e:
+            logger.error(f"UNKNOWN ERROR: "+str(e))
+            sys.exit(error_codes["Exception"])
 
     # Output import file on stdout, in case the user would want to capture it.
     print(import_file)
@@ -246,11 +285,15 @@ if __name__ == "__main__":
     if asked.import_script_run:
         shell = os.environ["SHELL"]
         logger.info(f"Run import scripts with {shell}...")
-        try:
+        if asked.debug:
             subprocess.run([shell, import_file])
-        except Exception as e:
-            logger.error(e)
-            sys.exit(error_codes["SubprocessError"])
+
+        else:
+            try:
+                subprocess.run([shell, import_file])
+            except Exception as e:
+                logger.error(e)
+                sys.exit(error_codes["SubprocessError"])
 
 
     logger.info("Done")

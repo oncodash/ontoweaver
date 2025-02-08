@@ -7,6 +7,7 @@ from typing import Optional
 import pandas as pd
 import pandera as pa
 
+from . import errormanager
 from . import validate
 from . import serialize
 from . import exceptions
@@ -46,7 +47,6 @@ class ErrorManager:
             raise exception(err)
 
         return err
-
 
 class Element(metaclass = ABSTRACT):
     """Base class for either Node or Edge.
@@ -343,7 +343,7 @@ class GenericEdge(Edge):
         return Node
 
 
-class Adapter(ErrorManager, metaclass = ABSTRACT):
+class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
     """Base class for implementing a canonical Biocypher adapter."""
 
     def __init__(self, raise_errors = True
@@ -401,10 +401,10 @@ class Adapter(ErrorManager, metaclass = ABSTRACT):
             yield e
 
 
-class Transformer(ErrorManager):
+class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator() = None, **kwargs):
+    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
@@ -417,12 +417,15 @@ class Transformer(ErrorManager):
         the tabular module.
 
         """
+        super().__init__(raise_errors)
 
         self.target = target
         self.properties_of = properties_of
         self.edge = edge
         self.columns = columns
         self.output_validator = output_validator
+        if not self.output_validator:
+            self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -504,18 +507,19 @@ class Transformer(ErrorManager):
 
         for c in columns:
             if type(c) != str:
-                raise ValueError(f"Column `{c}` is not a string, did you mistype a leading colon?")
+                self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
 
-        return f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>"
+        return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
 
     def create(self, item):
 
+        res = str(item)
         try:
-            res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
                 return res
-        except pa.errors.SchemaErrors as error:
-            msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
+
+        except pa.errors.SchemaError as exc:
+            msg = f"Transformer {self.__repr__()} did not produce valid data on `{item}`: {exc.check.error}."
             self.error(msg, exception = exceptions.DataValidationError)
             return False
 
