@@ -47,7 +47,8 @@ class Validator(errormanager.ErrorManager):
         """
         if self.validation_rules:
             # May raise a pa.errors.SchemaError which will be catched in caller.
-            # Generally base.Transformer.create(...).
+            # Generally base.Transformer.create(...), so that
+            # we know which transformer deals the issue.
             self.validation_rules.validate(df)
             return True
 
