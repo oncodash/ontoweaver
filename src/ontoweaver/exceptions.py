@@ -2,6 +2,9 @@
 class OntoWeaverError(Exception):
     pass
 
+class FeatureError(OntoWeaverError):
+    pass
+
 class ConfigError(OntoWeaverError):
     pass
 

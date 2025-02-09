@@ -105,6 +105,9 @@ class PandasAdapter(base.Adapter):
         logger.debug("Columns:")
         for c in df.columns:
             logger.debug(f"\t`{c}`")
+        pd.set_option('display.max_rows', 30)
+        pd.set_option('display.max_columns', 30)
+        pd.set_option('display.width', 150)
         logger.info("\n" + str(df))
         self.df = df
 
