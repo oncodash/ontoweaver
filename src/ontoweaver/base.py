@@ -509,17 +509,32 @@ class Transformer(errormanager.ErrorManager):
 
         return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
 
+
     def create(self, item):
+        """Checks that the given item is valid,
+        while ignoring items that are converted to empty strings.
+
+        Raises:
+            exceptions.DataValidationError: if the item string failed to pass data validation.
+
+        Returns:
+            False, it the item is invalid, the string of the item if it can be created.
+        """
 
         res = str(item)
-        try:
-            if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                return res
-
-        except pa.errors.SchemaError as exc:
-            msg = f"Transformer {self.__repr__()} did not produce valid data on `{item}`: {exc.check.error}."
-            self.error(msg, exception = exceptions.DataValidationError)
+        if not res:
+            # Silently pass empty strings.
+            logger.debug(f"\t\tSilently pass an empty item encountered in {self.__repr__()}.")
             return False
+
+        else:
+            try:
+                if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
+                    return res
+            except pa.errors.SchemaError as exc:
+                msg = f"Transformer {self.__repr__()} did not produce valid data on `{item}`: {exc.check.error}."
+                self.error(msg, exception = exceptions.DataValidationError)
+                return False
 
 class All:
     """Gathers lists of subclasses of Element and their fields
