@@ -38,13 +38,15 @@ from rdflib.namespace import RDF, RDFS, OWL
 
 logger = logging.getLogger("owl_to_biocypher")
 
+
 chars_to_be_removed = [' ', "%", "-"]
-chars_to_be_replaced = ["_"]
+
 
 def remove_characters(s, list_c):
     for c in list_c:
         s = s.replace(c, "")
     return s
+
 
 def replace_underscore(s):
     p = s.find("_")
@@ -67,7 +69,7 @@ def get_label_from_iri(iri):
         return iri
 
 
-def fix_owl(ontology_file, output_format="rdfxml", json_f=None):
+def translate_labels(ontology_file, json_f=None, output_format="rdfxml"):
     ontology_path = os.path.abspath(ontology_file)
     iri_path = "".join(['file://', ontology_path])
     onto = owl.get_ontology(iri_path).load()
@@ -126,7 +128,7 @@ def fix_owl(ontology_file, output_format="rdfxml", json_f=None):
             # parents = c.is_a
             # if parents == [owl.Thing]:
             #     with onto:
-            #         bc_root_class = types.new_class("BcRootClass", (owl.Thing,)) 
+            #         bc_root_class = types.new_class("BcRootClass", (owl.Thing,))
             #         bc_root_class.label.append("BcRootClass")
             #         c.is_a = [bc_root_class]
             #print(c)
@@ -140,20 +142,25 @@ def fix_owl(ontology_file, output_format="rdfxml", json_f=None):
     # Save ontology file in a buffer.
     by_io = io.BytesIO()
     onto.save(by_io, output_format)
+    by_str = by_io.getvalue()
+    text = by_str.decode("UTF-8")
+    return text
 
+
+def harden_labels(text):
     # Replace "<label…</label>" by "<rdfs:label</rdfs:label>"
     # Because Biocypher needs rdfs:label, or else it does not found any class.
     # Because OwlReady2 does not allow label with prefixes,
     # we rely on regexp substitution.
-    by_str = by_io.getvalue()
-    text = by_str.decode("UTF-8")
     text = re.sub(r"<label", "<rdfs:label", text)
     text = re.sub(r"</label>", "</rdfs:label>", text)
 
     return text
 
 
-def add_meta_root(owl_txt, input_format, root_name = "BioCypherRoot"):
+def add_root(owl_txt, input_format, root_name = "BioCypherRoot"):
+    # Separated function, because it's using rdflib instead of owlredy2,
+    # because it's actually easier to manipulate low-level stuff.
 
     if input_format == "rdfxml":
         input_format = "xml"
@@ -216,8 +223,14 @@ def add_meta_root(owl_txt, input_format, root_name = "BioCypherRoot"):
 
     return g
 
-def update_initial_types_on_neo4j(type_mapping_file):
-    pass
+
+def harden_owl(ontology_file, json_f, output_format = "rdfxml"):
+    # rdfxml (owlready2) / xml (rdflib) is our pivot format
+    # to pass from one lib to the other.
+    owl_txt = translate_labels(ontology_file, json_f, output_format)
+    owl_txt = harden_labels(owl_txt)
+    graph = add_root(owl_txt, input_format = "xml")
+    return graph
 
 
 if __name__ == "__main__":
@@ -250,9 +263,6 @@ if __name__ == "__main__":
     logging.basicConfig()
     logger.setLevel(asked.log_level)
 
-    owl_txt = fix_owl(asked.ontology_file, output_format = "rdfxml", json_f = asked.json)
-    # rdfxml (owlready2) / xml (rdflib) is our pivot format
-    # to pass from one lib to the other.
-    rdf_graph = add_meta_root(owl_txt, input_format = "xml")
+    rdf_graph = harden_owl(asked.ontology_file, json_f = asked.json, output_format = "rdfxml")
 
     sys.stdout.write(rdf_graph.serialize(format = asked.output_format))
