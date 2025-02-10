@@ -31,8 +31,13 @@ __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 
 def read_file(filename, **kwargs):
     """Read a file with Pandas, using its extension to guess its format.
 
+    If no additional arguments are passed, it will call the
+    Pandas `read_*` function with `filter_na = False`, which makes empty cell
+    values to be loaded as empty strings instead of NaN values.
+
     Args:
-        kwargs: A dictionnary of arguments to pass to pandas.read_* functions.
+        filename: The name of the data file the user wants to map.
+        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
         exception.FeatureError: if the extension is unknown.
@@ -97,7 +102,8 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
            affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
-           kwargs: A dictionnary of arguments to pass to pandas.read_* functions.
+           raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+           kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
        Returns:
            The path to the import file.
@@ -171,7 +177,8 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
-        kwargs: A dictionnary of arguments to pass to pandas.read_* functions.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Returns:
         tuple: Two lists of tuples containing nodes and edges.
@@ -224,7 +231,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
     return nodes, edges
 
 
-def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
+def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -234,6 +241,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
         separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         str: The path to the import file.
@@ -261,7 +269,8 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
 
     Args:
         filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file.
-        kwargs: A dictionnary of arguments to pass to pandas.read_* functions.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Returns:
         bool: True if the data is valid, False otherwise.
@@ -301,6 +310,7 @@ def validate_input_data_loaded(dataframe_to_mapping: dict, raise_errors = True):
 
     Args:
          dataframe_to_mapping (dict): a dictionary mapping data frame to the OntoWeaver mapping yaml file.
+         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         bool: True if the data is valid, False otherwise.
