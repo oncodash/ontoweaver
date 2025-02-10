@@ -11,10 +11,17 @@ from urllib.parse import quote_plus as url_quote
 import logging
 logger = logging.getLogger("biocypher_to_owl")
 
-def clean_affix_uri(name, remove_affix = "none", affix_sep = ":"):
+
+class default:
+    root_name = "BioCypherRoot"
+    remove_affix = "none"
+    affix_sep = ":"
+
+
+def clean_affix_uri(name, remove_affix = default.remove_affix, affix_sep = default.affix_sep):
     affix_sep = url_quote(affix_sep)
 
-    if remove_affix != "none":
+    if remove_affix != default.remove_affix:
         if remove_affix == "prefix":
             matched = re.search(r"(.+)#\w+" +affix_sep+ r"([\w%]*)$", name)
             if matched:
@@ -30,8 +37,9 @@ def clean_affix_uri(name, remove_affix = "none", affix_sep = ":"):
     else:
         return None
 
-def clean_affix_literal(name, remove_affix = "none", affix_sep = ":"):
-    if remove_affix != "none":
+
+def clean_affix_literal(name, remove_affix = default.remove_affix, affix_sep = default.affix_sep):
+    if remove_affix != default.remove_affix:
         if remove_affix == "prefix":
             matched = re.search(r"^\w+" +affix_sep+ r"([\w%]*)$", name)
             if matched:
@@ -47,11 +55,12 @@ def clean_affix_literal(name, remove_affix = "none", affix_sep = ":"):
     else:
         return None
 
-def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
+
+def remove_labels_affixes(graph, remove_affix, affix_sep = default.affix_sep):
     logger.debug(f"Remove {remove_affix} in labels")
     for uri,p,label in graph.triples((None, RDFS.label, None)):
 
-        if remove_affix != "none":
+        if remove_affix != default.remove_affix:
             clean_label = clean_affix_literal(label, remove_affix, affix_sep)
 
             if clean_label:
@@ -71,25 +80,10 @@ def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
             else:
                 logger.debug(f"Label {label} does not need cleaning.")
 
-        logging.debug(f"Translate biocypherized labels back")
-        iri = str(uri)
-        if iri in restoration:
-            logger.info(f"\tRemove {restoration[iri]['biocypher_label']} label from {iri}")
-            graph.remove((
-                uri,
-                RDFS.label,
-                rdflib.Literal(restoration[iri]["biocypher_label"])
-            ))
-            for label in restoration[iri]["origin_labels"]:
-                logger.info(f"\tAdd {label} label to {iri}")
-                graph.add((
-                    uri,
-                    rdflib.namespaces.RDFS.label,
-                    rdflib.Literal(label)
-                ))
 
+def remove_affixes_subjects(graph, remove_affix, affix_sep = default.affix_sep):
     logging.debug(f"Remove {remove_affix} from IRIs in subjects")
-    if remove_affix != "none":
+    if remove_affix != default.remove_affix:
         for uri,p,obj in graph.triples((None, None, None)):
             clean_uri = clean_affix_uri(uri, remove_affix, affix_sep)
             if clean_uri:
@@ -109,8 +103,10 @@ def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
             else:
                 logger.debug(f"Subject {uri} does not need cleaning.")
 
+
+def remove_affixes_objects(graph, remove_affix, affix_sep = default.affix_sep):
     logging.debug(f"Remove {remove_affix} from IRIs in objects")
-    if remove_affix != "none":
+    if remove_affix != default.remove_affix:
         for uri,p,obj in graph.triples((None, None, None)):
             clean_obj = clean_affix_uri(obj, remove_affix, affix_sep)
             if clean_obj:
@@ -130,7 +126,29 @@ def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
             else:
                 logger.debug(f"Object {obj} does not need cleaning.")
 
-    logger.debug("Remove the BioCypherRoot...")
+
+def restore_labels(graph, restoration):
+    logging.debug(f"Translate biocypherized labels back")
+    for uri,p,label in graph.triples((None, RDFS.label, None)):
+        iri = str(uri)
+        if iri in restoration:
+            logger.info(f"\tRemove {restoration[iri]['biocypher_label']} label from {iri}")
+            graph.remove((
+                uri,
+                RDFS.label,
+                rdflib.Literal(restoration[iri]["biocypher_label"])
+            ))
+            for label in restoration[iri]["origin_labels"]:
+                logger.info(f"\tAdd {label} label to {iri}")
+                graph.add((
+                    uri,
+                    rdflib.namespaces.RDFS.label,
+                    rdflib.Literal(label)
+                ))
+
+
+def remove_root(graph, root_name = default.root_name):
+    logger.debug("Remove the BioCypher root...")
     bcns = Namespace("https://biocypher.org/biocypher#")
     graph.bind("biocypher", bcns)
     namespaces = {}
@@ -160,7 +178,16 @@ def restore_owl(graph, restoration, remove_affix = "none", affix_sep = ":"):
             uri_root,
         ) )
 
+
+
+def restore_owl(graph, restoration, remove_affix = default.remove_affix, affix_sep = default.affix_sep, root_name = default.root_name):
+    remove_labels_affixes(graph, remove_affix, affix_sep)
+    remove_affixes_subjects(graph, remove_affix, affix_sep)
+    remove_affixes_objects(graph, remove_affix, affix_sep)
+    restore_labels(graph, restoration)
+    remove_root(graph, root_name)
     return graph
+
 
 if __name__ == "__main__":
     import os
@@ -176,23 +203,26 @@ if __name__ == "__main__":
     do.add_argument("restoration")
 
     rdflib_formats = ["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"]
-    owlready_formats = ["rdfxml","ntriples"]
-    do.add_argument("-f", "--output-format",
-        help="the format in which to write the ontology (default: turtle)",
-        choices=rdflib_formats, default="turtle", metavar="OUT_FORMAT")
+    # owlready_formats = ["rdfxml","ntriples"]
 
-    do.add_argument("-F", "--input-format",
-        help="the format from which to read the ontology (default: turtle)",
-        choices=rdflib_formats, default="turtle", metavar="IN_FORMAT")
+    do.add_argument("-f", "--output-format", default="turtle",
+        choices=rdflib_formats, metavar="OUT_FORMAT",
+        help="the format in which to write the ontology (default: turtle)")
+
+    do.add_argument("-F", "--input-format", default="turtle",
+        choices=rdflib_formats, metavar="IN_FORMAT",
+        help="the format from which to read the ontology (default: turtle)")
 
     do.add_argument("-l", "--log-level", default="WARNING",
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help="Configure the log level. [default: WARNING]")
 
-    do.add_argument("-a", "--type-affix", choices=["suffix","prefix","none"], default="none",
+    do.add_argument("-a", "--type-affix", default=default.remove_affix,
+        choices=["suffix","prefix","none"],
         help="Where to add the type string to the ID label.")
 
-    do.add_argument("-A", "--type-affix-sep", metavar="CHARACTER", default=":",
+    do.add_argument("-A", "--type-affix-sep", default=default.affix_sep,
+        metavar="CHARACTER",
         help="Character used to separate the label from the type affix.")
 
     asked = do.parse_args()
