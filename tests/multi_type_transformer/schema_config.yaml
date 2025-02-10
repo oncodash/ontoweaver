@@ -1,0 +1,59 @@
+# Main node type (e.g. of the line of the table).
+sequence variant: # The type in Biolink
+    represented_as: node
+    label_in_input: variant # The type in the input data can have a different name.
+    properties:
+        whatever: str
+
+
+# Another node type (e.g. of a column of the table).
+patient: # Existing in Biolink under another name.
+    represented_as: node
+    label_in_input: patient
+    synonym_for: case # Actual name in Biolink.
+    properties:
+        something: str
+
+
+patient has variant: # Not existing in Biolink…
+    # … thus added by Biocypher under:
+    is_a: case to phenotypic feature association
+    represented_as: edge
+    label_in_input: patient_has_variant
+    source: sequence variant
+    target: patient
+
+disease:
+    represented_as: node
+    label_in_input: disease
+    properties:
+        whatever: str
+
+variant to disease association:
+    is_a: association
+    represented_as: edge
+    label_in_input: variant_to_disease
+    source: sequence variant
+    target: disease
+    properties:
+        something: str
+
+oncogenicity:
+    is_a: behavioral feature
+    represented_as: node
+    label_in_input: oncogenicity
+    properties:
+        whatever: str
+
+
+variant to oncogenicity:
+    is_a: variant to phenotypic feature association
+    represented_as: edge
+    label_in_input: variant_to_oncogenicity
+    source: sequence variant
+    target: oncogenicity
+    properties:
+        whatever: str
+
+
+
