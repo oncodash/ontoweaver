@@ -49,20 +49,19 @@ class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
+    def __init__(self,properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
         """
         Initialize the split transformer.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             sep: Character(s) to use for splitting.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, raise_errors = raise_errors, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -78,7 +77,7 @@ class split(base.Transformer):
         for key in self.columns:
             items = str(row[key]).split(self.separator)
             for item in items:
-                res, edge, node = self.create(item, self.edge, self.target, self.multi_type_transformer)
+                res, edge, node = self.create(item, self.multi_type_transformer)
                 if res:
                     yield res, edge, node
                 else:
@@ -88,20 +87,19 @@ class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Initialize the cat transformer.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -129,21 +127,20 @@ class cat_format(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
     their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Initialize the cat_format transformer.
 
-        Args:
-            target: The target node type.
+        Args:.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             format_string: A format string containing the column names to assemble.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -159,7 +156,7 @@ class cat_format(base.Transformer):
         Raises:
             Exception: If the format string is not defined or if invalid content is encountered.
         """
-        if self.format_string:
+        if hasattr(self, "format_string"):
             formatted_string = self.format_string.format_map(row)
             res, edge, node = self.create(formatted_string, self.multi_type_transformer)
             if res:
@@ -174,20 +171,19 @@ class cat_format(base.Transformer):
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of,  branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Initialize the rowIndex transformer.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors,  **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors,  **kwargs)
 
     def __call__(self, row, i):
         """
@@ -214,20 +210,19 @@ class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Initialize the map transformer.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -259,16 +254,15 @@ class map(base.Transformer):
 class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
         NOTE: The user should provide at least either `translations` or `translations_file`, but not both.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             translations: A dictionary figuring what to replace (keys) with which string (values).
             translations_file: A filename pointing to a tabular file readable by Pandas' csv_read.
@@ -279,8 +273,8 @@ class translate(base.Transformer):
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
             kwargs: Additional arguments to pass to Pandas' read_csv (if "sep=TAB", reads the translations_file as tab-separated).
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors,  **kwargs)
-        self.map = map(target, properties_of, edge, columns, output_validator, multi_type_transformer, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors,  **kwargs)
+        self.map = map(properties_of, branching_properties, columns, output_validator, multi_type_transformer, **kwargs)
 
         # Since we cannot expand kwargs, let's recover what we have inside.
         translations = kwargs.get("translations", None)
@@ -375,21 +369,20 @@ class translate(base.Transformer):
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             value: The string to use.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
         self.value = kwargs.get("value", None)
 
     def __call__(self, row, i):
@@ -423,14 +416,13 @@ class replace(base.Transformer):
      character or removed entirely. In case the cell value is made up of only forbidden characters, the node is not
      created and a warning is logged."""
 
-    def __init__(self, target, properties_of, edge=None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_transformer = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
         Args:
-            target: The target node type.
             properties_of: Properties of the node.
-            edge: The edge type (optional).
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             forbidden: The regular expression pattern to match forbidden characters.
             substitute: The string to replace forbidden characters with.
@@ -438,7 +430,7 @@ class replace(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(target, properties_of, edge, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
+        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_transformer, raise_errors = raise_errors, **kwargs)
         self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
         # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
         self.substitute = kwargs.get("substitute", "")

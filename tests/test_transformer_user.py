@@ -5,8 +5,8 @@ import pandas as pd
 import ontoweaver
 
 class user_transformer(ontoweaver.base.Transformer):
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+    def __init__(self, properties_of, branching_properties=None, columns=None, **kwargs):
+        super().__init__(properties_of, branching_properties, columns, **kwargs)
 
     def __call__(self, row, i):
         for key in self.columns:

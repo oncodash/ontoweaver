@@ -406,13 +406,12 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_transformer = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_transformer = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
-        :param target: the target ontology / node type to map to.
         :param properties_of: the properties of each node type.
-        :param edge: the edge type to use in the mapping.
+        :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
         :param multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
@@ -422,9 +421,8 @@ class Transformer(errormanager.ErrorManager):
         """
         super().__init__(raise_errors)
 
-        self.target = target # FIXME remove
         self.properties_of = properties_of
-        self.edge = edge #fixme REMOVE
+        self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator
         if not self.output_validator:
@@ -469,15 +467,15 @@ class Transformer(errormanager.ErrorManager):
         else:
             from_subject = "."
 
-        if self.target:
-            target_name = self.target.__name__
-        else:
-            target_name = "."
-
-        if self.edge:
-            edge_name = self.edge.__name__
-        else:
-            edge_name = "."
+        # if self.target:
+        #     target_name = self.target.__name__
+        # else:
+        #     target_name = "."
+        #
+        # if self.edge:
+        #     edge_name = self.edge.__name__
+        # else:
+        #     edge_name = "."
 
         if self.properties_of:
             props = self.properties_of
@@ -492,17 +490,17 @@ class Transformer(errormanager.ErrorManager):
                 p.append(f"{k}={v}")
             params = ','.join(p)
 
-        if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
-            # If this is a property transformer
-            link = ""
-
-        elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
-            # This a subject transformer.
-            link = f" => [{target_name}/{props}]"
-
-        else:
-            # This is a regular transformer.
-            link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+        # if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
+        #     # If this is a property transformer
+        #     link = ""
+        #
+        # elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
+        #     # This a subject transformer.
+        #     link = f" => [{target_name}/{props}]"
+        #
+        # else:
+        #     # This is a regular transformer.
+        #     link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
 
         if self.columns:
             columns = self.columns
@@ -512,6 +510,8 @@ class Transformer(errormanager.ErrorManager):
         for c in columns:
             if type(c) != str:
                 self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+
+        link = ","
 
         return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
 
@@ -563,9 +563,9 @@ class Transformer(errormanager.ErrorManager):
             for key, value in multi_type_transformer.items():
                 try:
                     if re.match(key, item):
-                        p = multi_type_transformer.get(value["to_object"].__name__, {})
                         self.__setattr__("target_type", value["to_object"].__name__)
-                        # self.properties_of = p
+                        if self.branching_properties:
+                            self.properties_of = self.branching_properties.get(value["to_object"].__name__, {})
                         return item, value["via_relation"], value["to_object"]
                 except re.error:
                     raise ValueError(f"Branching key {key} is not a string or regex.")

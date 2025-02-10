@@ -571,15 +571,13 @@ class Declare(errormanager.ErrorManager):
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_transformer_class(self, transformer_type, node_type=None, properties=None, edge=None, columns=None, output_validator=None, **kwargs):
+    def make_transformer_class(self, transformer_type, multi_type_transformer = None, branching_properties = None, properties=None, columns=None, output_validator=None, **kwargs):
         """
         Create a transformer class with the given parameters.
 
         Args:
             transformer_type: The class of the transformer.
-            node_type: The type of the target node created by the transformer.
             properties: The properties of the transformer.
-            edge: The edge type of the transformer.
             columns: The columns to be processed by the transformer.
             output_validator: validate.OutputValidator instance for transformer output validation.
             **kwargs: Additional keyword arguments.
@@ -595,13 +593,13 @@ class Declare(errormanager.ErrorManager):
             kwargs.setdefault("subclass", parent_t)
             if not issubclass(parent_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
-            else:
-                if node_type:
-                    nt = node_type.__name__
-                else:
-                    nt = "."
+            # else:
+            #     if node_type:
+            #         nt = node_type.__name__
+            #     else:
+            #         nt = "."
                 logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-                return parent_t(target=node_type, properties_of=properties, edge=edge, columns=columns, output_validator=output_validator, **kwargs)
+            return parent_t(properties_of=properties, columns=columns, output_validator=output_validator, multi_type_transformer = multi_type_transformer, branching_properties = branching_properties, **kwargs)
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -822,7 +820,8 @@ class YamlParser(Declare):
                     p_output_validator = validate.OutputValidator(raise_errors = self.raise_errors)
                     p_output_validator.update_rules(pa.DataFrameSchema.from_yaml(p_yaml_output_validation_rules))
 
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names, output_validator=p_output_validator, **gen_data)
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
+                                                                   output_validator=p_output_validator, **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -841,9 +840,11 @@ class YamlParser(Declare):
             'to_object': source_t,
             'via_relation': None
         }}
-        subject_transformer = self.make_transformer_class(
-            columns=subject_columns, transformer_type=subject_transformer_class, multi_type_transformer=subject_multi_type_transformer,
-            properties=properties_of.get(subject_type, {}), output_validator=s_output_validator, **subject_kwargs)
+        subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
+                                                          properties=properties_of.get(subject_type, {}),
+                                                          columns=subject_columns, output_validator=s_output_validator,
+                                                          multi_type_transformer=subject_multi_type_transformer,
+                                                          **subject_kwargs)
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
         extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
@@ -896,8 +897,8 @@ class YamlParser(Declare):
 
                     multi_type_transformer = {}
 
-                    if "branch_on_type" in gen_data:
-                        for entry in gen_data['branch_on_type']:
+                    if "match" in gen_data:
+                        for entry in gen_data['match']:
                                 for k, v in entry.items():
                                     if isinstance(v, dict):
                                         key = k
@@ -948,17 +949,23 @@ class YamlParser(Declare):
                         output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
-                        transformers.append(self.make_transformer_class(
-                            transformer_type=transformer_type, multi_type_transformer=multi_type_transformer,
-                            properties=properties_of.get(target, {}), columns=columns, output_validator=output_validator, **gen_data))
+                        transformers.append(self.make_transformer_class(transformer_type=transformer_type,
+                                                                        properties=properties_of.get(target, {}),
+                                                                        columns=columns,
+                                                                        output_validator=output_validator,
+                                                                        multi_type_transformer=multi_type_transformer,
+                                                                        **gen_data))
                         logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 
                     elif multi_type_transformer and not target and not edge:
-                        transformers.append(self.make_transformer_class(
-                            transformer_type=transformer_type, node_type=None, columns=columns,  properties={},
-                            output_validator=output_validator, multi_type_transformer=multi_type_transformer, **gen_data))
+                        transformers.append(self.make_transformer_class(transformer_type=transformer_type,
+                                                                        branching_properties=properties_of,
+                                                                        columns=columns,
+                                                                        output_validator=output_validator,
+                                                                        multi_type_transformer=multi_type_transformer,
+                                                                        **gen_data))
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
