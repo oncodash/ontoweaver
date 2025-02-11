@@ -462,59 +462,70 @@ class Transformer(errormanager.ErrorManager):
        return cls.edge_type().source_type()
 
     def __repr__(self):
+
+        representation = ""
+
         if hasattr(self, "from_subject"):
             from_subject = self.from_subject
         else:
             from_subject = "."
 
-        # if self.target:
-        #     target_name = self.target.__name__
-        # else:
-        #     target_name = "."
-        #
-        # if self.edge:
-        #     edge_name = self.edge.__name__
-        # else:
-        #     edge_name = "."
+        target_name = ""
+        edge_name = ""
 
-        if self.properties_of:
-            props = self.properties_of
-        else:
-            props = "{}"
+        if self.multi_type_transformer:
+            for key, value in self.multi_type_transformer.items():
+                if value['to_object'].__name__ and value['via_relation']:
+                    target_name = value['to_object'].__name__
+                    edge_name = value['via_relation']
+                elif value['to_object'].__name__ and not value['via_relation']:
+                    target_name = value['to_object'].__name__
+                    edge_name = "."
 
-        params = ""
-        parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
-        if parameters:
-            p = []
-            for k,v in parameters.items():
-                p.append(f"{k}={v}")
-            params = ','.join(p)
 
-        # if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
-        #     # If this is a property transformer
-        #     link = ""
-        #
-        # elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
-        #     # This a subject transformer.
-        #     link = f" => [{target_name}/{props}]"
-        #
-        # else:
-        #     # This is a regular transformer.
-        #     link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+                if self.properties_of:
+                    # The transformer is not a branching transformer, and has only one set of properties.
+                    props = self.properties_of
+                elif self.branching_properties and self.branching_properties.get(value['to_object'].__name__, None):
+                    # The transformer is a branching transformer, and has multiple sets of properties. We extract the ones for the current type.
+                    props = self.branching_properties.get(value['to_object'].__name__)
+                else:
+                    # The transformer has no properties for the type.
+                    props = "{}"
 
-        if self.columns:
-            columns = self.columns
-        else:
-            columns = []
 
-        for c in columns:
-            if type(c) != str:
-                self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+                params = ""
+                parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject', "match"]}
+                if parameters:
+                    p = []
+                    for k,v in parameters.items():
+                        p.append(f"{k}={v}")
+                    params = ','.join(p)
 
-        link = ","
+                if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
+                    # If this is a property transformer
+                    link = ""
 
-        return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
+                elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
+                    # This a subject transformer.
+                    link = f" => [{target_name}/{props}]"
 
+                else:
+                    # This is a regular transformer.
+                    link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+
+                if self.columns:
+                    columns = self.columns
+                else:
+                    columns = []
+
+                for c in columns:
+                    if type(c) != str:
+                        self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+
+                representation += (f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>")
+
+        return representation
 
     def create(self, item, multi_type_transformer):
         """"

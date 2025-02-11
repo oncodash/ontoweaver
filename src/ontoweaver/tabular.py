@@ -914,8 +914,6 @@ class YamlParser(Declare):
                                             'via_relation': alt_edge_t
                                         }
 
-                        multi_type_transformer.update(properties_of)
-
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
                     output_validation_rules = self.get(k_validate_output, pconfig=field_dict)

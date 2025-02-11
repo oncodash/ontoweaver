@@ -32,7 +32,3 @@ transformers:
           - patient
           - disease
           - variant_to_disease
-
-
-#FIXME CREATE SECOTION THAT enables parsing of a list of node-relation ( can_output: -types: to_object, via_relation )
-
