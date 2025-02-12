@@ -406,7 +406,7 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_transformer = None,  raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
@@ -414,7 +414,7 @@ class Transformer(errormanager.ErrorManager):
         :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
-        :param multi_type_transformer: the dictionary holding regex patterns for node and edge type branching based on cell values.
+        :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
         the tabular module.
 
@@ -428,7 +428,7 @@ class Transformer(errormanager.ErrorManager):
         if not self.output_validator:
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
-        self.multi_type_transformer = multi_type_transformer
+        self.multi_type_dict = multi_type_dict
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -473,11 +473,11 @@ class Transformer(errormanager.ErrorManager):
         target_name = ""
         edge_name = ""
 
-        if self.multi_type_transformer:
-            for key, value in self.multi_type_transformer.items():
+        if self.multi_type_dict:
+            for key, value in self.multi_type_dict.items():
                 if value['to_object'].__name__ and value['via_relation']:
                     target_name = value['to_object'].__name__
-                    edge_name = value['via_relation']
+                    edge_name = value['via_relation'].__name__
                 elif value['to_object'].__name__ and not value['via_relation']:
                     target_name = value['to_object'].__name__
                     edge_name = "."
@@ -495,6 +495,7 @@ class Transformer(errormanager.ErrorManager):
 
 
                 params = ""
+                # FIXME do not pass match to gen_data in tabular.
                 parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject', "match"]}
                 if parameters:
                     p = []
@@ -527,15 +528,14 @@ class Transformer(errormanager.ErrorManager):
 
         return representation
 
-    def create(self, item, multi_type_transformer):
+    def create(self, item):
         """"
         Function used to validate the output of the transformer and return the value with the correct type and relation.
         
         Args:
                        
             item (any): The item to be validated and transformed.
-            multi_type_transformer (dict): A dictionary holding regex patterns for node and edge type branching based on cell values.
-    
+                
         Returns:
             
             tuple: A tuple containing the validated item, the relation type, and the target object type.
@@ -545,39 +545,44 @@ class Transformer(errormanager.ErrorManager):
         try:
             res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                return self.branch(multi_type_transformer, res)
+                return self.branch(self.multi_type_dict, res)
             else:
                 return None, None, None
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def branch(self, multi_type_transformer, item):
+    def branch(self, multi_type_dict, item):
         """"
         Branch on the correct edge and node type based on the regex input matching the item returned by the transformer.
 
         Parameters:
             
-            multi_type_transformer (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
+            multi_type_dict (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
             as well as the target object type.
             item (str): The validated item to be branched on.
     
         Returns:
             
-            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_transformer
+            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_dict
             dictionary is not passed - returns the item, None, None.
             
         
         """""
 
-        if multi_type_transformer:
-            for key, value in multi_type_transformer.items():
+        if multi_type_dict:
+            if "None" in multi_type_dict.keys():
+                # No branching needed. The transformer is not a branching transformer.
+                self.target_type = multi_type_dict["None"]["to_object"].__name__
+                return item, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"]
+            for key, types in multi_type_dict.items():
+                # Branching is performed on the regex patterns.
                 try:
                     if re.match(key, item):
-                        self.__setattr__("target_type", value["to_object"].__name__)
+                        self.target_type = types["to_object"].__name__
                         if self.branching_properties:
-                            self.properties_of = self.branching_properties.get(value["to_object"].__name__, {})
-                        return item, value["via_relation"], value["to_object"]
+                            self.properties_of = self.branching_properties.get(types["to_object"].__name__, {})
+                        return item, types["via_relation"], types["to_object"]
                 except re.error:
                     raise ValueError(f"Branching key {key} is not a string or regex.")
         else:

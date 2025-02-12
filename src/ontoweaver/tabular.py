@@ -571,11 +571,12 @@ class Declare(errormanager.ErrorManager):
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_transformer_class(self, transformer_type, multi_type_transformer = None, branching_properties = None, properties=None, columns=None, output_validator=None, **kwargs):
+    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None, properties=None, columns=None, output_validator=None, **kwargs):
         """
         Create a transformer class with the given parameters.
 
         Args:
+            multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
             transformer_type: The class of the transformer.
             properties: The properties of the transformer.
             columns: The columns to be processed by the transformer.
@@ -593,13 +594,8 @@ class Declare(errormanager.ErrorManager):
             kwargs.setdefault("subclass", parent_t)
             if not issubclass(parent_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
-            # else:
-            #     if node_type:
-            #         nt = node_type.__name__
-            #     else:
-            #         nt = "."
                 logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-            return parent_t(properties_of=properties, columns=columns, output_validator=output_validator, multi_type_transformer = multi_type_transformer, branching_properties = branching_properties, **kwargs)
+            return parent_t(properties_of=properties, columns=columns, output_validator=output_validator, multi_type_dict = multi_type_dictionary, branching_properties = branching_properties, **kwargs)
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -835,15 +831,16 @@ class YamlParser(Declare):
         logging.debug(f"Parse subject transformer...")
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
 
-        # '[\s\S]*' is used to match any type of string, in case no branching is needed.
-        subject_multi_type_transformer = {'[\s\S]*': {
+        # FIXME check if branching present in subject transformer.
+        # "None" key is used to return any type of string, in case no branching is needed.
+        subject_multi_type_transformer = {'None': {
             'to_object': source_t,
             'via_relation': None
         }}
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
+                                                          multi_type_dictionary=subject_multi_type_transformer,
                                                           properties=properties_of.get(subject_type, {}),
                                                           columns=subject_columns, output_validator=s_output_validator,
-                                                          multi_type_transformer=subject_multi_type_transformer,
                                                           **subject_kwargs)
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
@@ -895,21 +892,21 @@ class YamlParser(Declare):
                         gen_data['from_subject'] = gen_data['from_source']
                         del gen_data['from_source']
 
-                    multi_type_transformer = {}
+                    multi_type_dictionary = {}
 
                     if "match" in gen_data:
                         for entry in gen_data['match']:
                                 for k, v in entry.items():
                                     if isinstance(v, dict):
                                         key = k
-                                        multi_type_transformer[key] = {k1: v1 for k1, v1 in v.items()}
+                                        multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
                                         alt_target = self.get(k_target, v)
                                         alt_target_t = self.make_node_class(alt_target,
                                                                             properties_of.get(alt_target, {}))
                                         alt_edge = self.get(k_edge, v)
                                         alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
                                                                           properties_of.get(alt_edge, {}))
-                                        multi_type_transformer[key] = {
+                                        multi_type_dictionary[key] = {
                                             'to_object': alt_target_t,
                                             'via_relation': alt_edge_t
                                         }
@@ -933,8 +930,8 @@ class YamlParser(Declare):
                             logger.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
 
-                        # '[\s\S]*' is used to match any type of string, in case no branching is needed.
-                        multi_type_transformer['[\s\S]*'] = {
+                        # "None" key is used to return any type of string, in case no branching is needed.
+                        multi_type_dictionary['None'] = {
                             'to_object': target_t,
                             'via_relation': edge_t
                         }
@@ -948,22 +945,20 @@ class YamlParser(Declare):
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
                         transformers.append(self.make_transformer_class(transformer_type=transformer_type,
+                                                                        multi_type_dictionary=multi_type_dictionary,
                                                                         properties=properties_of.get(target, {}),
                                                                         columns=columns,
-                                                                        output_validator=output_validator,
-                                                                        multi_type_transformer=multi_type_transformer,
-                                                                        **gen_data))
+                                                                        output_validator=output_validator, **gen_data))
                         logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
 
-                    elif multi_type_transformer and not target and not edge:
+                    elif multi_type_dictionary and not target and not edge:
                         transformers.append(self.make_transformer_class(transformer_type=transformer_type,
+                                                                        multi_type_dictionary=multi_type_dictionary,
                                                                         branching_properties=properties_of,
                                                                         columns=columns,
-                                                                        output_validator=output_validator,
-                                                                        multi_type_transformer=multi_type_transformer,
-                                                                        **gen_data))
+                                                                        output_validator=output_validator, **gen_data))
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
