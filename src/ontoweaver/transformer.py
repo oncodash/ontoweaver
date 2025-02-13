@@ -100,7 +100,7 @@ class cat(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
         super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_dict,
-                         **kwargs)
+                         raise_errors = raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
