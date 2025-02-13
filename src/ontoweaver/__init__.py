@@ -241,7 +241,6 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
         separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
-        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         str: The path to the import file.

@@ -444,6 +444,7 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
         module: The module in which to insert the types declared by the configuration.
         affix (str): The type affix to use (default is "suffix").
         separator (str): The separator to use between labels and type annotations (default is ":").
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         PandasAdapter: The configured adapter.
@@ -571,7 +572,7 @@ class Declare(errormanager.ErrorManager):
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None, properties=None, columns=None, output_validator=None, **kwargs):
+    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None, properties=None, columns=None, output_validator=None, raise_errors = True, **kwargs):
         """
         Create a transformer class with the given parameters.
 
@@ -581,6 +582,7 @@ class Declare(errormanager.ErrorManager):
             properties: The properties of the transformer.
             columns: The columns to be processed by the transformer.
             output_validator: validate.OutputValidator instance for transformer output validation.
+            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
             **kwargs: Additional keyword arguments.
 
         Returns:
@@ -595,7 +597,13 @@ class Declare(errormanager.ErrorManager):
             if not issubclass(parent_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
                 logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
-            return parent_t(properties_of=properties, columns=columns, output_validator=output_validator, multi_type_dict = multi_type_dictionary, branching_properties = branching_properties, **kwargs)
+            return parent_t(properties_of=properties,
+                            columns=columns,
+                            output_validator=output_validator,
+                            multi_type_dict = multi_type_dictionary,
+                            branching_properties = branching_properties,
+                            raise_errors = raise_errors,
+                            **kwargs)
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -831,16 +839,37 @@ class YamlParser(Declare):
         logging.debug(f"Parse subject transformer...")
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
 
-        # FIXME check if branching present in subject transformer.
+        subject_multi_type_dict = {}
+
+        # FIXME make single function because of duplicated code?
+        if "match" in subject_dict.keys():
+            for entry in subject_dict['match']:
+                for k, v in entry.items():
+                    if isinstance(v, dict):
+                        key = k
+                        subject_multi_type_dict[key] = {k1: v1 for k1, v1 in v.items()}
+                        alt_target = self.get(k_target, v)
+                        alt_target_t = self.make_node_class(alt_target,
+                                                            properties_of.get(alt_target, {}))
+                        alt_edge = self.get(k_edge, v)
+                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
+                                                          properties_of.get(alt_edge, {}))
+                        subject_multi_type_dict[key] = {
+                            'to_object': alt_target_t,
+                            'via_relation': alt_edge_t
+                        }
         # "None" key is used to return any type of string, in case no branching is needed.
-        subject_multi_type_transformer = {'None': {
-            'to_object': source_t,
-            'via_relation': None
-        }}
+        else:
+            subject_multi_type_dict = {'None': {
+                'to_object': source_t,
+                'via_relation': None
+            }}
+
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
-                                                          multi_type_dictionary=subject_multi_type_transformer,
+                                                          multi_type_dictionary=subject_multi_type_dict,
                                                           properties=properties_of.get(subject_type, {}),
                                                           columns=subject_columns, output_validator=s_output_validator,
+                                                          raise_errors = self.raise_errors,
                                                           **subject_kwargs)
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
@@ -948,7 +977,8 @@ class YamlParser(Declare):
                                                                         multi_type_dictionary=multi_type_dictionary,
                                                                         properties=properties_of.get(target, {}),
                                                                         columns=columns,
-                                                                        output_validator=output_validator, **gen_data))
+                                                                        output_validator=output_validator,
+                                                                        raise_errors = self.raise_errors, **gen_data))
                         logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), missing either an object or a relation.", "transformers", n_transformer, indent=2, exception = exceptions.MissingDataError)
@@ -958,7 +988,8 @@ class YamlParser(Declare):
                                                                         multi_type_dictionary=multi_type_dictionary,
                                                                         branching_properties=properties_of,
                                                                         columns=columns,
-                                                                        output_validator=output_validator, **gen_data))
+                                                                        output_validator=output_validator,
+                                                                        raise_errors = self.raise_errors, **gen_data))
 
                     extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
