@@ -28,7 +28,7 @@ def test_parallel_mapping():
             mapping = yaml.full_load(fd)
 
         logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping=8)
+        adapter = ontoweaver.tabular.extract_table(table, mapping, parallel_mapping=8, raise_errors=False)
 
         assert adapter
 

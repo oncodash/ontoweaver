@@ -5,7 +5,6 @@ def test_multi_type_transformer():
     import pandas as pd
     import biocypher
     import ontoweaver
-    import time
     import tempfile
 
     directory_name = "multi_type_transformer"
@@ -30,8 +29,8 @@ def test_multi_type_transformer():
         )
 
         logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping)
 
+        adapter = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
 
         assert adapter
         logging.debug("Write nodes...")

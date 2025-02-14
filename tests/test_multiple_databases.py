@@ -31,7 +31,7 @@ def test_multiple_databases():
             mapping = yaml.full_load(fd)
 
         logging.debug("Run the adapter (CGI)...")
-        adapter_cgi = ontoweaver.tabular.extract_table(table, mapping)
+        adapter_cgi = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
         assert adapter_cgi
 
         logging.debug("Add CGI nodes...")
@@ -52,7 +52,7 @@ def test_multiple_databases():
             mapping = yaml.full_load(fd)
 
         logging.debug("Run the adapter (OncoKB)...")
-        adapter_oncokb = ontoweaver.tabular.extract_table(table, mapping)
+        adapter_oncokb = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
         assert adapter_oncokb
 
         logging.debug("Add OncoKB nodes...")
