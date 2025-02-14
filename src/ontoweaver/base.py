@@ -63,7 +63,7 @@ class Element(metaclass = ABSTRACT):
 
         :param str id: Unique identifier of the element. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param str label: The label of the element. If label = None, the lower-case version of the class name is used as a label.
+        :param str label: The label of the element.
         :param Comparer serializer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         if not id:
@@ -75,7 +75,9 @@ class Element(metaclass = ABSTRACT):
         self.properties = properties
 
         if not label:
-            self._label = self.__class__.__name__.lower()
+            # Do not change the name here, or BioCypher will have problem
+            # finding back labels.
+            self._label = self.__class__.__name__ 
         else:
             self._label = str(label)
 
@@ -156,7 +158,7 @@ class Node(Element):
 
         :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param str label: The label of the node.
         :param Comparer serializer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         super().__init__(id = id, properties = properties, label = label, serializer = serializer)
@@ -224,7 +226,7 @@ class Edge(Element):
         :param str id_source: Unique identifier of the source Node. If None, is then set to the empty string.
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param str label: The label of the node.
         :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         super().__init__(id = id, properties = properties, label = label, serializer = serializer)
@@ -327,7 +329,7 @@ class GenericEdge(Edge):
         :param str id_source: Unique identifier of the source Node. If None, is then set to the empty string.
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
-        :param str label: The label of the node. If label = None, the lower-case version of the class name is used as a label.
+        :param str label: The label of the node.
         :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         super().__init__(id = id, id_source = id_source, id_target = id_target, properties = properties, label = label, serializer = serializer)
