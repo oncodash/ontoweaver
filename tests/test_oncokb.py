@@ -21,7 +21,7 @@ def test_oncokb():
 
     logging.debug("Load data...")
     csv_file = "tests/" + directory_name + "/genomics_oncokbannotation.csv"
-    table = pd.read_csv(csv_file)
+    table = pd.read_csv(csv_file, na_filter = False)
 
     logging.debug("Load mapping...")
     mapping_file = "tests/" + directory_name + "/oncokb.yaml"
