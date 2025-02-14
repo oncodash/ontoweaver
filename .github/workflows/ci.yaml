@@ -2,9 +2,9 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main ]
+    branches: [ feat-multy-type-t ]
   pull_request:
-    branches: [ main ]
+    branches: [ feat-multy-type-t ]
 
 jobs:
   build_and_test:
