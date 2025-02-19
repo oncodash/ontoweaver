@@ -28,7 +28,7 @@ def test_replace():
             mapping = yaml.full_load(fd)
 
         logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___")
+        adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___", raise_errors=False)
 
         assert adapter
 

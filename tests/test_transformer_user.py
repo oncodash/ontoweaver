@@ -11,10 +11,7 @@ class user_transformer(ontoweaver.base.Transformer):
     def __call__(self, row, i):
         for key in self.columns:
             res, edge, node = self.create(row[key])
-            if res:
-                yield res, edge, node
-            else:
-                pass
+            yield res, edge, node
 
 def test_transformer_user():
     # Add the passed transformer to the list available to OntoWeaver.

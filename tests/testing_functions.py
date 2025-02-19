@@ -22,4 +22,3 @@ def compare_csv_files(expected_dir, output_dir):
         output_df = pd.read_csv(output_file, on_bad_lines='skip')
 
         pd.testing.assert_frame_equal(output_df, expected_df)
-
