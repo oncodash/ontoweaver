@@ -219,7 +219,8 @@ class PandasAdapter(base.Adapter):
         for prop_transformer, property_name in properity_dict.items():
             self.property_transformers.append(prop_transformer)
             for property, none_node, none_edge in prop_transformer(row, i):
-                properties[property_name] = str(property).replace("'", "`")
+                if property:
+                    properties[property_name] = str(property).replace("'", "`")
 
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
         if self.metadata:
@@ -338,17 +339,27 @@ class PandasAdapter(base.Adapter):
                                 if transformer.from_subject == t.target_type:
                                     found_valid_subject = True
                                     for s_id, s_edge, s_node in t(row, i):
-                                        subject_id = s_id
-                                        subject_node_id = self.make_id(t.target_type, subject_id)
-                                        logging.debug(
-                                            f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
-                                        local_edges.append(
-                                            self.make_edge(edge_t=target_edge, id_source=subject_node_id,
-                                                           id_target=target_node_id,
-                                                           properties=self.properties(transformer.properties_of,
-                                                                                      row, i, s_edge, s_node)))
+                                        if s_id and s_edge and s_node:
+                                            subject_id = s_id
+                                            subject_node_id = self.make_id(t.target_type, subject_id)
+                                            logging.debug(
+                                                f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
+                                            local_edges.append(
+                                                self.make_edge(edge_t=target_edge, id_source=subject_node_id,
+                                                               id_target=target_node_id,
+                                                               properties=self.properties(transformer.properties_of,
+                                                                                          row, i, s_edge, s_node)))
+
+                                        else:
+                                            local_errors.append(self.error(
+                                                f"No valid identifiers from {t} for {i}th row, when trying to change default subject type",
+                                                f"by {transformer} with `from_subject` attribute.",
+                                                indent=7, section="transformers", index=j,
+                                                exception=exceptions.TransformerDataError))
+                                            continue
 
                                 else:
+                                    # The transformer instance type does not match the type in the `from_subject` attribute.
                                     continue
 
                             if not found_valid_subject:

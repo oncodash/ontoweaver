@@ -495,7 +495,6 @@ class Transformer(errormanager.ErrorManager):
 
 
                 params = ""
-                # FIXME do not pass match to gen_data in tabular.
                 parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject', "match"]}
                 if parameters:
                     p = []
@@ -578,10 +577,12 @@ class Transformer(errormanager.ErrorManager):
             for key, types in multi_type_dict.items():
                 # Branching is performed on the regex patterns.
                 try:
-                    if re.match(key, item):
+                    if re.search(key, item):
                         self.target_type = types["to_object"].__name__
                         if self.branching_properties:
                             self.properties_of = self.branching_properties.get(types["to_object"].__name__, {})
+                        else:
+                            self.properties_of = {}
                         return item, types["via_relation"], types["to_object"]
                 except re.error:
                     raise ValueError(f"Branching key {key} is not a string or regex.")
