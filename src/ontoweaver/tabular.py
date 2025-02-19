@@ -221,6 +221,9 @@ class PandasAdapter(base.Adapter):
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
+                else:
+                    self.error(f"Failed to extract valid property with {prop_transformer} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                    continue
 
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
         if self.metadata:
