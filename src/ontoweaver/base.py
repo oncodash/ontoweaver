@@ -247,9 +247,17 @@ class Edge(Element):
     def id_source(self):
         return self._id_source
 
+    @id_source.setter
+    def id_source(self, id_source):
+        self._id_source = id_source
+
     @property
     def id_target(self):
         return self._id_target
+
+    @id_target.setter
+    def id_target(self, id_target):
+        self._id_target = id_target
 
     Tuple: TypeAlias = tuple[str,str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
