@@ -90,7 +90,7 @@ def read_file(filename, separator = None,  **kwargs):
     return read_funcs[ext](filename, sep=separator, **kwargs) if separator else read_funcs[ext](filename, **kwargs)
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", raise_errors = True, **kwargs):
+def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe = None, loaded_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -100,7 +100,8 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
            biocypher_config_path: the BioCypher configuration file.
            schema_path: the assembling schema file.
            filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-           dataframe_to_mapping: a dictionary mapping loaded Pandas data frame to the loaded yaml mapping object.
+           dataframe: The loaded pandas DataFrame to map.
+           loaded_mapping: The mapping object to use for validation.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
@@ -136,23 +137,19 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             nodes += adapter.nodes
             edges += adapter.edges
 
-    if dataframe_to_mapping:
+    if loaded_mapping and dataframe:
 
-        assert(type(dataframe_to_mapping) == dict) # data_frame => yaml_object
+        adapter = tabular.extract_table(
+            dataframe,
+            loaded_mapping,
+            parallel_mapping=parallel_mapping,
+            affix=affix,
+            separator=affix_separator,
+            raise_errors = raise_errors,
+        )
 
-        for data_frame, yaml_object in dataframe_to_mapping.items():
-
-            adapter = tabular.extract_table(
-                data_frame,
-                yaml_object,
-                parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                raise_errors = raise_errors,
-            )
-
-            nodes += adapter.nodes
-            edges += adapter.edges
+        nodes += adapter.nodes
+        edges += adapter.edges
 
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
@@ -170,13 +167,14 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
     return import_file
 
 
-def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(filename_to_mapping = None, dataframe = None, loaded_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
         filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-        dataframe_to_mapping: a dictionary mapping loaded Pandas data frame to the loaded yaml mapping object.
+        dataframe: The loaded pandas DataFrame to map.
+        loaded_mapping: The mapping object to use for validation.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
@@ -213,23 +211,19 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
             edges += adapter.edges
 
 
-    if dataframe_to_mapping:
+    if dataframe and loaded_mapping:
 
-        assert(type(dataframe_to_mapping) == dict) # data_frame => yaml_object
+        adapter = tabular.extract_table(
+            dataframe,
+            loaded_mapping,
+            parallel_mapping=parallel_mapping,
+            affix=affix,
+            separator=affix_separator,
+            raise_errors = raise_errors,
+        )
 
-        for data_frame, yaml_object in dataframe_to_mapping.items():
-
-            adapter = tabular.extract_table(
-                data_frame,
-                yaml_object,
-                parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                raise_errors = raise_errors,
-            )
-
-            nodes += adapter.nodes
-            edges += adapter.edges
+        nodes += adapter.nodes
+        edges += adapter.edges
 
     return nodes, edges
 
@@ -244,7 +238,6 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
         separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
-        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         str: The path to the import file.
@@ -306,19 +299,19 @@ def validate_input_data(filename_to_mapping: dict, separator = None, **kwargs):
             return False
 
 
-def validate_input_data_loaded(dataframe, mapping):
+def validate_input_data_loaded(dataframe, loaded_mapping):
     """
     Validates the data files based on provided rules in configuration.
 
     Args:
          dataframe: The loaded pandas DataFrame to validate.
-         mapping: The mapping object to use for validation.
+         loaded_mapping: The mapping object to use for validation.
 
     Returns:
         bool: True if the data is valid, False otherwise.
     """
 
-    parser = tabular.YamlParser(mapping, types)
+    parser = tabular.YamlParser(loaded_mapping, types)
     mapping = parser()
 
     adapter = tabular.PandasAdapter(
