@@ -137,6 +137,9 @@ if __name__ == "__main__":
     do.add_argument("-v", "--validate-only", action="store_true",
                     help="Only validate the given input data, do not apply the mapping.")
 
+    do.add_argument("-Ds", "--database-sep", metavar="CHARACTER",
+        help="Character used to separate values in the database.")
+
     do.add_argument("-D", "--debug", action="store_true",
         help=f"Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
 
@@ -147,7 +150,7 @@ if __name__ == "__main__":
             logger.setLevel("DEBUG")
             logger.warning(f"You asked for --debug but set --log-level={asked.log_level}, I will ignore that and set --log-level=DEBUG")
         if asked.pass_errors:
-            loger.warning(f"You asked for --debug but passed --pass-errors, I will ignore that.")
+            logger.warning(f"You asked for --debug but passed --pass-errors, I will ignore that.")
         asked.log_level = "DEBUG"
         asked.pass_errors = False
 
@@ -209,7 +212,7 @@ if __name__ == "__main__":
     # Validate the input data if asked.
     if asked.validate_only:
         logger.info(f"Validating input data frame...")
-        if ontoweaver.validate_input_data(filename_to_mapping=mappings, raise_errors = not asked.pass_errors):
+        if ontoweaver.validate_input_data(filename_to_mapping=mappings, separator=asked.database_sep):
             logger.info(f"  Input data is valid according to provided rules.")
             sys.exit(0)
         else:
