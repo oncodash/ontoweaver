@@ -280,16 +280,10 @@ def validate_input_data(filename_to_mapping: dict, separator = None, **kwargs):
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        parser = tabular.YamlParser(yaml_mapping, types)
-        mapping = parser()
-
-        adapter = tabular.PandasAdapter(
-            table,
-            *mapping,
-        )
+        validator = tabular.YamlParser(yaml_mapping, types)._get_input_validation_rules()
 
         try:
-            adapter.validator(table)
+            validator(table)
             return True
         except pa.errors.SchemaErrors as exc:
             logger.error(f"Validation failed for {exc.failure_cases}.")
@@ -311,16 +305,10 @@ def validate_input_data_loaded(dataframe, loaded_mapping):
         bool: True if the data is valid, False otherwise.
     """
 
-    parser = tabular.YamlParser(loaded_mapping, types)
-    mapping = parser()
-
-    adapter = tabular.PandasAdapter(
-        dataframe,
-        *mapping,
-    )
+    validator = tabular.YamlParser(loaded_mapping, types)._get_input_validation_rules()
 
     try:
-        adapter.validator(dataframe)
+        validator(dataframe)
         return True
     except pa.errors.SchemaErrors as exc:
         logger.error(f"Validation failed for {exc.failure_cases}.")
