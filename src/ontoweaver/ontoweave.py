@@ -52,7 +52,7 @@ def config_directories(appname = "ontoweave"):
             yield p/appname
         yield xdg.xdg_config_home()/appname
 
-    yield pathlib.Path(".")
+    yield pathlib.Path("../tools")
 
 
 def config_paths(appname = "ontoweave"):
