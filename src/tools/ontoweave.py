@@ -212,7 +212,7 @@ if __name__ == "__main__":
     # Validate the input data if asked.
     if asked.validate_only:
         logger.info(f"Validating input data frame...")
-        if ontoweaver.validate_input_data(filename_to_mapping=mappings, separator=asked.database_sep):
+        if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep):
             logger.info(f"  Input data is valid according to provided rules.")
             sys.exit(0)
         else:

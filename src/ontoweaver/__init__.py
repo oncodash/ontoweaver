@@ -28,7 +28,7 @@ logger = logging.getLogger("ontoweaver")
 
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate', 'merge', 'fuse', 'fusion', 'exceptions', 'logger']
 
-def read_file(filename, separator = None,  **kwargs):
+def read_file(filename, **kwargs):
     """Read a file with Pandas, using its extension to guess its format.
 
     If no additional arguments are passed, it will call the
@@ -49,10 +49,9 @@ def read_file(filename, separator = None,  **kwargs):
 
     # We probably don't want NaN as a default,
     # since they tend to end up in a label.
-    if not kwargs:
-        kwargs = {'na_filter': True,
-                  "engine": "python"} #'c' engine does not support regex separators (separators > 1 char and different
-                                      # from '\s+' are interpreted as regex) which results in an error.
+    kwargs.update({'na_filter': True,
+                'engine': 'python'}) #'c' engine does not support regex separators (separators > 1 char and different
+                                  # from '\s+' are interpreted as regex) which results in an error.
 
     read_funcs = {
         '.csv'    : pd.read_csv,
@@ -87,7 +86,7 @@ def read_file(filename, separator = None,  **kwargs):
         logger.error(msg)
         raise exceptions.FeatureError(msg)
 
-    return read_funcs[ext](filename, sep=separator, **kwargs) if separator else read_funcs[ext](filename, **kwargs)
+    return read_funcs[ext](filename, **kwargs)
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe = None, loaded_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", raise_errors = True, **kwargs):
@@ -259,13 +258,12 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     return import_file
 
 
-def validate_input_data(filename_to_mapping: dict, separator = None, **kwargs):
+def validate_input_data(filename_to_mapping: dict, **kwargs):
     """
     Validates the data files based on provided rules in configuration.
 
     Args:
         filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file.
-        separator (str, optional): The separator used in the data file. Defaults to None.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Returns:
@@ -275,7 +273,7 @@ def validate_input_data(filename_to_mapping: dict, separator = None, **kwargs):
     assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
     for data_file, mapping_file in filename_to_mapping.items():
-        table = read_file(data_file, separator, **kwargs)
+        table = read_file(data_file, **kwargs)
 
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
