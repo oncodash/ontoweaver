@@ -377,11 +377,12 @@ might want to map the column ``WORDS`` based on the word type detected.
 
 ::
 
-   LINE    WORDS    
-   0   sensitive
-   1   sensitivity
-   2   productive
-   3   productivity
+   | LINE | WORDS |
+   | ---- | ---------- |
+   | 0 | sensitive |
+   | 1 | sensitivity |
+   | 2 | productive |
+   | 3 | productivity |
 
 .. code:: yaml
 

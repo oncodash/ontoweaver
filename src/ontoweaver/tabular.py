@@ -349,7 +349,7 @@ class PandasAdapter(base.Adapter):
                                             if s_id and s_edge and s_node:
                                                 subject_id = s_id
                                                 subject_node_id = self.make_id(t.target_type, subject_id)
-                                                logging.debug(
+                                                logger.debug(
                                                     f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
                                                 local_edges.append(
                                                     self.make_edge(edge_t=target_edge, id_source=subject_node_id,
@@ -880,7 +880,7 @@ class YamlParser(Declare):
 
         metadata_list = self.get(k_metadata)
 
-        logging.debug(f"Parse subject transformer...")
+        logger.debug(f"Parse subject transformer...")
         source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
 
         subject_multi_type_dict = {}
@@ -1023,7 +1023,7 @@ class YamlParser(Declare):
                                                                         columns=columns,
                                                                         output_validator=output_validator,
                                                                         raise_errors = self.raise_errors, **gen_data))
-                        logging.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
+                        logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
                         self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
                                    f"missing either an object or a relation.", "transformers", n_transformer,

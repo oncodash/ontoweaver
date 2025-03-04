@@ -77,8 +77,7 @@ class split(base.Transformer):
         for key in self.columns:
             items = str(row[key]).split(self.separator)
             for item in items:
-                res, edge, node = self.create(item)
-                yield res, edge, node
+                yield self.create(item)
 
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
@@ -114,8 +113,7 @@ class cat(base.Transformer):
 
         for key in self.columns:
             formatted_items += str(row[key])
-            res, edge, node = self.create(formatted_items)
-            yield res, edge, node
+            yield self.create(formatted_items)
 
 
 
@@ -155,8 +153,7 @@ class cat_format(base.Transformer):
         """
         if hasattr(self, "format_string"):
             formatted_string = self.format_string.format_map(row)
-            res, edge, node = self.create(formatted_string)
-            yield res, edge, node
+            yield self.create(formatted_string)
 
 
         else:
@@ -195,8 +192,7 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        res, edge, node = self.create(i)
-        yield res, edge, node
+        yield self.create(i)
 
 
 
@@ -239,8 +235,7 @@ class map(base.Transformer):
         for key in self.columns:
             if key not in row:
                 self.error(f"Column '{key}' not found in data", section="map.call", exception = exceptions.TransformerDataError)
-            res, edge, node = self.create(row[key])
-            yield res, edge, node
+            yield self.create(row[key])
 
 
 class translate(base.Transformer):
@@ -396,8 +391,7 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        res, edge, node = self.create(self.value)
-        yield res, edge, node
+        yield self.create(self.value)
 
 
 
@@ -446,5 +440,4 @@ class replace(base.Transformer):
             formatted = re.sub(self.forbidden, self.substitute, row[key])
             strip_formatted = formatted.strip(self.substitute)
             logger.debug(f"Formatted value: {strip_formatted}")
-            res, edge, node = self.create(strip_formatted)
-            yield res, edge, node
+            yield self.create(strip_formatted)

@@ -475,20 +475,20 @@ class Transformer(errormanager.ErrorManager):
 
         if self.multi_type_dict:
             for key, value in self.multi_type_dict.items():
-                if value['to_object'].__name__ and value['via_relation']:
-                    target_name = value['to_object'].__name__
-                    edge_name = value['via_relation'].__name__
-                elif value['to_object'].__name__ and not value['via_relation']:
-                    target_name = value['to_object'].__name__
+                if value['to_object'] and value['via_relation']:
+                    target_name = value['to_object']
+                    edge_name = value['via_relation']
+                elif value['to_object'] and not value['via_relation']:
+                    target_name = value['to_object']
                     edge_name = "."
 
 
                 if self.properties_of:
                     # The transformer is not a branching transformer, and has only one set of properties.
                     props = self.properties_of
-                elif self.branching_properties and self.branching_properties.get(value['to_object'].__name__, None):
+                elif self.branching_properties and self.branching_properties.get(value['to_object'], None):
                     # The transformer is a branching transformer, and has multiple sets of properties. We extract the ones for the current type.
-                    props = self.branching_properties.get(value['to_object'].__name__)
+                    props = self.branching_properties.get(value['to_object'])
                 else:
                     # The transformer has no properties for the type.
                     props = "{}"
