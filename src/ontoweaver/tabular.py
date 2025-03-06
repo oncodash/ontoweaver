@@ -765,6 +765,25 @@ class YamlParser(Declare):
         else:
             return None
 
+
+    def _get_input_validation_rules(self,):
+        """
+        Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
+        """
+        k_validate = ["validate"]
+        validation_rules = self.get(k_validate)
+        yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
+        validator = None
+
+        try:
+            validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
+            validator = validate.InputValidator(validation_schema, raise_errors=self.raise_errors)
+        except Exception as e:
+            self.error(f"Failed to parse the input validation schema: {e}", exception=exceptions.ConfigError)
+
+        return validator
+
+      
     def _make_output_validator(self, output_validation_rules = None):
         """
         Create a validator for the output of a transformer.
@@ -784,6 +803,7 @@ class YamlParser(Declare):
             output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
 
         return output_validator
+
 
     def __call__(self):
         """
@@ -810,7 +830,6 @@ class YamlParser(Declare):
         k_transformer = ["transformers"]
         k_metadata = ["metadata"]
         k_metadata_column = ["add_source_column_names_as"]
-        k_validate = ["validate"]
         k_validate_output = ["validate_output"]
 
         transformers_list = self.get(k_transformer)
@@ -1046,16 +1065,7 @@ class YamlParser(Declare):
                         if extracted_metadata:
                             metadata.update(extracted_metadata)
 
-        # Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
-        validation_rules = self.get(k_validate)
-        yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
-        validator = None
-
-        try:
-            validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
-            validator = validate.InputValidator(validation_schema, raise_errors = self.raise_errors)
-        except Exception as e:
-            self.error(f"Failed to parse the input validation schema: {e}", exception = exceptions.ConfigError)
+        validator = self._get_input_validation_rules()
 
         logger.debug(f"source class: {source_t}")
         logger.debug(f"properties_of: {properties_of}")

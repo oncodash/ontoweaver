@@ -37,6 +37,7 @@ def read_file(filename, **kwargs):
 
     Args:
         filename: The name of the data file the user wants to map.
+        separator (str, optional): The separator used in the data file. Defaults to None.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
@@ -48,8 +49,9 @@ def read_file(filename, **kwargs):
 
     # We probably don't want NaN as a default,
     # since they tend to end up in a label.
-    if not kwargs:
-        kwargs = {'na_filter': False}
+    kwargs.update({'na_filter': True,
+                'engine': 'python'}) #'c' engine does not support regex separators (separators > 1 char and different
+                                  # from '\s+' are interpreted as regex) which results in an error.
 
     read_funcs = {
         '.csv'    : pd.read_csv,
@@ -97,7 +99,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
            biocypher_config_path: the BioCypher configuration file.
            schema_path: the assembling schema file.
            filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-           dataframe_to_mapping: a dictionary mapping loaded Pandas data frame to the loaded yaml mapping object.
+           dataframe_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
@@ -135,17 +137,14 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
 
     if dataframe_to_mapping:
 
-        assert(type(dataframe_to_mapping) == dict) # data_frame => yaml_object
-
-        for data_frame, yaml_object in dataframe_to_mapping.items():
-
+        for dataframe, loaded_mapping in dataframe_to_mapping:
             adapter = tabular.extract_table(
-                data_frame,
-                yaml_object,
+                dataframe,
+                loaded_mapping,
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
-                raise_errors = raise_errors,
+                raise_errors=raise_errors,
             )
 
             nodes += adapter.nodes
@@ -172,8 +171,8 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-        dataframe_to_mapping: a dictionary mapping loaded Pandas data frame to the loaded yaml mapping object.
+        filename_to_mapping (dict): A dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+        dataframe_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
@@ -209,20 +208,17 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
             nodes += adapter.nodes
             edges += adapter.edges
 
-
     if dataframe_to_mapping:
 
-        assert(type(dataframe_to_mapping) == dict) # data_frame => yaml_object
-
-        for data_frame, yaml_object in dataframe_to_mapping.items():
+        for dataframe, loaded_mapping in dataframe_to_mapping:
 
             adapter = tabular.extract_table(
-                data_frame,
-                yaml_object,
+                dataframe,
+                loaded_mapping,
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
-                raise_errors = raise_errors,
+                raise_errors=raise_errors,
             )
 
             nodes += adapter.nodes
@@ -241,7 +237,8 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
         separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
-        # FIXME: The raise_errors parameter is currently not used downstream because the fusion classes are to be refactored with error management.
+
+        FIXME: The raise_errors parameter is currently not used downstream because the fusion classes are to be refactored with error management.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
@@ -265,7 +262,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     return import_file
 
 
-def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs):
+def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs) -> bool:
     """
     Validates the data files based on provided rules in configuration.
 
@@ -286,17 +283,10 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        parser = tabular.YamlParser(yaml_mapping, types, raise_errors = raise_errors)
-        mapping = parser()
-
-        adapter = tabular.PandasAdapter(
-            table,
-            *mapping,
-            raise_errors = raise_errors,
-        )
+        validator = tabular.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
 
         try:
-            adapter.validator(table)
+            validator(table)
             return True
         except pa.errors.SchemaErrors as exc:
             logger.error(f"Validation failed for {exc.failure_cases}.")
@@ -306,39 +296,28 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
             return False
 
 
-def validate_input_data_loaded(dataframe_to_mapping: dict, raise_errors = True):
+def validate_input_data_loaded(dataframe, loaded_mapping, raise_errors = True) -> bool:
     """
     Validates the data files based on provided rules in configuration.
 
     Args:
-         dataframe_to_mapping (dict): a dictionary mapping data frame to the OntoWeaver mapping yaml file.
+         dataframe: The loaded pandas DataFrame to validate.
+         loaded_mapping: The mapping object to use for validation.
          raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         bool: True if the data is valid, False otherwise.
     """
 
+    validator = tabular.YamlParser(loaded_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
 
-    assert (type(dataframe_to_mapping) == dict)  # data_frame => yaml_object
-
-    for data_frame, yaml_object in dataframe_to_mapping.items():
-
-        parser = tabular.YamlParser(yaml_object, types)
-        mapping = parser()
-
-        adapter = tabular.PandasAdapter(
-            data_frame,
-            *mapping,
-            raise_errors = raise_errors,
-        )
-
-        try:
-            adapter.validator(data_frame)
-            return True
-        except pa.errors.SchemaErrors as exc:
-            logger.error(f"Validation failed for {exc.failure_cases}.")
-            return False
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            return False
+    try:
+        validator(dataframe)
+        return True
+    except pa.errors.SchemaErrors as exc:
+        logger.error(f"Validation failed for {exc.failure_cases}.")
+        return False
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return False
 
