@@ -494,6 +494,47 @@ transformers:
 The result of this mapping would be a node of type `phone_number`, with the id of the node being `01234567`, connected to
 a node of type `id` with the id `Jennifer`, via an edge of type `phone_number_of_person`.
 
+### Multi-type Transformers
+
+In some cases there might be a need to apply multiple type mappings to cell values within a single column. For example, in 
+the table below, you might want to map the column `WORDS` based on the word type detected.
+
+```
+| LINE | WORDS |
+| ---- | ---------- |
+| 0 | sensitive |
+| 1 | sensitivity |
+| 2 | productive |
+| 3 | productivity |
+```
+
+```yaml
+row:
+   map:
+     column: LINE
+     to_subject: line
+transformers:
+    - map:
+        column: WORDS
+        match:
+            - ive\b:
+                to_object: adjective
+                via_relation: line_is_adjective
+            - ivity\b:
+                to_object: noun
+                via_relation: line_is_noun
+```
+
+Here we see a mapping that uses the `match` clause to apply different type mappings to cell values based on the word type detected. We define 
+two regex rules:
+
+- `ive\b` which matches words ending with `ive` and maps them to the node type `adjective` via the edge type `line_is_adjective`.
+- `ivity\b` which matches words ending with `ivity` and maps them to the node type `noun` via the edge type `line_is_noun`.
+
+This way we have managed to handle a case where a single column of words can result in multiple node types which should be connected
+to the subject type `line` with different edge types. The cell values `sensitive` and `productive` would be mapped to the node type `adjective` via
+the edge type `line_is_adjective`, while the cell values `sensitivity` and `productivity` would be mapped to the node type `noun` via the edge type `line_is_noun`.
+
 ### User-defined Transformers
 
 It is easy to create your own transformer, if you want to operate complex
@@ -999,18 +1040,19 @@ implement a `fusion.Fusioner` directly.
 Apart from mapping and fusion features, OntoWeaver also offers a data validation feature to help you ensure your input databases
 and the outputs of your mapping fulfill a set of predefined expectations.
 The data validation feature uses the functionalities provided by the [Pandera package]((https://pandera.readthedocs.io/en/stable/index.html)),
-as well as its yaml configuration to validate the data. These yaml configurations enable you to write some basic definitions
+as well as its YAML configuration to validate the data. These YAML configurations enable you to write some basic definitions
 of types and domains expected for each of the columns of your input data, as well as type and domain expectations for the 
 output of your mapping, with some preset rules for outputs, ensuring that the output of any mapping will not result
 in an empty value and will be a string.
 
-Here's an example of what a yaml configuration file for a simple database would look like:
+Here's an example of what a YAML configuration file for a simple database would look like:
 
 ```
-variant_id  patient
-    0           A
-    1	        B
-    2	        C
+| variant_id | patient |
+|------------|---------|
+|      0     |    A    |
+|      1     |    B    |
+|      2     |    C    |
 ```
 
 Let's first define a simple mapping configuration for the above data. In the example below we are mapping the column `patient`
@@ -1030,8 +1072,8 @@ transformers:
 
 ### Input Data Validation
 
-Now, let's define a yaml configuration file for input data validation. The configuration is part of the `yaml` file used to configure
-the mapping. We start off by defining a `validate` section in the yaml file, followed by a section defining the `columns`. For each
+Now, let's define a YAML configuration file for input data validation. The configuration is part of the `yaml` file used to configure
+the mapping. We start off by defining a `validate` section in the YAML file, followed by a section defining the `columns`. For each
 column in our database, we define a `type` (`dtype: int64` for the `variant_id` column and `dtype: str` for the `patient` column), and
 a set of `checks` that we want to perform on the data in the column. In this case, we want to ensure that the `variant_id` column
 is in range from 0 to 3, and that the `patient` column only contains the values `A`, `B`, and `C`.
@@ -1110,7 +1152,7 @@ transformers:
                               - C
 ```
 
-The whole yaml file, with both data mapping, input data validation, and output data validation, would look like this:
+The whole YAML file, with both data mapping, input data validation, and output data validation, would look like this:
 
 ```yaml
 row:

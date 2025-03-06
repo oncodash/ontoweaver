@@ -1,4 +1,4 @@
-def test_ontology_subtypes():
+def test_output_validation():
     import yaml
     import logging
     from . import testing_functions
@@ -7,7 +7,7 @@ def test_ontology_subtypes():
     import ontoweaver
     import tempfile
 
-    directory_name = "ontology_subtypes"
+    directory_name = "output_validation"
 
     with tempfile.TemporaryDirectory() as temp_dir:
         logging.debug(f"Using temporary directory at: {temp_dir}")
@@ -28,17 +28,25 @@ def test_ontology_subtypes():
             mapping = yaml.full_load(fd)
 
         logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping)
+        adapter = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
 
         assert adapter
-
-        logging.debug("Write nodes...")
         assert adapter.nodes
-        bc.write_nodes(adapter.nodes)
-
-        logging.debug("Write edges...")
         assert adapter.edges
-        bc.write_edges(adapter.edges)
+
+        nodes = []
+        edges = []
+
+        nodes += adapter.nodes
+        edges += adapter.edges
+
+        fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=None)
+
+        fnodes.sort()
+        fedges.sort()
+
+        bc.write_nodes(fnodes)
+        bc.write_edges(fedges)
 
         logging.debug("Write import script...")
         bc.write_import_call()
@@ -49,4 +57,4 @@ def test_ontology_subtypes():
         testing_functions.compare_csv_files(assert_output_path, output_dir)
 
 if __name__ == "__main__":
-    test_ontology_subtypes()
+    test_output_validation()

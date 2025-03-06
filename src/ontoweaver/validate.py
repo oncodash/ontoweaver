@@ -49,8 +49,12 @@ class Validator(errormanager.ErrorManager):
             # May raise a pa.errors.SchemaError which will be catched in caller.
             # Generally base.Transformer.create(...), so that
             # we know which transformer deals the issue.
-            self.validation_rules.validate(df)
-            return True
+            try:
+                self.validation_rules.validate(df)
+                return True
+            except pa.errors.SchemaError as e:
+                self.error(str(e), section = section)
+                return False
 
         else:
             logger.warning("No schema provided for data validation.")
