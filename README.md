@@ -789,6 +789,66 @@ node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
 
+### How to filter properties of elements of the same ontological type
+
+In some cases there might be a need to filter properties of the same ontological type. For example, if you have a table
+of proteins defining sources and targets of interactions:
+
+| SOURCE        | TARGET        | SOURCE_PROPERTY | TARGET_PROPERTY |
+|---------------|---------------|-----------------|-----------------|
+| A             | B             | source_1        | target_1        |
+| C             | A             | source_2        | target_2        |
+
+In a conventional way of mapping, you would map the `SOURCE` column to the node type `protein` and the `TARGET` column to the
+node type `protein`. The `SOURCE_PROPERTY` and `TARGET_PROPERTY` columns would hence also need to be mapped to the type
+`protein`, resulting in all the nodes - `A`, `B`, and `C` having all the four properties attached to them. 
+
+However, you might want to filter the properties of the `protein` nodes based on the source and target. In this case you can
+opt for the usage of the `final_type` keyword in the mapping configuration. The `final_type` keyword allows you to define a
+final node type to which the source and target nodes will be converted. For example:
+
+```yaml
+row:
+    map:
+        column: SOURCE
+        to_subject: source # Subtype of protein.
+        final_type: protein # The final type of the node.
+
+transformers:
+    - map:
+        column: TARGET
+        to_object: target # Subtype of protein.
+        via_relation: protein_protein_interaction
+        final_type: protein # The final type of the node.
+        
+    # Properties of for the node type 'source'
+    - map:
+        column: SOURCE_PROPERTY
+        to_property: genesymbol # Give name of the property.
+        for_object: source # Node type to which the property will be linked.
+    # Properties of for the node type 'target'
+    - map:
+        column: TARGET_PROPERTY
+        to_property: genesymbol
+        for_object: target # Node type to which the property will be linked.
+
+```
+
+Notice how in this way, we avoid mapping the `source` properties to the `target` node types, and instead map then to the source node type.
+The vice-versa is also true, we avoid mapping the `target` properties to the `source` node types, and instead map them to the target node type.
+
+This way, were it not for the `final_type: protein` clause, the `source` and `target` nodes would have been created with
+their own respective segregated properties. Notice that there would be two types of the node `A` created, one with the `source_1` 
+property, and the type of the node being `source`, and the other with the `target_1` property, and the type of the node being `target`.
+
+However, with the `final_type: protein` clause, the `source` and `target` nodes are converted to their supertype `protein` on-the-fly, 
+and the mapping results in the creation of three nodes: `A`, `B`, and `C`, all holding the type `protein`.
+Node `A` will have, following reconciliation (for more information see the `Information Fusion` section), the properties 
+`source_1` and `target_2`, node `B` will have the property `target_1`, and node `C` will have the property `source_2`.
+
+An edge of type `protein_protein_interaction`,  will be created from node `A` to node `B`, as well as from node `C` to node `A`.
+
+
 ## Parallel Processing
 
 OntoWeaver provides a way to parallelize the extraction of nodes and edges from the provided database, with the aim of
