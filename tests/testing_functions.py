@@ -1,13 +1,6 @@
 import os
 import glob
 import pandas as pd
-import time
-def get_latest_directory(parent_dir):
-    """Get the latest directory in the given parent directory."""
-    all_dirs = [os.path.join(parent_dir, d) for d in os.listdir(parent_dir) if
-                os.path.isdir(os.path.join(parent_dir, d))]
-    latest_dir = max(all_dirs, key=os.path.getmtime)
-    return latest_dir
 
 def get_csv_files(directory):
     """Get all CSV files in the directory."""

@@ -368,6 +368,56 @@ with the id of the node being ``01234567``, connected to a node of type
 ``id`` with the id ``Jennifer``, via an edge of type
 ``phone_number_of_person``.
 
+Multi-type Transformers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases there might be a need to apply multiple type mappings to
+cell values within a single column. For example, in the table below, you
+might want to map the column ``WORDS`` based on the word type detected.
+
+::
+
+   | LINE | WORDS |
+   | ---- | ---------- |
+   | 0 | sensitive |
+   | 1 | sensitivity |
+   | 2 | productive |
+   | 3 | productivity |
+
+.. code:: yaml
+
+   row:
+      map:
+        column: LINE
+        to_subject: line
+   transformers:
+       - map:
+           column: WORDS
+           match:
+               - ive\b:
+                   to_object: adjective
+                   via_relation: line_is_adjective
+               - ivity\b:
+                   to_object: noun
+                   via_relation: line_is_noun
+
+Here we see a mapping that uses the ``match`` clause to apply different
+type mappings to cell values based on the word type detected. We define
+two regex rules:
+
+- ``ive\b`` which matches words ending with ``ive`` and maps them to the
+  node type ``adjective`` via the edge type ``line_is_adjective``.
+- ``ivity\b`` which matches words ending with ``ivity`` and maps them to
+  the node type ``noun`` via the edge type ``line_is_noun``.
+
+This way we have managed to handle a case where a single column of words
+can result in multiple node types which should be connected to the
+subject type ``line`` with different edge types. The cell values
+``sensitive`` and ``productive`` would be mapped to the node type
+``adjective`` via the edge type ``line_is_adjective``, while the cell
+values ``sensitivity`` and ``productivity`` would be mapped to the node
+type ``noun`` via the edge type ``line_is_noun``.
+
 User-defined Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

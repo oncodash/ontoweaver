@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Iterable, Generator
 from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 from abc import abstractmethod as abstract
@@ -47,6 +48,7 @@ class ErrorManager:
             raise exception(err)
 
         return err
+
 
 class Element(metaclass = ABSTRACT):
     """Base class for either Node or Edge.
@@ -412,29 +414,29 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, target, properties_of, edge = None, columns = None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
-        :param target: the target ontology / node type to map to.
         :param properties_of: the properties of each node type.
-        :param edge: the edge type to use in the mapping.
+        :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
+        :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
         the tabular module.
 
         """
         super().__init__(raise_errors)
 
-        self.target = target
         self.properties_of = properties_of
-        self.edge = edge
+        self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator
         if not self.output_validator:
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
+        self.multi_type_dict = multi_type_dict
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -468,83 +470,132 @@ class Transformer(errormanager.ErrorManager):
        return cls.edge_type().source_type()
 
     def __repr__(self):
+
+        representation = ""
+
         if hasattr(self, "from_subject"):
             from_subject = self.from_subject
         else:
             from_subject = "."
 
-        if self.target:
-            target_name = self.target.__name__
-        else:
-            target_name = "."
+        target_name = ""
+        edge_name = ""
 
-        if self.edge:
-            edge_name = self.edge.__name__
-        else:
-            edge_name = "."
+        if self.multi_type_dict:
+            for key, value in self.multi_type_dict.items():
+                if value['to_object'] and value['via_relation']:
+                    target_name = value['to_object']
+                    edge_name = value['via_relation']
+                elif value['to_object'] and not value['via_relation']:
+                    target_name = value['to_object']
+                    edge_name = "."
 
-        if self.properties_of:
-            props = self.properties_of
-        else:
-            props = "{}"
 
-        params = ""
-        parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject']}
-        if parameters:
-            p = []
-            for k,v in parameters.items():
-                p.append(f"{k}={v}")
-            params = ','.join(p)
+                if self.properties_of:
+                    # The transformer is not a branching transformer, and has only one set of properties.
+                    props = self.properties_of
+                elif self.branching_properties and self.branching_properties.get(value['to_object'], None):
+                    # The transformer is a branching transformer, and has multiple sets of properties. We extract the ones for the current type.
+                    props = self.branching_properties.get(value['to_object'])
+                else:
+                    # The transformer has no properties for the type.
+                    props = "{}"
 
-        if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
-            # If this is a property transformer
-            link = ""
 
-        elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
-            # This a subject transformer.
-            link = f" => [{target_name}/{props}]"
+                params = ""
+                parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject', "match"]}
+                if parameters:
+                    p = []
+                    for k,v in parameters.items():
+                        p.append(f"{k}={v}")
+                    params = ','.join(p)
 
-        else:
-            # This is a regular transformer.
-            link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+                if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
+                    # If this is a property transformer
+                    link = ""
 
-        if self.columns:
-            columns = self.columns
-        else:
-            columns = []
+                elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
+                    # This a subject transformer.
+                    link = f" => [{target_name}/{props}]"
 
-        for c in columns:
-            if type(c) != str:
-                self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+                else:
+                    # This is a regular transformer.
+                    link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
 
-        return f"<Transformer:{type(self).__name__}({params}):`{','.join(columns)}`{link}>"
+                if self.columns:
+                    columns = self.columns
+                else:
+                    columns = []
 
+                for c in columns:
+                    if type(c) != str:
+                        self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+
+                representation += (f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>")
+
+        return representation
 
     def create(self, item):
-        """Checks that the given item is valid,
-        while ignoring items that are converted to empty strings.
-
-        Raises:
-            exceptions.DataValidationError: if the item string failed to pass data validation.
-
+        """"
+        Function used to validate the output of the transformer and return the value with the correct type and relation.
+        
+        Args:
+                       
+            item (any): The item to be validated and transformed.
+                
         Returns:
-            False, it the item is invalid, the string of the item if it can be created.
-        """
+            
+            tuple: A tuple containing the validated item, the relation type, and the target object type.
+                   Returns (None, None, None) if validation fails.
+        """""
 
-        res = str(item)
-        if not res:
-            # Silently pass empty strings.
-            logger.debug(f"\t\tSilently pass an empty item encountered in {self.__repr__()}.")
-            return False
+        try:
+            res = str(item)
+            if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
+                return self.branch(self.multi_type_dict, res)
+            else:
+                return None, None, None
+        except pa.errors.SchemaErrors as error:
+            msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
+            self.error(msg, exception = exceptions.DataValidationError)
 
+    def branch(self, multi_type_dict, item):
+        """"
+        Branch on the correct edge and node type based on the regex input matching the item returned by the transformer.
+
+        Parameters:
+            
+            multi_type_dict (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
+            as well as the target object type.
+            item (str): The validated item to be branched on.
+    
+        Returns:
+            
+            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_dict
+            dictionary is not passed - returns the item, None, None.
+            
+        
+        """""
+
+        if multi_type_dict:
+            if "None" in multi_type_dict.keys():
+                # No branching needed. The transformer is not a branching transformer.
+                self.target_type = multi_type_dict["None"]["to_object"].__name__
+                return item, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"]
+            for key, types in multi_type_dict.items():
+                # Branching is performed on the regex patterns.
+                try:
+                    if re.search(key, item):
+                        self.target_type = types["to_object"].__name__
+                        if self.branching_properties:
+                            self.properties_of = self.branching_properties.get(types["to_object"].__name__, {})
+                        else:
+                            self.properties_of = {}
+                        return item, types["via_relation"], types["to_object"]
+                except re.error:
+                    raise ValueError(f"Branching key {key} is not a string or regex.")
         else:
-            try:
-                if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                    return res
-            except pa.errors.SchemaError as exc:
-                msg = f"Transformer {self.__repr__()} did not produce valid data on `{item}`: {exc.check.error}."
-                self.error(msg, exception = exceptions.DataValidationError)
-                return False
+            return item, None, None
 
 class All:
     """Gathers lists of subclasses of Element and their fields

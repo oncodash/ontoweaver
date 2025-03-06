@@ -231,7 +231,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
     return nodes, edges
 
 
-def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None) -> str:
+def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -241,11 +241,13 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
         separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        # FIXME: The raise_errors parameter is currently not used downstream because the fusion classes are to be refactored with error management.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         str: The path to the import file.
     """
+
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
 
     bc = biocypher.BioCypher(
