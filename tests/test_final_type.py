@@ -1,10 +1,11 @@
-from . import testing_functions
-import logging
-from src import ontoweaver
-
 def test_final_type():
+    from . import testing_functions
+    import logging
+    import ontoweaver
 
     logging.basicConfig(level=logging.DEBUG)
+
+    directory_name = "final_type"
 
     assert_nodes = [('Q03135:protein', 'protein', {'genesymbol': 'CAV1', 'ncbi_tax_id': '9606', 'entity_type': 'protein'}),
     ('Q14573:protein', 'protein', {'genesymbol': 'ITPR3', 'ncbi_tax_id': '9606', 'entity_type': 'protein'}),
@@ -43,7 +44,7 @@ def test_final_type():
     ('', 'P0DP25:protein', 'P48995:protein', 'protein_protein_interaction', {'is_directed': '1', 'is_stimulation': '0', 'is_inhibition': '1'})]
 
 
-    data_mapping = {"/Users/mbaric/ontoweaver/tests/final_type/data.tsv" : "/Users/mbaric/ontoweaver/tests/final_type/mapping.yaml" }
+    data_mapping = {f"tests/{directory_name}/data.tsv" : f"tests/{directory_name}/mapping.yaml" }
 
     nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", sep = '\t')
 
