@@ -789,7 +789,7 @@ node_types  = types.all.nodes()
 edge_types  = types.all.edges()
 ```
 
-### How to filter properties of elements of the same ontological type
+### How to map properties on several nodes of the same type
 
 In some cases there might be a need to filter properties of the same ontological type. For example, if you have a table
 of proteins defining sources and targets of interactions:
@@ -803,21 +803,25 @@ In a conventional way of mapping, you would map the `SOURCE` column to the node 
 node type `protein`. The `SOURCE_PROPERTY` and `TARGET_PROPERTY` columns would hence also need to be mapped to the type
 `protein`, resulting in all the nodes - `A`, `B`, and `C` having all the four properties attached to them. 
 
-However, you might want to filter the properties of the `protein` nodes based on the source and target. In this case you can
-opt for the usage of the `final_type` keyword in the mapping configuration. The `final_type` keyword allows you to define a
-final node type to which the source and target nodes will be converted. For example:
+However, you might want to map the properties of the `protein` nodes either on the source or the target, but not both. In this case you can
+use the `final_type` keyword in the mapping configuration. The `final_type` keyword allows you to define a
+_final_ node type to which the node will be converted, at the very end of the mapping process.
+
+In a nutshell: you map the _target_ node to a temporary `protein_target` and map properties to it. You also set the `final_type`: protein , so that, after having mapped all properties, OntoWeaver will change the node type from the temporary `protein_target` to the final `protein`. Thus, you can attach different properties to different nodes of the same type.
+
+For example:
 
 ```yaml
 row:
     map:
         column: SOURCE
-        to_subject: source # Subtype of protein.
+        to_subject: protein_source # Temporary type.
         final_type: protein # The final type of the node.
 
 transformers:
     - map:
         column: TARGET
-        to_object: target # Subtype of protein.
+        to_object: protein_target # Temporary type.
         via_relation: protein_protein_interaction
         final_type: protein # The final type of the node.
         
@@ -825,26 +829,27 @@ transformers:
     - map:
         column: SOURCE_PROPERTY
         to_property: genesymbol # Give name of the property.
-        for_object: source # Node type to which the property will be linked.
+        for_object: protein_source # Temporary node type to which the property will be linked.
     # Properties of for the node type 'target'
     - map:
         column: TARGET_PROPERTY
         to_property: genesymbol
-        for_object: target # Node type to which the property will be linked.
+        for_object: protein_target # Temporary node type to which the property will be linked.
 
 ```
 
 Notice how in this way, we avoid mapping the `source` properties to the `target` node types, and instead map then to the source node type.
-The vice-versa is also true, we avoid mapping the `target` properties to the `source` node types, and instead map them to the target node type.
+We also avoid mapping the `target` properties to the `source` node types, and instead map them to the target node type.
 
-This way, were it not for the `final_type: protein` clause, the `source` and `target` nodes would have been created with
-their own respective segregated properties. Notice that there would be two types of the node `A` created, one with the `source_1` 
-property, and the type of the node being `source`, and the other with the `target_1` property, and the type of the node being `target`.
+Without the `final_type: protein` clause, the `source` and `target` nodes would have been created with
+all the mapped properties, because by default, OntoWeaver attach properties to all nodes of the _type_.
 
-However, with the `final_type: protein` clause, the `source` and `target` nodes are converted to their supertype `protein` on-the-fly, 
-and the mapping results in the creation of three nodes: `A`, `B`, and `C`, all holding the type `protein`.
-Node `A` will have, following reconciliation (for more information see the `Information Fusion` section), the properties 
-`source_1` and `target_2`, node `B` will have the property `target_1`, and node `C` will have the property `source_2`.
+However, with the `final_type: protein` clause, the `source` and `target` nodes are converted to the same `protein` type, at the very end of the mapping, after the properties have been attached to the nodes.
+The mapping thus results in the creation of three nodes: `A`, `B`, and `C`, all having the type `protein`.
+
+Note that node `A`  have now been instantiated twice, with different properties attached to each instance.
+However, the expected result would be to have a single instance, with all the properties combined.
+To solve this kind of issue, OntoWeaver provides a "reconciliation" feature, that can be called after the mapping, onto the list of nodes.  For more information see the `Information Fusion` section.
 
 An edge of type `protein_protein_interaction`,  will be created from node `A` to node `B`, as well as from node `C` to node `A`.
 
