@@ -22,3 +22,22 @@ def compare_csv_files(expected_dir, output_dir):
         output_df = pd.read_csv(output_file, on_bad_lines='skip')
 
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+def convert_to_set(tuple_output):
+    """Convert the OntoWeaver tuple output to a set."""
+    # TODO: Modify all tests so that the output is a set of tuples, and checked against the expected set of tuples.
+
+    return set([
+    tuple([
+        node[0],
+        node[1],
+        tuple(sorted(node[2].items()))
+    ]) if len(node) == 3 else tuple([
+        node[0],
+        node[1],
+        node[2],
+        node[3],
+        tuple(sorted(node[4].items()))
+    ]) for node in tuple_output
+    ])
+
