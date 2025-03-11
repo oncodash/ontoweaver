@@ -1,0 +1,53 @@
+row:
+    map:
+        column: source # column name in the datafrane
+        to_subject: source # give name to the node type in the KG
+        final_type: protein # give the type of the node
+
+transformers:
+    - map:
+        column: target
+        to_object: target
+        via_relation: protein_protein_interaction
+        final_type: protein
+    # Properties of for the node type 'source'
+    - map:
+        column: source_genesymbol # column name of the property to extract
+        to_property: genesymbol # give name of the property
+        for_object: source # node type | label to which the property will be linked 
+    - map:
+        column: ncbi_tax_id_source
+        to_property: ncbi_tax_id
+        for_object: source 
+    - map:
+        column: entity_type_source
+        to_property: entity_type
+        for_object: source
+    # Properties of for the node type 'target'
+    - map:
+        column: target_genesymbol 
+        to_property: genesymbol
+        for_object: target 
+    - map:
+        column: ncbi_tax_id_target 
+        to_property: ncbi_tax_id
+        for_object: target 
+    - map:
+        column: entity_type_target 
+        to_property: entity_type
+        for_object: target
+    # Properties for the edge type 'protein_protein_interaction'
+    - map:
+        column: is_directed
+        to_property: is_directed
+        for_object: protein_protein_interaction
+    - map:
+        column: is_stimulation
+        to_property: is_stimulation
+        for_object: protein_protein_interaction
+    - map:
+        column: is_inhibition
+        to_property: is_inhibition
+        for_object: protein_protein_interaction
+    
+
