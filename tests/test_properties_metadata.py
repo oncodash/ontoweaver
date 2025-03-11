@@ -1,52 +1,53 @@
 def test_properties_metadata():
-    import yaml
-    import logging
     from . import testing_functions
-    import pandas as pd
-    import biocypher
+    import logging
     import ontoweaver
-    import tempfile
+
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "properties_metadata"
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logging.debug(f"Using temporary directory at: {temp_dir}")
+    assert_nodes = [('0:variant', 'variant', {'version': '1.1', 'database_name': 'my_database'}),
+                    ('1:variant', 'variant', {'version': '2.2', 'database_name': 'my_database'}),
+                    ('2:variant', 'variant', {'version': '3.3', 'database_name': 'my_database'}),
+                    ('A:patient', 'patient', {'database_name': 'my_database', 'source_columns': 'patient'}),
+                    ('B:patient', 'patient', {'database_name': 'my_database', 'source_columns': 'patient'}),
+                    ('C:patient', 'patient', {'database_name': 'my_database', 'source_columns': 'patient'}),
+                    ('publicationA:publication', 'publication', {'journal': 'journalA', 'database_name': 'my_database', 'source_columns': 'publication'}),
+                    ('publicationB:publication', 'publication', {'journal': 'journalB', 'database_name': 'my_database', 'source_columns': 'publication'}),
+                    ('publicationC:publication', 'publication', {'journal': 'journalC', 'database_name': 'my_database', 'source_columns': 'publication'}),
+                    ]
 
-        bc = biocypher.BioCypher(
-            biocypher_config_path=f"tests/{directory_name}/biocypher_config.yaml",
-            schema_config_path=f"tests/{directory_name}/schema_config.yaml",
-            output_directory=temp_dir
-        )
+    assert_edges = [('', '0:variant', 'A:patient', 'patient_has_variant', {'database_name': 'my_database'}),
+                    ('', '0:variant', 'publicationA:publication', 'publication_to_variant', {'database_name': 'my_database'}),
+                    ('', '1:variant', 'B:patient', 'patient_has_variant', {'database_name': 'my_database'}),
+                    ('', '1:variant', 'publicationB:publication', 'publication_to_variant', {'database_name': 'my_database'}),
+                    ('', '2:variant', 'C:patient', 'patient_has_variant', {'database_name': 'my_database'}),
+                    ('', '2:variant', 'publicationC:publication', 'publication_to_variant', {'database_name': 'my_database'}),
+                    ]
 
-        logging.debug("Load data...")
-        csv_file = f"tests/{directory_name}/data.csv"
-        table = pd.read_csv(csv_file)
 
-        logging.debug("Load mapping...")
-        mapping_file = f"tests/{directory_name}/mapping.yaml"
-        with open(mapping_file) as fd:
-            mapping = yaml.full_load(fd)
+    data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
-        logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping, affix="suffix")
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix")
 
-        assert adapter
+    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 
-        logging.debug("Write nodes...")
-        assert adapter.nodes
-        bc.write_nodes(adapter.nodes)
+    for node in fnodes:
+        print(f"{node},")
 
-        logging.debug("Write edges...")
-        assert adapter.edges
-        bc.write_edges(adapter.edges)
+    for edge in fedges:
+        print(f"{edge},")
 
-        logging.debug("Write import script...")
-        bc.write_import_call()
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-        output_dir = temp_dir
-        assert_output_path = f"tests/{directory_name}/assert_output"
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-        testing_functions.compare_csv_files(assert_output_path, output_dir)
+    assert_edge_set = testing_functions.convert_to_set(assert_edges)
+    f_edge_set = testing_functions.convert_to_set(fedges)
+
+    assert assert_edge_set == f_edge_set, "Edges are not equal."
 
 if __name__ == "__main__":
     test_properties_metadata()

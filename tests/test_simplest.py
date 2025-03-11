@@ -1,52 +1,41 @@
 def test_simplest():
-    import yaml
-    import logging
     from . import testing_functions
-    import pandas as pd
-    import biocypher
+    import logging
     import ontoweaver
-    import tempfile
+
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "simplest"
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logging.debug(f"Using temporary directory at: {temp_dir}")
+    assert_nodes = [('0', 'variant', {}),
+                    ('1', 'variant', {}),
+                    ('2', 'variant', {}),
+                    ('A', 'patient', {}),
+                    ('B', 'patient', {}),
+                    ('C', 'patient', {}),
+                    ]
 
-        bc = biocypher.BioCypher(
-            biocypher_config_path=f"tests/{directory_name}/biocypher_config.yaml",
-            schema_config_path=f"tests/{directory_name}/schema_config.yaml",
-            output_directory=temp_dir
-        )
+    assert_edges = [('', '0', 'A', 'patient_has_variant', {}),
+                    ('', '1', 'B', 'patient_has_variant', {}),
+                    ('', '2', 'C', 'patient_has_variant', {}),
+                    ]
 
-        logging.debug("Load data...")
-        csv_file = f"tests/{directory_name}/data.csv"
-        table = pd.read_csv(csv_file)
+    data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-        logging.debug("Load mapping...")
-        mapping_file = f"tests/{directory_name}/mapping.yaml"
-        with open(mapping_file) as fd:
-            mapping = yaml.full_load(fd)
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="none")
 
-        logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping, affix="none")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 
-        assert adapter
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-        logging.debug("Write nodes...")
-        assert adapter.nodes
-        bc.write_nodes(adapter.nodes)
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-        logging.debug("Write edges...")
-        assert adapter.edges
-        bc.write_edges(adapter.edges)
+    assert_edge_set = testing_functions.convert_to_set(assert_edges)
+    f_edge_set = testing_functions.convert_to_set(fedges)
 
-        logging.debug("Write import script...")
-        bc.write_import_call()
+    assert assert_edge_set == f_edge_set, "Edges are not equal."
 
-        output_dir = temp_dir
-        assert_output_path = f"tests/{directory_name}/assert_output"
-
-        testing_functions.compare_csv_files(assert_output_path, output_dir)
 
 if __name__ == "__main__":
     test_simplest()

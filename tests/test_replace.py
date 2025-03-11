@@ -1,52 +1,37 @@
 def test_replace():
-    import yaml
-    import logging
-    import pandas as pd
-    import biocypher
-    import ontoweaver
-    import tempfile
     from . import testing_functions
+    import logging
+    import ontoweaver
+
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "replace"
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logging.debug(f"Using temporary directory at: {temp_dir}")
+    assert_nodes = [('gene_hugo___123<<_>><<_>>123', 'gene_hugo', {}),
+                    ('variant___2', 'variant', {}),
+                    ('variant___aAB.()C0w', 'variant', {}),
+                    ]
 
-        bc = biocypher.BioCypher(
-            biocypher_config_path=f"tests/{directory_name}/biocypher_config.yaml",
-            schema_config_path=f"tests/{directory_name}/schema_config.yaml",
-            output_directory=temp_dir
-        )
+    assert_edges = [('', 'variant___aAB.()C0w', 'gene_hugo___123<<_>><<_>>123', 'variant_in_gene', {})
+                    ]
 
-        logging.debug("Load data...")
-        csv_file = f"tests/{directory_name}/data.csv"
-        table = pd.read_csv(csv_file)
 
-        logging.debug("Load mapping...")
-        mapping_file = f"tests/{directory_name}/mapping.yaml"
-        with open(mapping_file) as fd:
-            mapping = yaml.full_load(fd)
+    data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
-        logging.debug("Run the adapter...")
-        adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___", raise_errors=False)
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="prefix", affix_separator='___', raise_errors=False)
 
-        assert adapter
+    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 
-        logging.debug("Write nodes...")
-        assert adapter.nodes
-        bc.write_nodes(adapter.nodes)
 
-        logging.debug("Write edges...")
-        assert adapter.edges
-        bc.write_edges(adapter.edges)
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-        logging.debug("Write import script...")
-        bc.write_import_call()
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-        output_dir = temp_dir
-        assert_output_path = f"tests/{directory_name}/assert_output"
+    assert_edge_set = testing_functions.convert_to_set(assert_edges)
+    f_edge_set = testing_functions.convert_to_set(fedges)
 
-        testing_functions.compare_csv_files(assert_output_path, output_dir)
+    assert assert_edge_set == f_edge_set, "Edges are not equal."
 
 if __name__ == "__main__":
     test_replace()
