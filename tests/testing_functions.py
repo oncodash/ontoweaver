@@ -25,7 +25,6 @@ def compare_csv_files(expected_dir, output_dir):
 
 def convert_to_set(tuple_output):
     """Convert the OntoWeaver tuple output to a set."""
-    # TODO: Modify all tests so that the output is a set of tuples, and checked against the expected set of tuples.
 
     return set([
     tuple([
@@ -40,4 +39,3 @@ def convert_to_set(tuple_output):
         tuple(sorted(node[4].items()))
     ]) for node in tuple_output
     ])
-

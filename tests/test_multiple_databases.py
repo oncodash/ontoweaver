@@ -1,78 +1,83 @@
 def test_multiple_databases():
-    import yaml
-    import logging
-    import pandas as pd
-    import biocypher
     from . import testing_functions
+    import logging
     import ontoweaver
-    import tempfile
+
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "multiple_databases"
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        logging.debug(f"Using temporary directory at: {temp_dir}")
+    assert_nodes = [('0:variant', 'variant', {}),
+                    ('1:variant', 'variant', {}),
+                    ('2:variant', 'variant', {}),
+                    ('ENST00000380956:transcript', 'transcript', {}),
+                    ('ENST00000523534:transcript', 'transcript', {}),
+                    ('ENST00000651671:transcript', 'transcript', {}),
+                    ('IRF4:gene_hugo', 'gene_hugo', {}),
+                    ('NOTCH1:gene_hugo', 'gene_hugo', {}),
+                    ('NRG1:gene_hugo', 'gene_hugo', {}),
+                    ('Olaparib:drug', 'drug', {}),
+                    ('PM_1:publication', 'publication', {}),
+                    ('PM_2:publication', 'publication', {}),
+                    ('PM_3:publication', 'publication', {}),
+                    ('Palbociclib:drug', 'drug', {}),
+                    ('Tazemetostat:drug', 'drug', {}),
+                    ('non-oncogenic:disease', 'disease', {}),
+                    ('oncogenic:disease', 'disease', {}),
+                    ('patient_1:patient', 'patient', {}),
+                    ('patient_2:patient', 'patient', {}),
+                    ('patient_3:patient', 'patient', {}),
+                    ]
 
-        bc = biocypher.BioCypher(
-            biocypher_config_path=f"tests/{directory_name}/biocypher_config.yaml",
-            schema_config_path=f"tests/{directory_name}/schema_config.yaml",
-            output_directory=temp_dir
-        )
+    assert_edges = [('', '0:variant', 'NRG1:gene_hugo', 'variant_in_gene', {}),
+                    ('', '0:variant', 'Palbociclib:drug', 'variant_affected_by_drug', {}),
+                    ('', '0:variant', 'non-oncogenic:disease', 'variant_to_disease', {}),
+                    ('', '0:variant', 'patient_1:patient', 'patient_has_variant', {}),
+                    ('', '1:variant', 'IRF4:gene_hugo', 'variant_in_gene', {}),
+                    ('', '1:variant', 'Tazemetostat:drug', 'variant_affected_by_drug', {}),
+                    ('', '1:variant', 'non-oncogenic:disease', 'variant_to_disease', {}),
+                    ('', '1:variant', 'patient_2:patient', 'patient_has_variant', {}),
+                    ('', '2:variant', 'NOTCH1:gene_hugo', 'variant_in_gene', {}),
+                    ('', '2:variant', 'NRG1:gene_hugo', 'variant_in_gene', {}),
+                    ('', '2:variant', 'Olaparib:drug', 'variant_affected_by_drug', {}),
+                    ('', '2:variant', 'oncogenic:disease', 'variant_to_disease', {}),
+                    ('', '2:variant', 'patient_3:patient', 'patient_has_variant', {}),
+                    ('', 'IRF4:gene_hugo', 'ENST00000380956:transcript', 'transcript_to_gene_relationship', {}),
+                    ('', 'NOTCH1:gene_hugo', 'ENST00000651671:transcript', 'transcript_to_gene_relationship', {}),
+                    ('', 'NRG1:gene_hugo', 'ENST00000523534:transcript', 'transcript_to_gene_relationship', {}),
+                    ('', 'Olaparib:drug', 'PM_3:publication', 'treatment_has_citation', {}),
+                    ('', 'Palbociclib:drug', 'PM_1:publication', 'treatment_has_citation', {}),
+                    ('', 'Tazemetostat:drug', 'PM_2:publication', 'treatment_has_citation', {}),
+                    ]
 
-        nodes = []
-        edges = []
+    list_nodes = []
+    list_edges = []
 
-        logging.debug("Load CGI data...")
-        csv_file_cgi = f"tests/{directory_name}/data_cgi_article.csv"
-        table = pd.read_csv(csv_file_cgi)
+    data_mapping = {f"tests/{directory_name}/data_cgi_article.csv": f"tests/{directory_name}/cgi.yaml"}
 
-        logging.debug("Load mapping CGI database...")
-        mapping_file_cgi = f"tests/{directory_name}/cgi.yaml"
-        with open(mapping_file_cgi) as fd:
-            mapping = yaml.full_load(fd)
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", raise_errors=False)
 
-        logging.debug("Run the adapter (CGI)...")
-        adapter_cgi = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
-        assert adapter_cgi
+    list_nodes += nodes
+    list_edges += edges
 
-        logging.debug("Add CGI nodes...")
-        assert adapter_cgi.nodes
-        nodes += adapter_cgi.nodes
+    data_mapping = {f"tests/{directory_name}/data_oncokb_article.csv": f"tests/{directory_name}/oncokb.yaml"}
 
-        logging.debug("Add CGI edges...")
-        assert adapter_cgi.edges
-        edges += adapter_cgi.edges
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", raise_errors=False)
 
-        logging.debug("Load OncoKB data...")
-        csv_file_oncokb = f"tests/{directory_name}/data_oncokb_article.csv"
-        table = pd.read_csv(csv_file_oncokb)
+    list_nodes += nodes
+    list_edges += edges
 
-        logging.debug("Load mapping OncoKB database...")
-        mapping_file_oncokb = f"tests/{directory_name}/oncokb.yaml"
-        with open(mapping_file_oncokb) as fd:
-            mapping = yaml.full_load(fd)
+    fnodes, fedges = ontoweaver.fusion.reconciliate(list_nodes, list_edges, separator=",")
 
-        logging.debug("Run the adapter (OncoKB)...")
-        adapter_oncokb = ontoweaver.tabular.extract_table(table, mapping, raise_errors=False)
-        assert adapter_oncokb
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-        logging.debug("Add OncoKB nodes...")
-        assert adapter_oncokb.nodes
-        nodes += adapter_oncokb.nodes
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-        logging.debug("Add OncoKB edges...")
-        assert adapter_oncokb.edges
-        edges += adapter_oncokb.edges
+    assert_edge_set = testing_functions.convert_to_set(assert_edges)
+    f_edge_set = testing_functions.convert_to_set(fedges)
 
-        bc.write_nodes(nodes)
-        bc.write_edges(edges)
-
-        logging.debug("Write import script...")
-        bc.write_import_call()
-
-        output_dir = temp_dir
-        assert_output_path = f"tests/{directory_name}/assert_output"
-
-        testing_functions.compare_csv_files(assert_output_path, output_dir)
+    assert assert_edge_set == f_edge_set, "Edges are not equal."
 
 if __name__ == "__main__":
     test_multiple_databases()
