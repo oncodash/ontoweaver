@@ -6,6 +6,7 @@ import logging
 import pathlib
 import platform
 import xdg_base_dirs as xdg
+import importlib
 
 error_codes = {
     "ParsingError"    :  65, # "data format"
@@ -52,7 +53,7 @@ def config_directories(appname = "ontoweave"):
             yield p/appname
         yield xdg.xdg_config_home()/appname
 
-    yield pathlib.Path(".")
+    yield pathlib.Path("../ontoweaver")
 
 
 def config_paths(appname = "ontoweave"):
@@ -73,11 +74,10 @@ def import_from_path(file_path):
     return module
 
 
-if __name__ == "__main__":
+def main():
     import jsonargparse
     import argparse
     import subprocess
-    import importlib
     import inspect
 
     appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
