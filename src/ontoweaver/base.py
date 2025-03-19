@@ -12,6 +12,7 @@ from . import errormanager
 from . import validate
 from . import serialize
 from . import exceptions
+from . import select_create
 
 logger = logging.getLogger("ontoweaver")
 
@@ -414,14 +415,16 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
+    def __init__(self, properties_of, select = None, create = None, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
         :param properties_of: the properties of each node type.
+        :param select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+        :param create: the Create object used for handling the creation of the output of the transformer. Default is None.
         :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
-        :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
+        :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
         :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
         the tabular module.
@@ -430,6 +433,8 @@ class Transformer(errormanager.ErrorManager):
         super().__init__(raise_errors)
 
         self.properties_of = properties_of
+        self.select = select
+        self.create = create
         self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator

@@ -13,7 +13,6 @@ from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
 
-from networkx.conftest import has_scipy
 from numpy.ma.core import set_fill_value
 
 from . import errormanager
@@ -22,6 +21,7 @@ from . import types
 from . import transformer
 from . import exceptions
 from . import validate
+from . import select_create
 
 logger = logging.getLogger("ontoweaver")
 
@@ -199,7 +199,7 @@ class PandasAdapter(base.Adapter):
         return True
 
 
-    def properties(self, properity_dict, row, i, edge_t, node_t, node = False):
+    def properties(self, property_dict, row, i, edge_t, node_t, node = False):
 
         """
         Extract properties of each property category for the given node type.
@@ -218,7 +218,7 @@ class PandasAdapter(base.Adapter):
         """
         properties = {}
 
-        for prop_transformer, property_name in properity_dict.items():
+        for prop_transformer, property_name in property_dict.items():
             self.property_transformers.append(prop_transformer)
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
@@ -614,7 +614,7 @@ class Declare(errormanager.ErrorManager):
         return t
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
-                               properties=None, columns=None, output_validator=None, raise_errors = True, **kwargs):
+                               properties=None, columns=None, output_validator=None, create = None, raise_errors = True, **kwargs):
         """
         Create a transformer class with the given parameters.
 
@@ -644,6 +644,7 @@ class Declare(errormanager.ErrorManager):
                             output_validator=output_validator,
                             multi_type_dict = multi_type_dictionary,
                             branching_properties = branching_properties,
+                            create = create,
                             raise_errors = raise_errors,
                             **kwargs)
         else:
@@ -834,6 +835,7 @@ class YamlParser(Declare):
         transformers = []
         metadata = {}
 
+
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
         k_subject_type = ["to_subject"]
@@ -907,6 +909,8 @@ class YamlParser(Declare):
 
                     prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
                                                                    output_validator=p_output_validator, **gen_data)
+                    p_create = select_create.SimpleCreate(transformer_instance=prop_transformer)
+                    prop_transformer.create = p_create
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -952,6 +956,10 @@ class YamlParser(Declare):
                                                           columns=subject_columns, output_validator=s_output_validator,
                                                           raise_errors = self.raise_errors,
                                                           **subject_kwargs)
+
+        s_create = select_create.SimpleCreate(transformer_instance=subject_transformer)
+        subject_transformer.create = s_create
+
 
         if s_final_type:
             s_final_type_class = self.make_node_class(subject_transformer.final_type, properties_of.get(subject_transformer.final_type, {}))
@@ -1067,7 +1075,11 @@ class YamlParser(Declare):
                                                     properties=properties_of.get(target, {}),
                                                     columns=columns,
                                                     output_validator=output_validator,
-                                                    raise_errors=self.raise_errors, **gen_data)
+                                                    raise_errors=self.raise_errors,
+                                                                         **gen_data)
+
+                        create = select_create.SimpleCreate(target_transformer)
+                        target_transformer.create = create
                         if final_type:
                             # If there is a final type defined, create a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
@@ -1087,6 +1099,9 @@ class YamlParser(Declare):
                                                                         columns=columns,
                                                                         output_validator=output_validator,
                                                                         raise_errors = self.raise_errors, **gen_data)
+
+                        create = select_create.BranchCreate(target_transformer)
+                        target_transformer.create = create
                         if final_type:
                             # If there is a final type defined, create a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
