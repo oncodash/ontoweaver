@@ -77,8 +77,9 @@ class split(base.Transformer):
         Yields:
             str: Each split item from the cell value.
         """
-        for result in self.select(self.columns, row, i, separator = self.separator):
-            yield self.create(result)
+        for value in self.select(self.columns, row, i, separator = self.separator):
+            yield self.set_and_yield(value)
+
 
 class cat(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and create nodes with
@@ -115,8 +116,9 @@ class cat(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="cat.call", exception = exceptions.TransformerInputError)
 
-        for result in self.select(self.columns, row, i):
-            yield self.create(result)
+        for value in self.select(self.columns, row, i):
+            yield self.set_and_yield(value)
+
 
 
 
@@ -185,7 +187,7 @@ class rowIndex(base.Transformer):
         super().__init__(properties_of, select, create, branching_properties, columns, output_validator, multi_type_dict,
                          raise_errors=raise_errors, **kwargs)
 
-    def __call__(self, row, i):
+    def __call__(self, row, i, result_object=None):
         """
         Process a row and yield the row index as node ID.
 
@@ -199,8 +201,8 @@ class rowIndex(base.Transformer):
         Raises:
             Warning: If the row index is invalid.
         """
-        for result in self.select(self.columns, row, i):
-            yield self.create(result)
+        for value in self.select(self.columns, row, i):
+            yield self.set_and_yield(value)
 
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
@@ -240,8 +242,8 @@ class map(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
-        for result in self.select(self.columns, row, i):
-            yield self.create(result)
+        for value in self.select(self.columns, row, i):
+            yield self.set_and_yield(value)
 
 
 class translate(base.Transformer):
@@ -399,8 +401,7 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        yield self.create(self.value)
-
+        yield self.set_and_yield(self.value)
 
 class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
@@ -444,5 +445,5 @@ class replace(base.Transformer):
         Raises:
             Warning: If the processed cell value is invalid.
         """
-        for result in self.select(self.columns, row, i, forbidden = self.forbidden, substitute = self.substitute):
-            yield self.create(result)
+        for value in self.select(self.columns, row, i, forbidden = self.forbidden, substitute = self.substitute):
+            yield self.set_and_yield(value)

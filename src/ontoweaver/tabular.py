@@ -224,7 +224,7 @@ class PandasAdapter(base.Adapter):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
                 else:
-                    self.error(f"Failed to extract valid property with {prop_transformer} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                    self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
 
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
@@ -943,6 +943,8 @@ class YamlParser(Declare):
                             'to_object': alt_target_t,
                             'via_relation': alt_edge_t
                         }
+
+                        s_create = select_create.BranchCreate()
         # "None" key is used to return any type of string, in case no branching is needed.
         else:
             subject_multi_type_dict = {'None': {
@@ -950,16 +952,15 @@ class YamlParser(Declare):
                 'via_relation': None
             }}
 
+            s_create = select_create.SimpleCreate()
+
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
                                                           multi_type_dictionary=subject_multi_type_dict,
                                                           properties=properties_of.get(subject_type, {}),
                                                           columns=subject_columns, output_validator=s_output_validator,
+                                                          create = s_create,
                                                           raise_errors = self.raise_errors,
                                                           **subject_kwargs)
-
-        s_create = select_create.SimpleCreate(transformer_instance=subject_transformer)
-        subject_transformer.create = s_create
-
 
         if s_final_type:
             s_final_type_class = self.make_node_class(subject_transformer.final_type, properties_of.get(subject_transformer.final_type, {}))
@@ -1075,11 +1076,9 @@ class YamlParser(Declare):
                                                     properties=properties_of.get(target, {}),
                                                     columns=columns,
                                                     output_validator=output_validator,
-                                                    raise_errors=self.raise_errors,
-                                                                         **gen_data)
+                                                    create = select_create.SimpleCreate(),
+                                                    raise_errors=self.raise_errors, **gen_data)
 
-                        create = select_create.SimpleCreate(target_transformer)
-                        target_transformer.create = create
                         if final_type:
                             # If there is a final type defined, create a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
@@ -1098,10 +1097,9 @@ class YamlParser(Declare):
                                                                         branching_properties=properties_of,
                                                                         columns=columns,
                                                                         output_validator=output_validator,
+                                                                        create = select_create.BranchCreate(),
                                                                         raise_errors = self.raise_errors, **gen_data)
 
-                        create = select_create.BranchCreate(target_transformer)
-                        target_transformer.create = create
                         if final_type:
                             # If there is a final type defined, create a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))

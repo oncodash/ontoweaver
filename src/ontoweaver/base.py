@@ -540,67 +540,24 @@ class Transformer(errormanager.ErrorManager):
 
         return representation
 
-    def create(self, item):
-        """"
-        Function used to validate the output of the transformer and return the value with the correct type and relation.
-        
-        Args:
-                       
-            item (any): The item to be validated and transformed.
-                
-        Returns:
-            
-            tuple: A tuple containing the validated item, the relation type, and the target object type.
-                   Returns (None, None, None) if validation fails.
-        """""
-
+    def validate(self, res):
         try:
-            res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                return self.branch(self.multi_type_dict, res)
+                return True
             else:
-                return None, None, None
+                return False
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def branch(self, multi_type_dict, item):
-        """"
-        Branch on the correct edge and node type based on the regex input matching the item returned by the transformer.
+    def set_and_yield(self, value):
+        result_object = self.create(self.validate, value, self.multi_type_dict, self.branching_properties)
+        if result_object.target_node_type:
+            self.target_type = result_object.target_node_type.__name__
+        if result_object.properties_of:
+            self.properties_of = result_object.properties_of
+        return result_object.result, result_object.edge_type, result_object.target_node_type
 
-        Parameters:
-            
-            multi_type_dict (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
-            as well as the target object type.
-            item (str): The validated item to be branched on.
-    
-        Returns:
-            
-            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_dict
-            dictionary is not passed - returns the item, None, None.
-            
-        
-        """""
-
-        if multi_type_dict:
-            if "None" in multi_type_dict.keys():
-                # No branching needed. The transformer is not a branching transformer.
-                self.target_type = multi_type_dict["None"]["to_object"].__name__
-                return item, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"]
-            for key, types in multi_type_dict.items():
-                # Branching is performed on the regex patterns.
-                try:
-                    if re.search(key, item):
-                        self.target_type = types["to_object"].__name__
-                        if self.branching_properties:
-                            self.properties_of = self.branching_properties.get(types["to_object"].__name__, {})
-                        else:
-                            self.properties_of = {}
-                        return item, types["via_relation"], types["to_object"]
-                except re.error:
-                    raise ValueError(f"Branching key {key} is not a string or regex.")
-        else:
-            return item, None, None
 
 class All:
     """Gathers lists of subclasses of Element and their fields
