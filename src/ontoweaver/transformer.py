@@ -249,7 +249,7 @@ class map(base.Transformer):
 class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
-    def __init__(self, properties_of, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, select = select_create.MapSelect(), create = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
@@ -268,9 +268,9 @@ class translate(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             kwargs: Additional arguments to pass to Pandas' read_csv (if "sep=TAB", reads the translations_file as tab-separated).
         """
-        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_dict,
+        super().__init__(properties_of, select, create, branching_properties, columns, output_validator, multi_type_dict,
                          raise_errors = raise_errors, **kwargs)
-        self.map = map(properties_of, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
+        self.map = map(properties_of, select, create, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
 
         # Since we cannot expand kwargs, let's recover what we have inside.
         translations = kwargs.get("translations", None)

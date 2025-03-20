@@ -1,17 +1,17 @@
 import logging
 import yaml
 import pandas as pd
-
 import ontoweaver
 
 class user_transformer(ontoweaver.base.Transformer):
-    def __init__(self, properties_of, branching_properties=None, columns=None, **kwargs):
-        super().__init__(properties_of, branching_properties, columns, **kwargs)
+    def __init__(self, properties_of, select = ontoweaver.select_create.MapSelect(), create = None, branching_properties=None, columns=None, **kwargs):
+        super().__init__(properties_of, select, create, branching_properties, columns, **kwargs)
 
     def __call__(self, row, i):
-        for key in self.columns:
-            res, edge, node = self.create(row[key])
-            yield res, edge, node
+
+        for value in self.select(self.columns, row, i):
+            yield self.set_and_yield(value)
+
 
 def test_transformer_user():
     # Add the passed transformer to the list available to OntoWeaver.
