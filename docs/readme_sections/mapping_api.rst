@@ -494,8 +494,9 @@ Here is the list of available synonyms:
 
 - ``subject`` = ``row`` = ``entry`` = ``line`` = ``source``
 - ``column`` = ``columns`` = ``fields``
-- ``to_object`` = ``to_target`` = ``to_node``
+- ``to_object`` = ``to_target`` = ``to_node`` = ``to_type`` = ``to_label``
 - ``from_subject`` = ``from_source``
 - ``via_relation`` = ``via_edge`` = ``via_predicate``
 - ``to_property`` = ``to_properties``
 - ``for_object`` = ``for_objects``
+- ``final_type`` = ``final_object`` = ``final_label`` = ``final_node`` = ``final_target`` = ``final_subject``

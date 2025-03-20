@@ -838,9 +838,9 @@ class YamlParser(Declare):
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
-        k_subject_type = ["to_subject"]
+        k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type"]
         k_columns = ["columns", "fields", "column", "match_column"]
-        k_target = ["to_target", "to_object", "to_node"]
+        k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
@@ -849,7 +849,7 @@ class YamlParser(Declare):
         k_metadata = ["metadata"]
         k_metadata_column = ["add_source_column_names_as"]
         k_validate_output = ["validate_output"]
-        k_final_type = ["final_type", "final_object", "final_node", "final_subject"]
+        k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
 
         transformers_list = self.get(k_transformer)
 
