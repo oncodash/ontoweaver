@@ -38,6 +38,10 @@ of several node types:
                - case
                - phenotype
 
+Note that the properties declared in the BioCypher ``schema_config.yaml`` must match the properties declared in the mapping configuration file.
+Furthermore, when declaring the properties in the schema configuration file, take care that the property must always be a
+string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
+
 How to Extract Additional Edges
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
