@@ -554,8 +554,9 @@ class Transformer(errormanager.ErrorManager):
         result_object = self.create(self.validate, value, self.multi_type_dict, self.branching_properties)
         if result_object.target_node_type:
             self.target_type = result_object.target_node_type.__name__
-        if result_object.properties_of:
+        if result_object.properties_of is not None:
             self.properties_of = result_object.properties_of
+        logging.debug(f"BBBBBBBBBP{self.properties_of}")
         return result_object.result, result_object.edge_type, result_object.target_node_type
 
 
