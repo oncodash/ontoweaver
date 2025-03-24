@@ -194,7 +194,7 @@ How to map properties on several nodes of the same type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases there might be a need to filter properties of the same ontological type. 
-For example, if you have a table of proteins defining sources and targets of interactions, and  you want to map the uniProt IDs as property of these nodes:
+For example, if you have a table of proteins defining sources and targets of interactions, and  you want to have the uniProt IDs as a property of these nodes:
 
 ====== ====== ================= =================
 SOURCE TARGET UNIPROT_ID_SOURCE UNIPROT_ID_TARGET
@@ -205,16 +205,16 @@ C      A      uniprot_id_C      uniprot_id_A
 
 In a conventional way of mapping, you would map the ``SOURCE`` column to the node type ``protein`` and the ``TARGET`` column to the node type ``protein``. 
 
-By default, OntoWeaver attach properties to all nodes of the *type*. The ``UNIPROT_ID_SOURCE`` and ``UNIPROT_ID_TARGET`` columns would hence also need to be mapped to the type ``protein``.
+By default, OntoWeaver attach properties to all nodes of the *type*. The ``UNIPROT_ID_SOURCE`` and ``UNIPROT_ID_TARGET`` columns would hence be mapped to the type ``protein``.
 
 However, you might want to map the properties of the ``protein`` nodes
-either on the source or the target, but not both. In this case you can
+either on the *source* or the *target*, but not both. In this case you can
 use the ``final_type`` keyword in the mapping configuration. The
 ``final_type`` keyword allows you to define a *final* node type to which
 the node will be converted, at the very end of the mapping process.
 
-In a nutshell: you map the ``source`` node to a temporary
-``protein_source`` and map properties to it. You map the ``target`` node to a temporary
+In a nutshell: you map the *source* node to a temporary
+``protein_source`` and map properties to it. You map the *target* node to a temporary
 ``protein_target`` and map properties to it. You also set the
 ``final_type: protein`` , so that, after having mapped all properties,
 OntoWeaver will change the node type from the temporary
@@ -250,15 +250,12 @@ For example:
            for_object: protein_target # Temporary node type to which the property will be linked.
 
 Notice how in this way, we avoid mapping the ``source`` properties to
-the ``target`` node types, and instead map then to the source node type.
+the ``target`` node types, and instead map then to the ``source`` node type.
 We also avoid mapping the ``target`` properties to the ``source`` node
-types, and instead map them to the target node type.
+types, and instead map them to the ``target`` node type.
 
-However, with the ``final_type: protein`` clause, the ``source`` and
-``target`` nodes are converted to the same ``protein`` type, at the very
-end of the mapping, after the properties have been attached to the
-nodes. The mapping thus results in the creation of three nodes: ``A``,
-``B``, and ``C``, all having the type ``protein``.
+ The mapping thus results in the creation of three nodes: ``A``,
+``B``, and ``C``, all having the type ``protein``, and the property ``uniprot_id``.
 
 Note that node ``A`` have now been instantiated twice, with different
 properties attached to each instance. However, the expected result would
