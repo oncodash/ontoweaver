@@ -955,6 +955,9 @@ class YamlParser(Declare):
 
             s_create = select_create.SimpleCreate()
 
+        if "type_branch_from_column" in subject_kwargs:
+            s_create = select_create.MultiTypeCreate()
+
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
                                                           multi_type_dictionary=subject_multi_type_dict,
                                                           properties=properties_of.get(subject_type, {}),
