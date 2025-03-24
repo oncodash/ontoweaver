@@ -442,6 +442,7 @@ class Transformer(errormanager.ErrorManager):
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
         self.multi_type_dict = multi_type_dict
+        self.kwargs = kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -550,8 +551,8 @@ class Transformer(errormanager.ErrorManager):
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def set_and_yield(self, value):
-        result_object = self.create(self.validate, value, self.multi_type_dict, self.branching_properties)
+    def set_and_yield(self, value, **kwargs):
+        result_object = self.create(self.validate, value, self.multi_type_dict, self.branching_properties, **self.kwargs, **kwargs)
         if result_object.target_node_type:
             self.target_type = result_object.target_node_type.__name__
         if result_object.properties_of is not None:

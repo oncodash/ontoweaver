@@ -839,7 +839,7 @@ class YamlParser(Declare):
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
         k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type"]
-        k_columns = ["columns", "fields", "column", "match_column"]
+        k_columns = ["columns", "fields", "column", "match_column", "id_from_column"]
         k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
         k_subject = ["from_subject", "from_source"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -907,10 +907,11 @@ class YamlParser(Declare):
                     p_output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
                     p_output_validator = self._make_output_validator(p_output_validation_rules)
 
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
-                                                                   output_validator=p_output_validator, **gen_data)
-                    p_create = select_create.SimpleCreate(transformer_instance=prop_transformer)
-                    prop_transformer.create = p_create
+                    prop_transformer = self.make_transformer_class(transformer_type,
+                                                                   columns=column_names,
+                                                                   output_validator=p_output_validator,
+                                                                   create = select_create.SimpleCreate(),
+                                                                   **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -944,7 +945,7 @@ class YamlParser(Declare):
                             'via_relation': alt_edge_t
                         }
 
-                        s_create = select_create.BranchCreate()
+                        s_create = select_create.MultiTypeCreate()
         # "None" key is used to return any type of string, in case no branching is needed.
         else:
             subject_multi_type_dict = {'None': {
@@ -1091,14 +1092,29 @@ class YamlParser(Declare):
                                    indent=2, exception = exceptions.MissingDataError)
 
 
-                    elif multi_type_dictionary and not target and not edge:
+                    elif multi_type_dictionary and "type_branch_from_column" in gen_data and not target and not edge:
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                        multi_type_dictionary=multi_type_dictionary,
-                                                                        branching_properties=properties_of,
-                                                                        columns=columns,
-                                                                        output_validator=output_validator,
-                                                                        create = select_create.BranchCreate(),
-                                                                        raise_errors = self.raise_errors, **gen_data)
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         branching_properties=properties_of,
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         create = select_create.MultiTypeOnColumnCreate(),
+                                                                         raise_errors = self.raise_errors, **gen_data)
+
+                        if final_type:
+                            # If there is a final type defined, create a class and assign it to the transformer.
+                            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+                            target_transformer.final_type = final_type_class
+                        transformers.append(target_transformer)
+
+                    elif multi_type_dictionary and not target and not edge and "type_branch_from_column" not in gen_data:
+                        target_transformer = self.make_transformer_class(transformer_type=transformer_type,
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         branching_properties=properties_of,
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         create = select_create.MultiTypeCreate(), #FIXME: Maybe this should be one unitary class for both cases?
+                                                                         raise_errors = self.raise_errors, **gen_data)
 
                         if final_type:
                             # If there is a final type defined, create a class and assign it to the transformer.

@@ -56,7 +56,7 @@ class split(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -91,7 +91,7 @@ class cat(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -132,7 +132,7 @@ class cat_format(base.Transformer):
 
         Args:.
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -176,7 +176,7 @@ class rowIndex(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -214,7 +214,7 @@ class map(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -243,7 +243,7 @@ class map(base.Transformer):
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
         for value in self.select(self.columns, row, i):
-            yield self.set_and_yield(value)
+            yield self.set_and_yield(value, columns=self.columns, row=row, i = i)
 
 
 class translate(base.Transformer):
@@ -257,6 +257,8 @@ class translate(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
+            select: the Select object used for the logic of cell value selection for each transformer.
+            create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
             translations: A dictionary figuring what to replace (keys) with which string (values).
@@ -371,7 +373,7 @@ class string(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.
@@ -415,7 +417,7 @@ class replace(base.Transformer):
 
         Args:
             properties_of: Properties of the node.
-            select: the Select object used for the logic of cell value selection for each transformer. Default is None.
+            select: the Select object used for the logic of cell value selection for each transformer.
             create: the Create object used for handling the creation of the output of the transformer. Default is None.
             branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
             columns: The columns to be processed.

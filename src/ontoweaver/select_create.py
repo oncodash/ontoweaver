@@ -9,12 +9,9 @@ class Select(errormanager.ErrorManager):
 
         super().__init__(raise_errors)
     def check(self, **kwargs):
-        # Get all instance attributes.
         self.__dict__.update(**kwargs)
         expected_att = self.__dict__
-        print(expected_att)
 
-        # We need to filter out the special method names.
         expected_keys = {k: v for k, v in expected_att.items() if not k.startswith('__')}
         for k, v in expected_keys.items():
             if v is None:
@@ -27,7 +24,7 @@ class Select(errormanager.ErrorManager):
 
         self.check(**kwargs)
         return self.call(columns, row, i, **kwargs)
-
+ 
 
 class MapSelect(Select):
     def __init__(self, raise_errors: bool = True):
@@ -80,7 +77,6 @@ class SplitSelect(Select):
         super().__init__(raise_errors)
 
     def call(self, columns, row, i, **kwargs):
-        self.separator = kwargs.get('separator', None)
 
         for key in columns:
             items = str(row[key]).split(self.separator)
@@ -109,14 +105,30 @@ class Create(errormanager.ErrorManager):
         self.output_validator = output_validator
         super().__init__(raise_errors)
 
+    def check(self, **kwargs):
+        self.__dict__.update(**kwargs)
+        expected_att = self.__dict__
+
+        expected_keys = {k: v for k, v in expected_att.items() if not k.startswith('__')}
+        for k, v in expected_keys.items():
+            if v is None:
+                self.error(f"Attribute {k} not set.", section=f"{self.__class__.__name__}.check", exception=exceptions.TransformerDataError)
+
+    def call(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
+        pass
+
+    def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
+        self.check(**kwargs)
+        return self.call(validate, returned_value, multi_type_dict, branching_properties, **kwargs)
+
 
 class SimpleCreate(Create):
-    def __init__(self, transformer_instance = None, raise_errors: bool = True):
-        super().__init__(transformer_instance, raise_errors)
+    def __init__(self, raise_errors: bool = True):
+        super().__init__(raise_errors)
 
-    def __call__(self, validate, value, multi_type_dict, branching_properties = None):
+    def call(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
 
-        res = str(value)
+        res = str(returned_value)
         if validate(res):
             if multi_type_dict:
                 if "None" in multi_type_dict.keys():
@@ -129,12 +141,12 @@ class SimpleCreate(Create):
             # Validation failed, return empty object with None values.
             return ReturnCreate()
 
-class BranchCreate(Create):
-    def __init__(self, transformer_instance = None, raise_errors: bool = True):
-        super().__init__(transformer_instance, raise_errors)
+class MultiTypeCreate(Create):
+    def __init__(self,raise_errors: bool = True):
+        super().__init__(raise_errors)
 
-    def __call__(self, validate, value, multi_type_dict = None, branching_properties = None):
-        res = str(value)
+    def call(self, validate, returned_value, multi_type_dict = None, branching_properties = None, **kwargs):
+        res = str(returned_value)
         if validate(res):
             if multi_type_dict:
                 for key, types in multi_type_dict.items():
@@ -154,3 +166,33 @@ class BranchCreate(Create):
         else:
             # Validation failed, return empty object with None values.
             return ReturnCreate()
+
+class MultiTypeOnColumnCreate(Create):
+    def __init__(self, raise_errors: bool = True):
+        self.columns = None
+        self.row = None
+        self.type_branch_from_column = None
+        super().__init__(raise_errors)
+
+    def call(self, validate, returned_value, multi_type_dict = None, branching_properties = None, **kwargs):
+
+        res = str(returned_value)
+        if validate(res):
+            if multi_type_dict:
+                for key, types in multi_type_dict.items():
+                    # Branching is performed on the regex patterns.
+                    try:
+                        if re.search(key, self.row[self.type_branch_from_column]):
+                            if branching_properties:
+                                properties_of = branching_properties.get(types["to_object"].__name__, {})
+                            else:
+                                properties_of = {}
+                            return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of)
+                    except re.error:
+                        raise ValueError(f"Branching key {key} is not a string or regex.")
+            else:
+                # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
+                return ReturnCreate(res)
+
+
+
