@@ -123,44 +123,44 @@ specific property.
 For example, with 4 nodes all having the same label, using the `IDLabel`
 serializer, the `Node` congregater will detect three duplicated nodes::
     nodes ==
-    ⎡ ┌node1───────┐ ┌node2───────┐ ┌node3───────┐ ┌node4───────┐ ⎤
-    ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥
-    ⎢ │Label: gene │ │Label: gene │ │Label: prot │ │Label: gene │ ⎥
-    ⎢ │Props:      │,│Props:      │,│Props:      │,│Props:      │ ⎥
-    ⎢ │⎧  source: A│ │⎧  source: B│ │⎧  source: B│ │⎧  source: B│ ⎥
-    ⎢ │⎨ version: 1│ │⎨ version: 2│ │⎨ version: 2│ │⎨ version: 3│ ⎥
-    ⎢ │⎩   level: I│ │⎩   level: I│ │⎩   level:II│ │⎩   level: I│ ⎥
-    ⎣ └────────────┘ └────────────┘ └────────────┘ └────────────┘ ⎦
-            │               │              │
-          >>> on_IDLabel = ontoweaver.serialize.IDLabel()
-          >>> for n in nodes:
-          >>>     on_IDLabel(n)
-            │               │              │
-            ▼               ▼              ▼
-    keys=["BRCA2gene" , "BRCA2gene" , "BRCA2prot"]
-    └───────────────────────┬──────────────────────┘
-                            │
-          >>> congregate = ontoweaver.congregate.Nodes(on_IDlabel)
-          >>> congregate(nodes)
-                            │
-                            ▼
+    ⎡ ┌node1───────┐  ┌node2───────┐  ┌node3───────┐  ┌node4───────┐  ⎤
+    ⎢ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ ⎥
+    ⎢ │Label: gene ┼┤ │Label: gene ┼┤ │Label: prot ┼┤ │Label: gene ┼┤ ⎥
+    ⎢ │Props:      ││,│Props:      ││,│Props:      ││,│Props:      ││ ⎥
+    ⎢ │⎧ source: A⎫││ │⎧ source: B⎫││ │⎧ source: B⎫││ │⎧ source: B⎫││ ⎥
+    ⎢ │⎨version: 1⎬││ │⎨version: 2⎬││ │⎨version: 2⎬││ │⎨version: 3⎬││ ⎥
+    ⎢ │⎩  level: I⎭││ │⎩  level: I⎭││ │⎩  level:II⎭││ │⎩  level: I⎭││ ⎥
+    ⎣ └────────────┘│ └────────────┘│ └────────────┘│ └────────────┘│ ⎦
+                    │               │               │               │
+            >>> on_IDLabel = ontoweaver.serialize.IDLabel()         │
+            >>> for n in nodes:     │               │               │
+            >>>     on_IDLabel(n)   │               │               │
+                    │               │               │               │
+                    ▼               ▼               ▼               ▼
+       keys = ["BRCA2gene"  ,  "BRCA2gene"  ,  "BRCA2prot"  ,  "BRCA2gene"]
+      └───┬────────────────────────────────────────────────────────────────┘
+          │                          
+          │ >>> congregate = ontoweaver.congregate.Nodes(on_IDlabel)
+          │ >>> congregate(nodes)     
+          │                          
+          ▼                          
     congregate.duplicates() ==
     ⎧             ⎡ ┌node1───────┐ ┌node2───────┐ ┌node4───────┐ ⎤ ⎫
     ⎪             ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥ ⎪
     ⎪             ⎢ │Label: gene │ │Label: gene │ │Label: gene │ ⎥ ⎪
     ⎪"BRCA2gene": ⎢ │Props:      │,│Props:      │,│Props:      │ ⎥ ⎪
-    ⎪             ⎢ │⎧  source: A│ │⎧  source: B│ │⎧  source: B│ ⎥ ⎪
-    ⎪             ⎢ │⎨ version: 1│ │⎨ version: 2│ │⎨ version: 3│ ⎥ ⎪
-    ⎪             ⎢ │⎩   level: I│ │⎩   level: I│ │⎩   level: I│ ⎥ ⎪
+    ⎪             ⎢ │⎧ source: A⎫│ │⎧ source: B⎫│ │⎧ source: B⎫│ ⎥ ⎪
+    ⎪             ⎢ │⎨version: 1⎬│ │⎨version: 2⎬│ │⎨version: 3⎬│ ⎥ ⎪
+    ⎪             ⎢ │⎩  level: I⎭│ │⎩  level: I⎭│ │⎩  level: I⎭│ ⎥ ⎪
     ⎪             ⎣ └────────────┘ └────────────┘ └────────────┘ ⎦ ⎪
     ⎨ ,                                                            ⎬
     ⎪             ⎡ ┌node3───────┐ ⎤                               ⎪
     ⎪             ⎢ │   ID: BRCA2│ ⎥                               ⎪
     ⎪             ⎢ │Label: prot │ ⎥                               ⎪
     ⎪"BRCA2prot": ⎢ │Props:      │ ⎥                               ⎪
-    ⎪             ⎢ │⎧  source: B│ ⎥                               ⎪
-    ⎪             ⎢ │⎨ version: 2│ ⎥                               ⎪
-    ⎪             ⎢ │⎩   level:II│ ⎥                               ⎪
+    ⎪             ⎢ │⎧ source: B⎫│ ⎥                               ⎪
+    ⎪             ⎢ │⎨version: 2⎬│ ⎥                               ⎪
+    ⎪             ⎢ │⎩  level:II⎭│ ⎥                               ⎪
     ⎩             ⎣ └────────────┘ ⎦                               ⎭
 
 For step 1, OntoWeaver provides the ``serialize`` module, which allows
@@ -243,9 +243,9 @@ merged into a single node in two steps::
     ⎪             ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥ ⎪
     ⎪             ⎢ │Label: gene │ │Label: gene │ │Label: gene │ ⎥ ⎪
     ⎨"BRCA2gene": ⎢ │Props:      │,│Props:      │,│Props:      │ ⎥ ⎬
-    ⎪             ⎢ │⎧  source: A│ │⎧  source: B│ │⎧  source: B│ ⎥ ⎪
-    ⎪             ⎢ │⎨ version: 1│ │⎨ version: 2│ │⎨ version: 3│ ⎥ ⎪
-    ⎪             ⎢ │⎩   level: I│ │⎩   level: I│ │⎩   level: I│ ⎥ ⎪
+    ⎪             ⎢ │⎧ source: A⎫│ │⎧ source: B⎫│ │⎧ source: B⎫│ ⎥ ⎪
+    ⎪             ⎢ │⎨version: 1⎬│ │⎨version: 2⎬│ │⎨version: 3⎬│ ⎥ ⎪
+    ⎪             ⎢ │⎩  level: I⎭│ │⎩  level: I⎭│ │⎩  level: I⎭│ ⎥ ⎪
     ⎩             ⎣ └────────────┘ └────────────┘ └────────────┘ ⎦ ⎭
                            ▲              ▲              │
                            │              └──────────────┘
@@ -259,15 +259,15 @@ merged into a single node in two steps::
 
 Each `Reduce` step would consists in calling `Members` mergers on each variable
 members, for example, for the second step::
-    fuse.Members.merge
-    ⎛            ┌node1───────┐ ┌node2─────────┐ ⎞                     ┌node────────────┐
-    ⎜            │   ID: BRCA2│ │   ID: BRCA2  │ ⎟ ──────UseFirst─────▶│   ID: BRCA2    │
-    ⎜┌key──────┐ │Label: gene │ │Label: gene   │ ⎟ ──EnsureIdenticals─▶│Label: gene     │
-    ⎜│BRCA2gene│,│Props:      │,│Props:        │ ⎟ ───────Append──────▶│Props:          │
-    ⎜└─────────┘ │⎧  source: A│ │⎧  source: B  │ ⎟  ┄┄┄┄┄set{A,B}┄┄┄┄▷ │⎧  source: A,B  │
-    ⎜            │⎨ version: 1│ │⎨ version: 2,3│ ⎟  ┄┄┄┄┄set{1,2,3}┄┄▷ │⎨ version: 1,2,3│
-    ⎜            │⎩   level: I│ │⎩   level: I  │ ⎟  ┄┄┄┄┄set{I,I}┄┄┄┄▷ │⎩   level: I    │
-    ⎝            └────────────┘ └──────────────┘ ⎠                     └────────────────┘
+    fuse.Members.merge \
+      ⎛            ┌node1───────┐ ┌node2─────────┐ ⎞                     ┌node────────────┐
+      ⎜            │   ID: BRCA2│ │   ID: BRCA2  │ ⎟ ──────UseFirst─────▶│   ID: BRCA2    │
+      ⎜┌key──────┐ │Label: gene │ │Label: gene   │ ⎟ ──EnsureIdenticals─▶│Label: gene     │
+      ⎜│BRCA2gene│,│Props:      │,│Props:        │ ⎟ ───────Append──────▶│Props:          │
+      ⎜└─────────┘ │⎧ source: A⎫│ │⎧ source: B  ⎫│ ⎟   ┄┄┄┄{A}+{B}┄┄┄┄▷  │⎧ source: A,B  ⎫│
+      ⎜            │⎨version: 1⎬│ │⎨version: 2,3⎬│ ⎟   ┄┄┄┄{1}+{2,3}┄┄▷  │⎨version: 1,2,3⎬│
+      ⎜            │⎩  level: I⎭│ │⎩  level: I  ⎭│ ⎟   ┄┄┄┄{I}+{I}┄┄┄┄▷  │⎩  level: I    ⎭│
+      ⎝            └────────────┘ └──────────────┘ ⎠                     └────────────────┘
 
 
 Once this fusion step is done, is it possible that the edges that were
