@@ -30,7 +30,7 @@ For example, if you have the following CSV table of phenotypes/patients:
    1,B
 
 and if you target the Biolink ontology, using a schema configuration
-(i.e. subset of types), defined in your ``shcema_config.yaml`` file, as
+(i.e. subset of types), defined in your ``schema_config.yaml`` file, as
 below:
 
 .. code:: yaml
