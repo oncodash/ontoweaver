@@ -205,7 +205,7 @@ C      A      uniprot_id_C      uniprot_id_A
 
 In a conventional way of mapping, you would map the ``SOURCE`` column to the node type ``protein`` and the ``TARGET`` column to the node type ``protein``. 
 
-By default, OntoWeaver attach properties to all nodes of the *type*. The ``UNIPROT_ID_SOURCE`` and ``UNIPROT_ID_TARGET`` columns would hence be mapped to the type ``protein``.
+By default, OntoWeaver will attach properties to all nodes of the same *type*. The ``UNIPROT_ID_SOURCE`` and ``UNIPROT_ID_TARGET`` columns would hence be mapped as properties to the type ``protein``.
 
 However, you might want to map the properties of the ``protein`` nodes
 either on the *source* or the *target*, but not both. In this case you can
