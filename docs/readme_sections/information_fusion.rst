@@ -79,17 +79,19 @@ OntoWeaver brings a set of features that also help solving fusion problems
 that goes beyond properties reconciliation.
 
 To do so, it is allows to manage two problems:
+
 1. How to detect that two elements are duplicates?
 2. How to fuse duplicated element in a single one?
 
 The first problem is handled by the `Congregater` interface, which needs to
-construct a dictionary arrociating a *key* with a list of duplicated element.
+construct a dictionary associating a *key* with a list of duplicated elements.
 The *key* is a representation of the elements in the form of a string. If two
 elements have the same *key* then they are considered duplicates and put in the
 same list, and will be fused together in the second step.
 
 For the second problem, OntoWeaver provides three layers, depending on what one
 wants to fuse. For fusing:
+
 1. a whole *list of duplicated elements*, use objects implementing the low-level
    interface `fusion.Fusioner`,
 2. two duplicated elements, use objects implementing the low-level interface
@@ -225,7 +227,7 @@ For example, to fuse “congregated” nodes, one can do:
        in_lists   = merge.dictry.Append(separator)
 
        # Assemble those function objects in an object that knows
-       # how to apply them members by members:
+       # how to apply them member by member:
        fuser = fuse.Members(base.Node,
                merge_ID    = use_first,  # How to merge two identifiers.
                merge_label = identicals, # How to merge two type labels.
