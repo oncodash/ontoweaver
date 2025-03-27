@@ -372,17 +372,21 @@ Multi-type Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases there might be a need to apply multiple type mappings to
-cell values within a single column. For example, in the table below, you
-might want to map the column ``WORDS`` based on the word type detected.
+cell values within a single column. For example, having the table below:
 
-::
++------+--------------+
+| LINE | WORDS        |
++======+==============+
+|   0  | sensitive    |
++------+--------------+
+|   1  | sensitivity  |
++------+--------------+
+|   2  | productive   |
++------+--------------+
+|   3  | productivity |
++------+--------------+
 
-   | LINE | WORDS |
-   | ---- | ---------- |
-   | 0 | sensitive |
-   | 1 | sensitivity |
-   | 2 | productive |
-   | 3 | productivity |
+You might want to map the column ``WORDS`` based on the word type detected:
 
 .. code:: yaml
 

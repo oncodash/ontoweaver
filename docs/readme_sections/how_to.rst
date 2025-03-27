@@ -46,16 +46,21 @@ Edges can be extracted from the mapping configuration, by defining a
 the ``from_subject`` is the node type from which the edge will start,
 and the ``to_object`` is the node type to which the edge will end.
 
-For example, consider the following mapping configuration for the sample
-dataset below:
+For example, for the sample dataset below:
 
-::
++----+----------+---------+
+| id | patient  | sample  |
++====+==========+=========+
+| 0  | patient1 | sample1 |
++----+----------+---------+
+| 1  | patient2 | sample2 |
++----+----------+---------+
+| 2  | patient3 | sample3 |
++----+----------+---------+
+| 3  | patient4 | sample4 |
++----+----------+---------+
 
-   id  patient         sample
-   0   patient1    sample1
-   1   patient2    sample2
-   2   patient3    sample3
-   3   patient4    sample4
+Consider the following mapping configuration:
 
 .. code:: yaml
 

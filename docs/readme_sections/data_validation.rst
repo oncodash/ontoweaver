@@ -17,13 +17,15 @@ not result in an empty value and will be a string.
 Here’s an example of what a YAML configuration file for a simple
 database would look like:
 
-::
-
-   | variant_id | patient |
-   |------------|---------|
-   |      0     |    A    |
-   |      1     |    B    |
-   |      2     |    C    |
++------------+---------+
+| variant_id | patient |
++============+=========+
+|      0     |    A    |
++------------+---------+
+|      1     |    B    |
++------------+---------+
+|      2     |    C    |
++------------+---------+
 
 Let’s first define a simple mapping configuration for the above data. In
 the example below we are mapping the column ``patient`` to a ``patient``

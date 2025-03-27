@@ -18,6 +18,7 @@ pandera = { version = "^0.23.1", extras = ["io"] }
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.4"
+sphinx_rtd_theme = "^3.0.2"
 
 [build-system]
 requires = ["poetry-core"]
