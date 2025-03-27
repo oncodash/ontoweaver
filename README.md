@@ -60,7 +60,7 @@ see [BioCypher's documentation](https://biocypher.org/output/index.html)).
 ### Usage Documentation
 
 Detailed documentation with tutorials and a more detailed installation guide is available 
-[here](https://ontoweaver.readthedocs.io/en/latest/).
+[on the OntoWeaver website](https://ontoweaver.readthedocs.io/en/latest/).
 
 ### Tests
 
