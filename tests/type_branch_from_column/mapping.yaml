@@ -1,0 +1,20 @@
+row:
+   map:
+      id_from_column: furniture
+      type_branch_from_column: localisation
+      match:
+        - kitchen:
+            to_subject: kitchen_furniture
+        - ^(?!kitchen$).*:
+            to_subject: rest_of_house_furniture
+transformers:
+    - map:
+        id_from_column: name
+        type_branch_from_column: will_sit?
+        match:
+            - y:
+                to_object: person
+                via_relation: will_sit
+            - n:
+                to_object: person
+                via_relation: will_not_sit
