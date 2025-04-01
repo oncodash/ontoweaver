@@ -2,6 +2,7 @@ import re
 import sys
 import logging
 import pandas as pd
+from pooch.utils import LOGGER
 
 from . import base
 from. import exceptions
@@ -37,7 +38,7 @@ def register(transformer_class):
     """
 
     if not issubclass(transformer_class, base.Transformer):
-        self.error(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.", section="transformer.register", exception = exceptions.InterfaceInheritanceError)
+        logging.error(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.", section="transformer.register", exception = exceptions.InterfaceInheritanceError)
     current = sys.modules[__name__]
     setattr(current, transformer_class.__name__, transformer_class)
 
@@ -78,7 +79,7 @@ class split(base.Transformer):
             str: Each split item from the cell value.
         """
         for value in self.select(self.columns, row, i, separator = self.separator):
-            yield self.set_and_yield(value)
+            yield self.set_and_yield(value, columns=self.columns, row=row, i = i)
 
 
 class cat(base.Transformer):
@@ -243,7 +244,7 @@ class map(base.Transformer):
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
         for value in self.select(self.columns, row, i):
-            yield self.set_and_yield(value, columns=self.columns, row=row, i = i)
+            yield self.set_and_yield(value, row = row, columns=self.columns, i = i)
 
 
 class translate(base.Transformer):

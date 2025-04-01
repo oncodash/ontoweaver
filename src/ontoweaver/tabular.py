@@ -223,6 +223,7 @@ class PandasAdapter(base.Adapter):
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
+                    logging.info(f"                 Create property `{property_name}` with value `{properties[property_name]}`.")
                 else:
                     self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
@@ -745,7 +746,7 @@ class YamlParser(Declare):
                 return pconfig[k]
         return None
 
-    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, type, columns):
+    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, types, columns):
         """
         Extract metadata and update the metadata dictionary.
 
@@ -753,32 +754,54 @@ class YamlParser(Declare):
             k_metadata_column (list): List of keys to be used for adding source column names.
             metadata_list (list): List of metadata items to be added.
             metadata (dict): The metadata dictionary to be updated.
-            type (str): The type of the node or edge.
+            types (str): The type of the node or edge.
             columns (list): List of columns to be added to the metadata.
 
         Returns:
             dict: The updated metadata dictionary.
         """
-        if metadata_list and type:
-                metadata.setdefault(type, {})
+        # TODO: Redundant code with the _extract_metadata function.
+        if metadata_list and types:
+            if type(types) != list:
+                t = types
+                metadata.setdefault(t, {})
                 for item in metadata_list:
-                    metadata[type].update(item)
+                    metadata[t].update(item)
                 for key in k_metadata_column:
-                    if key in metadata[type]:
+                    if key in metadata[t]:
                         # Use the value of k_metadata_column as the key.
-                        key_name = metadata[type][key]
+                        key_name = metadata[t][key]
                         # Remove the k_metadata_column key from the metadata dictionary.
-                        if key_name in metadata[type]:
-                            msg = f"The key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
+                        if key_name in metadata[t]:
+                            msg = f"The key you used for adding source column names: `{key_name}` to node: `{t}` already exists in the metadata dictionary."
                             # FIXME is it an error or a warning?
                             # self.error(msg)
                             logger.warning(msg)
-                        del metadata[type][key]
+                        del metadata[t][key]
                         if columns:
                             # TODO make the separator a parameter.
-                            metadata[type][key_name] = ", ".join(columns)
+                            metadata[t][key_name] = ", ".join(columns)
+            else:
+                for t in types:
+                    metadata.setdefault(t, {})
+                    for item in metadata_list:
+                        metadata[t].update(item)
+                    for key in k_metadata_column:
+                        if key in metadata[t]:
+                            # Use the value of k_metadata_column as the key.
+                            key_name = metadata[t][key]
+                            # Remove the k_metadata_column key from the metadata dictionary.
+                            if key_name in metadata[t]:
+                                msg = f"The key you used for adding source column names: `{key_name}` to node: `{t}` already exists in the metadata dictionary."
+                                # FIXME is it an error or a warning?
+                                # self.error(msg)
+                                logger.warning(msg)
+                            del metadata[t][key]
+                            if columns:
+                                # TODO make the separator a parameter.
+                                metadata[t][key_name] = ", ".join(columns)
 
-                return metadata
+            return metadata
         else:
             return None
 
@@ -838,10 +861,10 @@ class YamlParser(Declare):
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         k_row = ["row", "entry", "line", "subject", "source"]
-        k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type"]
+        k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column"]
         k_columns = ["columns", "fields", "column", "match_column", "id_from_column"]
         k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
-        k_subject = ["from_subject", "from_source"]
+        k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
         k_edge = ["via_edge", "via_relation", "via_predicate"]
         k_properties = ["to_properties", "to_property"]
         k_prop_to_object = ["for_objects", "for_object"]
@@ -855,22 +878,67 @@ class YamlParser(Declare):
 
         # First, parse subject's type
         logger.debug(f"Declare subject type...")
-        subject_dict = self.get(k_row)
-        subject_transformer_class = list(subject_dict.keys())[0]
-        subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
-        subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
-        subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
-        s_final_type = self.get(k_final_type, subject_dict[subject_transformer_class])
+        subject_transformer_dict = self.get(k_row)
+        subject_transformer_class = list(subject_transformer_dict.keys())[0]
+        subject_kwargs = self.get_not(k_subject_type + k_columns, subject_transformer_dict[subject_transformer_class]) # FIXME shows redundant information filter out the keys that are not needed.
+        subject_columns = self.get(k_columns, subject_transformer_dict[subject_transformer_class])
+        subject_final_type = self.get(k_final_type, subject_transformer_dict[subject_transformer_class])
         if subject_columns != None and type(subject_columns) != list:
             logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
             assert(type(subject_columns) == str)
             subject_columns = [subject_columns]
-        logger.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
-                      f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
 
         # Parse the validation rules for the output of the subject transformer.
-        s_output_validation_rules = self.get(k_validate_output, subject_dict[subject_transformer_class])
-        s_output_validator = self._make_output_validator(s_output_validation_rules)
+        subject_output_validation_rules = self.get(k_validate_output, subject_transformer_dict[subject_transformer_class])
+        subject_output_validator = self._make_output_validator(subject_output_validation_rules)
+
+        subject_multi_type_dict = {}
+        # TODO: assert subject_transformer_dict contains only ONE transformer.
+
+        subject_transformer_params = subject_transformer_dict[subject_transformer_class]
+
+        possible_subject_types = []
+        subject_branching = False
+
+        if "match" in subject_transformer_params:
+            for matching_pattern in subject_transformer_params['match']:
+                subject_branching = True
+                for k, v in matching_pattern.items():
+                    if isinstance(v, dict):
+                        key = k
+                        subject_multi_type_dict[key] = {k1: v1 for k1, v1 in v.items()}
+                        alt_subject = self.get(k_subject, v)
+                        alt_subject_t = self.make_node_class(alt_subject,
+                                                            properties_of.get(alt_subject, {}))
+
+                        possible_subject_types.append(alt_subject)
+
+                        subject_multi_type_dict[key] = {
+                            'to_object': alt_subject_t,
+                            # Via relation is always None, since there is never an edge declared for the subject type.
+                            'via_relation': None
+                        }
+
+                logger.debug(f"Parse subject transformer...")
+
+
+                if "type_branch_from_column" in subject_kwargs:
+                    s_create = select_create.MultiTypeOnColumnCreate(raise_errors=self.raise_errors)
+                else:
+                    s_create = select_create.MultiTypeCreate(raise_errors=self.raise_errors)
+
+        # "None" key is used to return any type of string, in case no branching is needed.
+        else:
+            subject_type = self.get(k_subject_type, subject_transformer_dict[subject_transformer_class])
+            source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+            subject_multi_type_dict = {'None': {
+                'to_object': source_t,
+                'via_relation': None
+            }}
+
+            possible_subject_types.append(source_t.__name__)
+
+            s_create = select_create.SimpleCreate(raise_errors=self.raise_errors)
 
         # Then, parse property mappings.
         logger.debug(f"Parse properties...")
@@ -888,9 +956,13 @@ class YamlParser(Declare):
                         logger.debug(f"\tDeclared singular property")
                         assert(type(property_names) == str)
                         property_names = [property_names]
-                    if not object_types:
-                        logger.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject `{subject_type}`")
-                        object_types = [subject_type]
+                    if not object_types: # FIXME: Creates errors with branching subject types and subject final type features.
+                        logger.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject(s) `{possible_subject_types}`")
+                        if type(possible_subject_types) != list:
+                            object_types = [possible_subject_types]
+                        if type(possible_subject_types) == list:
+                            for t in possible_subject_types:
+                                object_types = [t]
                     if type(object_types) != list:
                         logger.debug(f"\tDeclared singular for_object: `{object_types}`")
                         assert(type(object_types) == str)
@@ -910,7 +982,7 @@ class YamlParser(Declare):
                     prop_transformer = self.make_transformer_class(transformer_type,
                                                                    columns=column_names,
                                                                    output_validator=p_output_validator,
-                                                                   create = select_create.SimpleCreate(),
+                                                                   create = select_create.SimpleCreate(raise_errors=self.raise_errors),
                                                                    **gen_data)
 
                     for object_type in object_types:
@@ -920,59 +992,32 @@ class YamlParser(Declare):
                         logger.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
 
-        metadata_list = self.get(k_metadata)
-
-        logger.debug(f"Parse subject transformer...")
-        source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
-
-        subject_multi_type_dict = {}
-
-        # FIXME make single function because of duplicated code?
-        if "match" in subject_dict.keys():
-            for entry in subject_dict['match']:
-                for k, v in entry.items():
-                    if isinstance(v, dict):
-                        key = k
-                        subject_multi_type_dict[key] = {k1: v1 for k1, v1 in v.items()}
-                        alt_target = self.get(k_target, v)
-                        alt_target_t = self.make_node_class(alt_target,
-                                                            properties_of.get(alt_target, {}))
-                        alt_edge = self.get(k_edge, v)
-                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
-                                                          properties_of.get(alt_edge, {}))
-                        subject_multi_type_dict[key] = {
-                            'to_object': alt_target_t,
-                            'via_relation': alt_edge_t
-                        }
-
-                        s_create = select_create.MultiTypeCreate()
-        # "None" key is used to return any type of string, in case no branching is needed.
-        else:
-            subject_multi_type_dict = {'None': {
-                'to_object': source_t,
-                'via_relation': None
-            }}
-
-            s_create = select_create.SimpleCreate()
-
-        if "type_branch_from_column" in subject_kwargs:
-            s_create = select_create.MultiTypeCreate()
-
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
                                                           multi_type_dictionary=subject_multi_type_dict,
-                                                          properties=properties_of.get(subject_type, {}),
-                                                          columns=subject_columns, output_validator=s_output_validator,
-                                                          create = s_create,
-                                                          raise_errors = self.raise_errors,
+                                                          branching_properties=properties_of if subject_branching else None,
+                                                          properties=properties_of.get(subject_type, {}) if not subject_branching else None,
+                                                          columns=subject_columns,
+                                                          output_validator=subject_output_validator,
+                                                          create=s_create,
+                                                          raise_errors=self.raise_errors,
                                                           **subject_kwargs)
 
-        if s_final_type:
-            s_final_type_class = self.make_node_class(subject_transformer.final_type, properties_of.get(subject_transformer.final_type, {}))
+        if subject_final_type:
+            s_final_type_class = self.make_node_class(subject_transformer.final_type,
+                                                      properties_of.get(subject_transformer.final_type, {}))
             subject_transformer.final_type = s_final_type_class
+            possible_subject_types.append(s_final_type_class.__name__)
 
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
-        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
+        logger.debug(
+            f"\tDeclare subject of possible types: '{possible_subject_types}', subject transformer: '{subject_transformer_class}', "
+            f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
+
+
+        metadata_list = self.get(k_metadata)
+
+        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, possible_subject_types, subject_columns)
         if extracted_metadata:
             metadata.update(extracted_metadata)
 
@@ -1039,7 +1084,7 @@ class YamlParser(Declare):
                                         alt_target_t = self.make_node_class(alt_target,
                                                                             properties_of.get(alt_target, {}))
                                         alt_edge = self.get(k_edge, v)
-                                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
+                                        alt_edge_t = self.make_edge_class(alt_edge, None, alt_target_t,
                                                                           properties_of.get(alt_edge, {}))
                                         multi_type_dictionary[key] = {
                                             'to_object': alt_target_t,
@@ -1080,7 +1125,7 @@ class YamlParser(Declare):
                                                     properties=properties_of.get(target, {}),
                                                     columns=columns,
                                                     output_validator=output_validator,
-                                                    create = select_create.SimpleCreate(),
+                                                    create = select_create.SimpleCreate(raise_errors=self.raise_errors),
                                                     raise_errors=self.raise_errors, **gen_data)
 
                         if final_type:
@@ -1101,7 +1146,7 @@ class YamlParser(Declare):
                                                                          branching_properties=properties_of,
                                                                          columns=columns,
                                                                          output_validator=output_validator,
-                                                                         create = select_create.MultiTypeOnColumnCreate(),
+                                                                         create = select_create.MultiTypeOnColumnCreate(raise_errors=self.raise_errors),
                                                                          raise_errors = self.raise_errors, **gen_data)
 
                         if final_type:
@@ -1116,7 +1161,7 @@ class YamlParser(Declare):
                                                                          branching_properties=properties_of,
                                                                          columns=columns,
                                                                          output_validator=output_validator,
-                                                                         create = select_create.MultiTypeCreate(), #FIXME: Maybe this should be one unitary class for both cases?
+                                                                         create = select_create.MultiTypeCreate(raise_errors=self.raise_errors), #FIXME: Maybe this should be one unitary class for both cases?
                                                                          raise_errors = self.raise_errors, **gen_data)
 
                         if final_type:
@@ -1136,7 +1181,7 @@ class YamlParser(Declare):
 
         validator = self._get_input_validation_rules()
 
-        logger.debug(f"source class: {source_t}")
+        # logger.debug(f"source class: {source_t}")
         logger.debug(f"properties_of: {properties_of}")
         logger.debug(f"transformers: {transformers}")
         logger.debug(f"metadata: {metadata}")

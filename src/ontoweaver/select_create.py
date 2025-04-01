@@ -106,13 +106,25 @@ class Create(errormanager.ErrorManager):
         super().__init__(raise_errors)
 
     def check(self, **kwargs):
-        self.__dict__.update(**kwargs)
-        expected_att = self.__dict__
+        # Get attributes that are already in self.__dict__ and are None
+        expected_keys = {k for k, v in self.__dict__.items() if not k.startswith('__') and v is None}
 
-        expected_keys = {k: v for k, v in expected_att.items() if not k.startswith('__')}
-        for k, v in expected_keys.items():
-            if v is None:
-                self.error(f"Attribute {k} not set.", section=f"{self.__class__.__name__}.check", exception=exceptions.TransformerDataError)
+        # Update only expected keys if they are present in kwargs
+        for k in expected_keys:
+            if k in kwargs:
+                setattr(self, k, kwargs[k])
+
+        # Find attributes that are still None because they were expected but not provided in kwargs
+        missing_keys = [k for k in expected_keys if getattr(self, k) is None]
+
+        # Raise an error for any missing expected attributes
+        if missing_keys:
+            for k in missing_keys:
+                self.error(
+                    f"Attribute {k} not set.",
+                    section=f"{self.__class__.__name__}.check",
+                    exception=exceptions.TransformerDataError
+                )
 
     def call(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
         pass
@@ -151,15 +163,15 @@ class MultiTypeCreate(Create):
             if multi_type_dict:
                 for key, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    try:
-                        if re.search(key, res):
-                            if branching_properties:
-                                properties_of = branching_properties.get(types["to_object"].__name__, {})
-                            else:
-                                properties_of = {}
-                            return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of)
-                    except re.error:
-                        raise ValueError(f"Branching key {key} is not a string or regex.")
+                    if re.search(key, res):
+                        if branching_properties:
+                            properties_of = branching_properties.get(types["to_object"].__name__, {})
+                        else:
+                            properties_of = {}
+                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of)
+                    else:
+                        logger.info(f"          Branching key `{key}` does not match extracted value `{res}`.")
+                        continue
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(res)
@@ -170,29 +182,30 @@ class MultiTypeCreate(Create):
 class MultiTypeOnColumnCreate(Create):
     def __init__(self, raise_errors: bool = True):
         self.columns = None
-        self.row = None
         self.type_branch_from_column = None
         super().__init__(raise_errors)
 
     def call(self, validate, returned_value, multi_type_dict = None, branching_properties = None, **kwargs):
-
+        row = kwargs.get("row")
         res = str(returned_value)
         if validate(res):
             if multi_type_dict:
                 for key, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    try:
-                        if re.search(key, self.row[self.type_branch_from_column]):
-                            if branching_properties:
-                                properties_of = branching_properties.get(types["to_object"].__name__, {})
-                            else:
-                                properties_of = {}
-                            return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of)
-                    except re.error:
-                        raise ValueError(f"Branching key {key} is not a string or regex.")
+                    if re.search(key, row[self.type_branch_from_column]):
+                        if branching_properties:
+                            properties_of = branching_properties.get(types["to_object"].__name__, {})
+                        else:
+                            properties_of = {}
+                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of)
+                    else:
+                        logger.info(f"          Branching key `{key}` does not match extracted value `{row[self.type_branch_from_column]}`.")
+                        continue
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(res)
+        else:
+            return ReturnCreate()
 
 
 
