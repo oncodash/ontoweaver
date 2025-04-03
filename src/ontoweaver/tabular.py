@@ -867,8 +867,7 @@ class YamlParser(Declare):
                         if type(possible_subject_types) == set and len(possible_subject_types) == 1:
                             object_types = list(possible_subject_types)[0]
                         if type(possible_subject_types) == set and len(possible_subject_types) > 1:
-                            for t in possible_subject_types:
-                                object_types = [t]
+                            object_types = list(possible_subject_types)
                     if type(object_types) != list:
                         logger.debug(f"\tDeclared singular for_object: `{object_types}`")
                         assert (type(object_types) == str)
@@ -1207,7 +1206,6 @@ class YamlParser(Declare):
 
         properties_of = {}
         metadata = {}
-        possible_types = set()
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         self.k_row = ["row", "entry", "line", "subject", "source"]
@@ -1234,14 +1232,12 @@ class YamlParser(Declare):
         # Parse the target types and target metadata.
         transformers, possible_target_types, possible_edge_types = self.parse_targets(transformers_list, properties_of, source_t, metadata_list, metadata)
 
-        logging.debug(f"\t\tPossible subject types: {possible_types}")
-
         validator = self._get_input_validation_rules()
 
         if source_t:
             logger.debug(f"source class: {source_t}")
         elif possible_edge_types:
-            logger.debug(f"possible_source_types: {possible_edge_types}")
+            logger.debug(f"possible_source_types: {possible_subject_types}")
         logger.debug(f"properties_of: {properties_of}")
         logger.debug(f"transformers: {transformers}")
         logger.debug(f"metadata: {metadata}")
