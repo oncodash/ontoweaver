@@ -7,17 +7,17 @@ def test_type_branch_from_column():
 
     directory_name = "type_branch_from_column"
 
-    assert_nodes = [('sofa:rest_of_house_furniture', 'rest_of_house_furniture', {}),
-                    ('Mary:person', 'person', {}),
-                    ('fridge:kitchen_furniture', 'kitchen_furniture', {}),
-                    ('Peter:person', 'person', {}),
-                    ('Paul:person', 'person', {}),
-                    ('chair:kitchen_furniture', 'kitchen_furniture', {}),
+    assert_nodes = [('Mary:person', 'person', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('fridge:kitchen_furniture', 'kitchen_furniture', {'blabla': 'blabla', 'source_columns': 'furniture'}),
+                    ('Paul:person', 'person', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('sofa:rest_of_house_furniture', 'rest_of_house_furniture', {'blabla': 'blabla', 'source_columns': 'furniture'}),
+                    ('Peter:person', 'person', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('chair:kitchen_furniture', 'kitchen_furniture', {'blabla': 'blabla', 'source_columns': 'furniture'}),
                     ]
 
-    assert_edges = [('', 'chair:kitchen_furniture', 'Peter:person', 'will_not_sit', {}),
-                    ('', 'sofa:rest_of_house_furniture', 'Paul:person', 'will_sit', {}),
-                    ('', 'fridge:kitchen_furniture', 'Mary:person', 'will_not_sit', {}),
+    assert_edges = [('', 'chair:kitchen_furniture', 'Peter:person', 'will_not_sit', {'blabla': 'blabla'}),
+                    ('', 'fridge:kitchen_furniture', 'Mary:person', 'will_not_sit', {'blabla': 'blabla'}),
+                    ('', 'sofa:rest_of_house_furniture', 'Paul:person', 'will_sit', {'blabla': 'blabla'}),
                     ]
 
     data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}

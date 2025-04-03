@@ -18,3 +18,7 @@ transformers:
             - n:
                 to_object: person
                 via_relation: will_not_sit
+
+metadata:
+  - blabla: blabla
+  - add_source_column_names_as: source_columns
