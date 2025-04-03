@@ -19,6 +19,13 @@ transformers:
                 to_object: person
                 via_relation: will_not_sit
 
+    - cat:
+        columns:
+            - name
+            - localisation
+        to_property: localisation
+
+
 metadata:
   - blabla: blabla
   - add_source_column_names_as: source_columns
