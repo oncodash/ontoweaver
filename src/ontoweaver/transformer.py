@@ -2,7 +2,6 @@ import re
 import sys
 import logging
 import pandas as pd
-from pooch.utils import LOGGER
 
 from . import base
 from. import exceptions
