@@ -12,7 +12,7 @@ from . import errormanager
 from . import validate
 from . import serialize
 from . import exceptions
-from . import select_create
+from . import make_value
 
 logger = logging.getLogger("ontoweaver")
 
@@ -415,13 +415,13 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, select = None, create = None, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
+    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
         :param properties_of: the properties of each node type.
-        :param select: the Select object used for the logic of cell value selection for each transformer. Default is None.
-        :param create: the Create object used for handling the creation of the output of the transformer. Default is None.
+        :param value_maker: the ValueMaker object used for the logic of cell value selection for each transformer. Default is None.
+        :param label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
         :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
@@ -433,8 +433,8 @@ class Transformer(errormanager.ErrorManager):
         super().__init__(raise_errors)
 
         self.properties_of = properties_of
-        self.select = select
-        self.create = create
+        self.value_maker = value_maker
+        self.label_maker = label_maker
         self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator
@@ -551,20 +551,20 @@ class Transformer(errormanager.ErrorManager):
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def set_and_yield(self, value, **kwargs):
-        result_object = self.create(self.validate, value, self.multi_type_dict, self.branching_properties, **self.kwargs, **kwargs)
+    def create(self, returned_value, **kwargs):
+        result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, **self.kwargs, **kwargs)
         if result_object.target_node_type:
             self.target_type = result_object.target_node_type.__name__
-        if result_object.properties_of is not None:
-            self.properties_of = result_object.properties_of
-        return result_object.result, result_object.edge_type, result_object.target_node_type
+        if result_object.target_element_properties is not None:
+            self.properties_of = result_object.target_element_properties
+        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type
 
 
 class All:
     """Gathers lists of subclasses of Element and their fields
     existing in a given module.
 
-    Is generally used to create an `all` variable in a module:
+    Is generally used to label_maker an `all` variable in a module:
     .. code-block:: python
 
         all = base.All(sys.modules[__name__])

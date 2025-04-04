@@ -21,7 +21,7 @@ from . import types
 from . import transformer
 from . import exceptions
 from . import validate
-from . import select_create
+from . import make_labels
 
 logger = logging.getLogger("ontoweaver")
 
@@ -125,7 +125,7 @@ class PandasAdapter(base.Adapter):
         self.transformers = transformers
         self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
-        # logger.debug(self.properties_of)
+        # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
 
     def source_type(self, row):
@@ -149,7 +149,7 @@ class PandasAdapter(base.Adapter):
 
     def make_id(self, entry_type, entry_name):
         """
-        Create a unique id for the given cell consisting of the entry name and type,
+        LabelMaker a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration.
 
         Args:
@@ -223,7 +223,7 @@ class PandasAdapter(base.Adapter):
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
-                    logging.info(f"                 Create property `{property_name}` with value `{properties[property_name]}`.")
+                    logging.info(f"                 LabelMaker property `{property_name}` with value `{properties[property_name]}`.")
                 else:
                     self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
@@ -243,7 +243,7 @@ class PandasAdapter(base.Adapter):
 
     def make_node(self, node_t, id, properties):
         """
-        Create nodes of a certain type.
+        LabelMaker nodes of a certain type.
 
         Args:
             node_t: The type of the node.
@@ -258,7 +258,7 @@ class PandasAdapter(base.Adapter):
 
     def make_edge(self, edge_t, id_target, id_source, properties):
         """
-        Create edges of a certain type.
+        LabelMaker edges of a certain type.
 
         Args:
             edge_t: The type of the edge.
@@ -298,7 +298,7 @@ class PandasAdapter(base.Adapter):
             logger.debug(f"Process row {i}...")
             local_rows += 1
             # There can be only one subject, so transformers yielding multiple IDs cannot be used.
-            logger.debug("\tCreate subject node:")
+            logger.debug("\tLabelMaker subject node:")
             subject_generator_list = list(self.subject_transformer(row, i))
             if (len(subject_generator_list) > 1):
                 local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. "
@@ -325,7 +325,7 @@ class PandasAdapter(base.Adapter):
                     local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
                                                    indent=2, exception = exceptions.DeclarationError))
 
-                # Loop over list of transformer instances and create corresponding nodes and edges.
+                # Loop over list of transformer instances and label_maker corresponding nodes and edges.
                 # FIXME the transformer variable here shadows the transformer module.
                 for j,transformer in enumerate(self.transformers):
                     local_transformations += 1
@@ -346,7 +346,7 @@ class PandasAdapter(base.Adapter):
                                                                                          i, target_edge, target_node, node=True)))
 
                             # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                            # list to find the transformer instance mapping to the correct type, and then create new
+                            # list to find the transformer instance mapping to the correct type, and then label_maker new
                             # subject id.
 
                             # FIXME add hook functions to be overloaded.
@@ -527,7 +527,7 @@ class Declare(errormanager.ErrorManager):
 
     def make_node_class(self, name, properties={}, base=base.Node):
         """
-        Create a node class with the given name and properties.
+        LabelMaker a node class with the given name and properties.
 
         Args:
             name: The name of the node class.
@@ -561,7 +561,7 @@ class Declare(errormanager.ErrorManager):
 
     def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge, ):
         """
-        Create an edge class with the given name, source type, target type, and properties.
+        LabelMaker an edge class with the given name, source type, target type, and properties.
 
         Args:
             name: The name of the edge class.
@@ -615,9 +615,9 @@ class Declare(errormanager.ErrorManager):
         return t
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
-                               properties=None, columns=None, output_validator=None, create = None, raise_errors = True, **kwargs):
+                               properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):
         """
-        Create a transformer class with the given parameters.
+        LabelMaker a transformer class with the given parameters.
 
         Args:
             multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
@@ -645,7 +645,7 @@ class Declare(errormanager.ErrorManager):
                             output_validator=output_validator,
                             multi_type_dict = multi_type_dictionary,
                             branching_properties = branching_properties,
-                            create = create,
+                            label_maker = label_maker,
                             raise_errors = raise_errors,
                             **kwargs)
         else:
@@ -826,7 +826,7 @@ class YamlParser(Declare):
       
     def _make_output_validator(self, output_validation_rules = None):
         """
-        Create a validator for the output of a transformer.
+        LabelMaker a validator for the output of a transformer.
 
         Args:
             output_validation_rules: The output validation rules for the transformer extracted from yaml file.
@@ -884,12 +884,10 @@ class YamlParser(Declare):
                     p_output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
                     p_output_validator = self._make_output_validator(p_output_validation_rules)
 
-                    prop_transformer = self.make_transformer_class(transformer_type,
-                                                                   columns=column_names,
+                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
                                                                    output_validator=p_output_validator,
-                                                                   create=select_create.SimpleCreate(
-                                                                       raise_errors=self.raise_errors),
-                                                                   **gen_data)
+                                                                   label_maker=make_labels.SimpleLabelMaker(
+                                                                       raise_errors=self.raise_errors), **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -948,10 +946,10 @@ class YamlParser(Declare):
                 # Here we declare None only for returning purposes.
                 logger.debug(f"Parse subject transformer...")
 
-                if "type_branch_from_column" in subject_kwargs:
-                    s_create = select_create.MultiTypeOnColumnCreate(raise_errors=self.raise_errors)
+                if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
+                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors)
                 else:
-                    s_create = select_create.MultiTypeCreate(raise_errors=self.raise_errors)
+                    s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
 
         # "None" key is used to return any type of string, in case no branching is needed.
         else:
@@ -964,7 +962,7 @@ class YamlParser(Declare):
 
             possible_subject_types.add(source_t.__name__)
 
-            s_create = select_create.SimpleCreate(raise_errors=self.raise_errors)
+            s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
 
         properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
 
@@ -975,8 +973,7 @@ class YamlParser(Declare):
                                                                                        {}) if not subject_branching else None,
                                                           columns=subject_columns,
                                                           output_validator=subject_output_validator,
-                                                          create=s_create,
-                                                          raise_errors=self.raise_errors,
+                                                          label_maker=s_label_maker, raise_errors=self.raise_errors,
                                                           **subject_kwargs)
 
         if subject_final_type:
@@ -1129,15 +1126,16 @@ class YamlParser(Declare):
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                    multi_type_dictionary=multi_type_dictionary,
-                                                    properties=properties_of.get(target, {}),
-                                                    columns=columns,
-                                                    output_validator=output_validator,
-                                                    create = select_create.SimpleCreate(raise_errors=self.raise_errors),
-                                                    raise_errors=self.raise_errors, **gen_data)
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         properties=properties_of.get(target, {}),
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         label_maker=make_labels.SimpleLabelMaker(
+                                                                             raise_errors=self.raise_errors),
+                                                                         raise_errors=self.raise_errors, **gen_data)
 
                         if final_type:
-                            # If there is a final type defined, create a class and assign it to the transformer.
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                             target_transformer.final_type = final_type_class
                             possible_target_types.add(final_type_class.__name__)
@@ -1149,33 +1147,35 @@ class YamlParser(Declare):
                                    indent=2, exception = exceptions.MissingDataError)
 
 
-                    elif multi_type_dictionary and "type_branch_from_column" in gen_data and not target and not edge:
+                    elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
                                                                          multi_type_dictionary=multi_type_dictionary,
                                                                          branching_properties=properties_of,
                                                                          columns=columns,
                                                                          output_validator=output_validator,
-                                                                         create = select_create.MultiTypeOnColumnCreate(raise_errors=self.raise_errors),
-                                                                         raise_errors = self.raise_errors, **gen_data)
+                                                                         label_maker=make_labels.MultiTypeOnColumnLabelMaker(
+                                                                             raise_errors=self.raise_errors),
+                                                                         raise_errors=self.raise_errors, **gen_data)
 
                         if final_type:
-                            # If there is a final type defined, create a class and assign it to the transformer.
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                             target_transformer.final_type = final_type_class
                             possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
 
-                    elif multi_type_dictionary and not target and not edge and "type_branch_from_column" not in gen_data:
+                    elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
                                                                          multi_type_dictionary=multi_type_dictionary,
                                                                          branching_properties=properties_of,
                                                                          columns=columns,
                                                                          output_validator=output_validator,
-                                                                         create = select_create.MultiTypeCreate(raise_errors=self.raise_errors), #FIXME: Maybe this should be one unitary class for both cases?
-                                                                         raise_errors = self.raise_errors, **gen_data)
+                                                                         label_maker=make_labels.MultiTypeLabelMaker(
+                                                                             raise_errors=self.raise_errors),
+                                                                         raise_errors=self.raise_errors, **gen_data)
 
                         if final_type:
-                            # If there is a final type defined, create a class and assign it to the transformer.
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                             target_transformer.final_type = final_type_class
                             possible_target_types.add(final_type_class.__name__)

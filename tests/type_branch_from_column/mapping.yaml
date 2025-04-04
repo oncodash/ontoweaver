@@ -1,7 +1,7 @@
 row:
    map:
       id_from_column: furniture
-      type_branch_from_column: localisation
+      match_type_from_column: localisation
       match:
         - kitchen:
             to_subject: kitchen_furniture
@@ -10,7 +10,7 @@ row:
 transformers:
     - map:
         id_from_column: name
-        type_branch_from_column: will_sit?
+        match_type_from_column: will_sit?
         match:
             - y:
                 to_object: person

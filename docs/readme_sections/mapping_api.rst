@@ -447,7 +447,7 @@ The mapping file for this table could look like this:
     row:
        map:
           id_from_column: furniture
-          type_branch_from_column: localisation
+          match_type_from_column: localisation
           match:
             - kitchen:
                 to_subject: kitchen_furniture
@@ -456,7 +456,7 @@ The mapping file for this table could look like this:
     transformers:
         - map:
             id_from_column: name
-            type_branch_from_column: will_sit?
+            match_type_from_column: will_sit?
             match:
                 - y:
                     to_object: person
@@ -470,7 +470,7 @@ With this mapping, we want to map the column ``furniture`` to the node types ``k
 the column ``localisation``. The mapping uses the ``match`` clause to apply different type mappings based on the
 localisation of the furniture, similarly as it was done in the previous example. This time, however, the ``match`` clause
 needs to look at the values of another column - ``localisation``, to determine the type of the node to be created.
-In this case, we use the keyword ``type_branch_from_column`` to indicate that the type of the node to be created depends
+In this case, we use the keyword ``match_type_from_column`` to indicate that the type of the node to be created depends
 on the value of the ``localisation`` column. The ``id_from_column`` keyword indicates that the id of the node to be
 created should be taken from the column ``furniture``.
 
@@ -478,7 +478,7 @@ Next, we want to map the column ``name`` to the node type ``person``, and define
 furniture will be sat on or not. We extract the name of the person from the column ``name``, using the ``id_form_column``
 keyword and the edge type will be defined based on the value extracted from the column ``will_sit?``.
 The mapping uses the ``match`` clause to apply different type mappings based on the value of the column
-``will_sit?``, defined via the ``type_branch_from_column`` keyword. The ``match`` clause defines two regex rules:
+``will_sit?``, defined via the ``match_type_from_column`` keyword. The ``match`` clause defines two regex rules:
 ``y`` which matches the value ``y`` and maps the node type ``person`` via the edge type ``will_sit``, and ``n`` which
 matches the value ``n`` and maps the node type ``person`` via the edge type ``will_not_sit``.
 
