@@ -845,7 +845,9 @@ class YamlParser(Declare):
         return output_validator
 
     def parse_properties(self, properties_of, possible_subject_types, transformers_list):
-        # Then, parse property mappings.
+        """
+        Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
+        """
         logger.debug(f"Parse properties...")
         for n_transformer, transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
@@ -898,7 +900,10 @@ class YamlParser(Declare):
         return properties_of
 
     def parse_subject(self, properties_of, transformers_list, metadata_list, metadata):
-        # First, parse subject's type
+        """
+        Parse the subject transformer and its properties from the YAML mapping.
+        """
+
         logger.debug(f"Declare subject type...")
         subject_transformer_dict = self.get(self.k_row)
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
@@ -947,7 +952,8 @@ class YamlParser(Declare):
                 logger.debug(f"Parse subject transformer...")
 
                 if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
-                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors)
+                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
+                                                                            match_type_from_column=subject_kwargs['match_type_from_column'])
                 else:
                     s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
 
@@ -996,7 +1002,9 @@ class YamlParser(Declare):
 
 
     def parse_targets(self, transformers_list, properties_of, source_t, metadata_list, metadata):
-        # Then, declare types.
+        """
+        Parse the target transformers and their properties from the YAML mapping.
+        """
 
         transformers = []
         possible_target_types = set()
@@ -1154,7 +1162,7 @@ class YamlParser(Declare):
                                                                          columns=columns,
                                                                          output_validator=output_validator,
                                                                          label_maker=make_labels.MultiTypeOnColumnLabelMaker(
-                                                                             raise_errors=self.raise_errors),
+                                                                             raise_errors=self.raise_errors, match_type_from_column=gen_data["match_type_from_column"]),
                                                                          raise_errors=self.raise_errors, **gen_data)
 
                         if final_type:

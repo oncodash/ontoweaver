@@ -1,11 +1,11 @@
-def test_type_branch_from_column():
+def test_match_type_from_column():
     from . import testing_functions
     import logging
     import ontoweaver
 
     logging.basicConfig(level=logging.DEBUG)
 
-    directory_name = "type_branch_from_column"
+    directory_name = "match_type_from_column"
 
     assert_nodes = [('fridge:kitchen_furniture', 'kitchen_furniture', {'localisation': 'Marykitchen', 'blabla': 'blabla', 'source_columns': 'furniture'}),
                     ('Peter:person', 'person', {'blabla': 'blabla', 'source_columns': 'name'}),
@@ -38,4 +38,4 @@ def test_type_branch_from_column():
 
 
 if __name__ == "__main__":
-    test_type_branch_from_column()
+    test_match_type_from_column()

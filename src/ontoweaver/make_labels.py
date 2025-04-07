@@ -7,63 +7,65 @@ from . import errormanager, exceptions
 logger = logging.getLogger("ontoweaver")
 
 class ReturnCreate:
-    """Class for returning the extracted_cell_value of the transformer.
-
-        Args:
-            extracted_cell_value (str): The extracted_cell_value of the transformer - ID of node.
-            edge_type (str): The class of the edge.
-            target_node_type (str): The class of the target node.
-            properties_of (dict): The properties of the target node.
-
+    """Class for returning the extracted cell value of the transformer, along with the edge type, target node type,
+    and properties of the target node type.
     """
 
     def __init__(self, extracted_cell_value = None, edge_type = None, target_node_type = None, properties_of = None):
+        """
+        Initializes the ReturnCreate object.
+
+        Args:
+            extracted_cell_value: The extracted cell value of the transformer. Can serve as ID of the node, ID of the edge, or value of property.
+            edge_type: The type of the edge.
+            target_node_type: The type of the target node.
+            properties_of: The properties of the returned target node type.
+        """
+
         self.extracted_cell_value = extracted_cell_value # Can serve as ID of the node, ID of the edge, or value of property.
         self.edge_type = edge_type
         self.target_node_type = target_node_type
         self.target_element_properties = properties_of
 
 class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
-    def __init__(self, output_validator = None, raise_errors: bool = True):
-        self.output_validator = output_validator
+    """Interface for defining the correct labels (types) for each extracted value.
+    The class is responsible for validating the extracted cell value and returning the appropriate label.
+    """
+
+    def __init__(self, raise_errors: bool = True):
+        """
+        Initializes the LabelMaker object.
+
+        Args:
+            raise_errors (bool): if True, will raise an exception when an error is encountered, else, will log the error and try to proceed.
+        """
         super().__init__(raise_errors)
 
-    def check_attributes(self, **kwargs):
-        # Get attributes that are already in self.__dict__ and are None
-        expected_keys = {k for k, v in self.__dict__.items() if not k.startswith('__') and v is None}
+    def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
+        """
 
-        # Update only expected keys if they are present in kwargs
-        for k in expected_keys:
-            if k in kwargs:
-                setattr(self, k, kwargs[k])
+        Args:
+            validate: The validation function which uses the Pandera schema to validate the extracted value.
+            returned_value: The extracted value of the cell.
+            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
+            branching_properties: In case of branching on cell values, the dictionary holding the properties for each branch.
+            row: The row of the dataframe that is being processed. Used in case of branching on column values.
 
-        # Find attributes that are still None because they were expected but not provided in kwargs
-        missing_keys = [k for k in expected_keys if getattr(self, k) is None]
-
-        # Raise an error for any missing expected attributes
-        if missing_keys:
-            for k in missing_keys:
-                self.error(
-                    f"Attribute {k} not set.",
-                    section=f"{self.__class__.__name__}.check",
-                    exception=exceptions.TransformerDataError
-                )
-
-    @abc.abstractmethod
-    def call(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
-        raise NotImplementedError("The call method must be implemented in a subclass.")
-
-    def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
-        self.check_attributes(**kwargs)
-        return self.call(validate, returned_value, multi_type_dict, branching_properties, **kwargs)
+        Returns:
+            ReturnCreate: An object containing the defined values.
+        """
+        return NotImplementedError("The call method must be implemented in a subclass.")
 
 
 class SimpleLabelMaker(LabelMaker):
+    """
+    The class is used when the transformer does not have any kind of type branching logic.
+    """
 
     def __init__(self, raise_errors: bool = True):
         super().__init__(raise_errors)
 
-    def call(self, validate, returned_value, multi_type_dict, branching_properties = None, **kwargs):
+    def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
 
         res = str(returned_value)
         if validate(res):
@@ -80,10 +82,13 @@ class SimpleLabelMaker(LabelMaker):
             return ReturnCreate()
 
 class MultiTypeLabelMaker(LabelMaker):
+    """
+    The class is used when the transformer has type branching logic based on the value that will become the ID of the element.
+    """
     def __init__(self,raise_errors: bool = True):
         super().__init__(raise_errors)
 
-    def call(self, validate, returned_value, multi_type_dict = None, branching_properties = None, **kwargs):
+    def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
         res = str(returned_value)
         if validate(res):
             if multi_type_dict:
@@ -106,12 +111,15 @@ class MultiTypeLabelMaker(LabelMaker):
             return ReturnCreate()
 
 class MultiTypeOnColumnLabelMaker(LabelMaker):
-    def __init__(self, raise_errors: bool = True):
-        self.match_type_from_column = None
+    """
+    The class is used when the transformer has type branching logic based on the value of a column in the dataframe,
+    not the value that will become the ID of the element.
+    """
+    def __init__(self, raise_errors: bool = True, match_type_from_column: str = None):
+        self.match_type_from_column = match_type_from_column
         super().__init__(raise_errors)
 
-    def call(self, validate, returned_value, multi_type_dict = None, branching_properties = None, **kwargs):
-        row = kwargs.get("row")
+    def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
         res = str(returned_value)
         if validate(res):
             if multi_type_dict:

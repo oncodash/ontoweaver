@@ -469,13 +469,13 @@ With this mapping, we want to map the column ``furniture`` to the node types ``k
 ``rest_of_house_furniture`` based on their localisation. The localisation of each piece of furniture is extracted from
 the column ``localisation``. The mapping uses the ``match`` clause to apply different type mappings based on the
 localisation of the furniture, similarly as it was done in the previous example. This time, however, the ``match`` clause
-needs to look at the values of another column - ``localisation``, to determine the type of the node to be created.
+needs to look at the values of another column — ``localisation``, to determine the type of the node to be created.
 In this case, we use the keyword ``match_type_from_column`` to indicate that the type of the node to be created depends
-on the value of the ``localisation`` column. The ``id_from_column`` keyword indicates that the id of the node to be
+on the value of the ``localisation`` column. The ``id_from_column`` keyword indicates that the identifier of the node to be
 created should be taken from the column ``furniture``.
 
 Next, we want to map the column ``name`` to the node type ``person``, and define the edge type based on whether the
-furniture will be sat on or not. We extract the name of the person from the column ``name``, using the ``id_form_column``
+furniture will be "sat on" or not. We extract the name of the person from the column ``name``, using the ``id_form_column``
 keyword and the edge type will be defined based on the value extracted from the column ``will_sit?``.
 The mapping uses the ``match`` clause to apply different type mappings based on the value of the column
 ``will_sit?``, defined via the ``match_type_from_column`` keyword. The ``match`` clause defines two regex rules:

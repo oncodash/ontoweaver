@@ -56,14 +56,14 @@ class split(base.Transformer):
             self.separator = None
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
 
             for key in columns:
                 items = str(row[key]).split(self.separator)
                 for item in items:
                     yield item
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = ",", **kwargs):
         """
         Initialize the split transformer.
 
@@ -76,9 +76,14 @@ class split(base.Transformer):
             sep: Character(s) to use for splitting.
             output_validator: the OutputValidator object used for validating transformer output.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
+            separator: The character(s) to use for splitting the cell values. Defaults to ",".
         """
         super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
                          raise_errors=raise_errors, **kwargs)
+
+        if not separator:  # Neither empty string nor None.
+            self.error(f"The `separator` parameter of the `{self.__name__}` transformer cannot be an empty string.")
+        self.separator = separator
 
     def __call__(self, row, i):
         """
@@ -92,7 +97,7 @@ class split(base.Transformer):
             str: Each split item from the cell value.
         """
         for value in self.value_maker(self.columns, row, i, separator = self.separator):
-            yield self.create(value, columns=self.columns, row=row, i=i)
+            yield self.create(value, row)
 
 
 class cat(base.Transformer):
@@ -103,7 +108,7 @@ class cat(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
             formatted_items = ""
 
             for key in columns:
@@ -142,7 +147,7 @@ class cat(base.Transformer):
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="cat.call", exception = exceptions.TransformerInputError)
 
         for value in self.value_maker(self.columns, row, i):
-            yield self.create(value)
+            yield self.create(value, row)
 
 
 
@@ -153,7 +158,7 @@ class cat_format(base.Transformer):
 
     #FIXME label_maker selector
 
-    def __init__(self, properties_of,  value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of,  value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, format_string = None,  **kwargs):
         """
         Initialize the cat_format transformer.
 
@@ -171,6 +176,10 @@ class cat_format(base.Transformer):
         super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_dict,
                          raise_errors=raise_errors, **kwargs)
 
+        if not format_string:  # Neither empty string nor None.
+            self.error(f"The `format_string` parameter of the `{self.__name__}` transformer cannot be an empty string.")
+        self.format_string = format_string
+
     def __call__(self, row, i):
         """
         Process a row and yield a formatted string as node ID.
@@ -187,7 +196,7 @@ class cat_format(base.Transformer):
         """
         if hasattr(self, "format_string"):
             formatted_string = self.format_string.format_map(row)
-            yield self.create(formatted_string)
+            yield self.create(formatted_string, row)
 
 
         else:
@@ -201,7 +210,7 @@ class rowIndex(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
             yield i
 
     def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
@@ -236,7 +245,7 @@ class rowIndex(base.Transformer):
             Warning: If the row index is invalid.
         """
         for value in self.value_maker(self.columns, row, i):
-            yield self.create(value)
+            yield self.create(value, row)
 
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
@@ -246,7 +255,7 @@ class map(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
@@ -288,8 +297,7 @@ class map(base.Transformer):
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
         for value in self.value_maker(self.columns, row, i):
-            logging.debug(f"aaaaaaa{value}")
-            yield self.create(value, row=row, columns=self.columns, i=i)
+            yield self.create(value, row)
 
 
 class translate(base.Transformer):
@@ -299,7 +307,7 @@ class translate(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i, **kwargs):
+        def call(self, columns, row, i, **kwargs):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
@@ -428,7 +436,7 @@ class string(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
@@ -471,7 +479,7 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        yield self.create(self.value)
+        yield self.create(self.value, row)
 
 class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
@@ -486,7 +494,7 @@ class replace(base.Transformer):
             self.substitute = None
             super().__init__(raise_errors)
 
-        def select(self, columns, row, i):
+        def call(self, columns, row, i):
             for key in columns:
                 logger.info(
                     f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
@@ -532,4 +540,4 @@ class replace(base.Transformer):
             Warning: If the processed cell value is invalid.
         """
         for value in self.value_maker(self.columns, row, i, forbidden = self.forbidden, substitute = self.substitute):
-            yield self.create(value)
+            yield self.create(value, row)

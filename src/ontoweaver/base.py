@@ -542,6 +542,9 @@ class Transformer(errormanager.ErrorManager):
         return representation
 
     def validate(self, res):
+        """
+        Validate the output of the transformer, using the output_validator. of the transformer instance.
+        """
         try:
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
                 return True
@@ -551,8 +554,14 @@ class Transformer(errormanager.ErrorManager):
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def create(self, returned_value, **kwargs):
-        result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, **self.kwargs, **kwargs)
+    def create(self, returned_value, row):
+        """
+        Create the output of the transformer, using the label_maker of the transformer instance.
+
+        Returns:
+            Extracted cell value (can be node ID, property value, edge ID), edge type and target node type.
+        """
+        result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
         if result_object.target_node_type:
             self.target_type = result_object.target_node_type.__name__
         if result_object.target_element_properties is not None:
