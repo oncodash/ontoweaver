@@ -19,21 +19,8 @@ class ValueMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
 
         super().__init__(raise_errors)
 
-    def check_attributes(self, **kwargs):
-        """
-        Check if all attributes expected in the __init__ are set. If not, raise an error.
-        """
-
-        expected_att = self.__dict__
-        self.__dict__.update(**kwargs)
-
-        expected_keys = {k: v for k, v in expected_att.items() if not k.startswith('__')}
-        for k, v in expected_keys.items():
-            if v is None:
-                self.error(f"Attribute {k} not set.", section=f"{self.__class__.__name__}.check", exception=exceptions.TransformerDataError)
-
     @abc.abstractmethod
-    def call(self, columns, row, i):
+    def __call__(self, columns, row, i):
         """
         Select the value from the columns and row based on the logic defined in the subclass.
         Args:
@@ -45,8 +32,3 @@ class ValueMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
             The selected value.
         """
         raise NotImplementedError("The call method must be implemented in a subclass.")
-
-    def __call__(self, columns, row, i, **kwargs):
-
-        self.check_attributes(**kwargs)
-        return self.call(columns, row, i)

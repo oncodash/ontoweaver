@@ -53,17 +53,17 @@ class split(base.Transformer):
     class ValueMaker(make_value.ValueMaker):
 
         def __init__(self, raise_errors: bool = True, separator: str = None):
-            self.separator = None
+            self.separator = separator
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
 
             for key in columns:
                 items = str(row[key]).split(self.separator)
                 for item in items:
                     yield item
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = ",", **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = None, **kwargs):
         """
         Initialize the split transformer.
 
@@ -78,12 +78,14 @@ class split(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             separator: The character(s) to use for splitting the cell values. Defaults to ",".
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.separator = separator
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors, separator=self.separator)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          raise_errors=raise_errors, **kwargs)
 
-        if not separator:  # Neither empty string nor None.
-            self.error(f"The `separator` parameter of the `{self.__name__}` transformer cannot be an empty string.")
-        self.separator = separator
 
     def __call__(self, row, i):
         """
@@ -96,7 +98,7 @@ class split(base.Transformer):
         Yields:
             str: Each split item from the cell value.
         """
-        for value in self.value_maker(self.columns, row, i, separator = self.separator):
+        for value in self.value_maker(self.columns, row, i):
             yield self.create(value, row)
 
 
@@ -108,14 +110,14 @@ class cat(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
             formatted_items = ""
 
             for key in columns:
                 formatted_items += str(row[key])
                 yield formatted_items
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Initialize the cat transformer.
 
@@ -129,7 +131,10 @@ class cat(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
     def __call__(self, row, i):
@@ -158,7 +163,7 @@ class cat_format(base.Transformer):
 
     #FIXME label_maker selector
 
-    def __init__(self, properties_of,  value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, format_string = None,  **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, format_string = None,  **kwargs):
         """
         Initialize the cat_format transformer.
 
@@ -173,7 +178,8 @@ class cat_format(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(properties_of, branching_properties, columns, output_validator, multi_type_dict,
+
+        super().__init__(properties_of, label_maker, branching_properties, columns, output_validator, multi_type_dict,
                          raise_errors=raise_errors, **kwargs)
 
         if not format_string:  # Neither empty string nor None.
@@ -210,10 +216,10 @@ class rowIndex(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
             yield i
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Initialize the rowIndex transformer.
 
@@ -227,7 +233,10 @@ class rowIndex(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
     def __call__(self, row, i, result_object=None):
@@ -255,14 +264,14 @@ class map(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
                                exception=exceptions.TransformerDataError)
                 yield row[key]
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Initialize the map transformer.
 
@@ -276,7 +285,10 @@ class map(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
     def __call__(self, row, i):
@@ -307,14 +319,14 @@ class translate(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i, **kwargs):
+        def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
                                exception=exceptions.TransformerDataError)
                 yield row[key]
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
@@ -335,9 +347,12 @@ class translate(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
             kwargs: Additional arguments to pass to Pandas' read_csv (if "sep=TAB", reads the translations_file as tab-separated).
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
-        self.map = map(properties_of, value_maker, label_maker, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
+        self.map = map(properties_of, label_maker, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
 
         # Since we cannot expand kwargs, let's recover what we have inside.
         translations = kwargs.get("translations", None)
@@ -436,14 +451,14 @@ class string(base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
                                exception=exceptions.TransformerDataError)
                 yield row[key]
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
@@ -458,7 +473,10 @@ class string(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
         self.value = kwargs.get("value", None)
 
@@ -489,12 +507,13 @@ class replace(base.Transformer):
 
     class ValueMaker(make_value.ValueMaker):
 
-        def __init__(self, raise_errors: bool = True):
-            self.forbidden = None
-            self.substitute = None
+        def __init__(self, raise_errors: bool = True, forbidden = None, substitute = None):
+
+            self.forbidden = forbidden
+            self.substitute = substitute
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i):
+        def __call__(self, columns, row, i):
             for key in columns:
                 logger.info(
                     f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
@@ -503,7 +522,7 @@ class replace(base.Transformer):
                 logger.debug(f"Formatted value: {strip_formatted}")
                 yield strip_formatted
 
-    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Constructor.
 
@@ -519,11 +538,14 @@ class replace(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
         self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
         # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
         self.substitute = kwargs.get("substitute", "")
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors, forbidden=self.forbidden, substitute=self.substitute)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
+                         multi_type_dict, raise_errors=raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -539,5 +561,5 @@ class replace(base.Transformer):
         Raises:
             Warning: If the processed cell value is invalid.
         """
-        for value in self.value_maker(self.columns, row, i, forbidden = self.forbidden, substitute = self.substitute):
+        for value in self.value_maker(self.columns, row, i):
             yield self.create(value, row)

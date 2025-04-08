@@ -7,6 +7,7 @@ from typing import TypeAlias
 from typing import Optional
 import pandas as pd
 import pandera as pa
+from jinja2.compiler import has_safe_repr
 
 from . import errormanager
 from . import validate
@@ -487,7 +488,7 @@ class Transformer(errormanager.ErrorManager):
         target_name = ""
         edge_name = ""
 
-        if self.multi_type_dict:
+        if hasattr(self, "multi_type_dict") and self.multi_type_dict is not None:
             for key, value in self.multi_type_dict.items():
                 if value['to_object'] and value['via_relation']:
                     target_name = value['to_object']

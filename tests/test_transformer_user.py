@@ -10,7 +10,7 @@ class user_transformer(ontoweaver.base.Transformer):
         def __init__(self, raise_errors: bool = True):
             super().__init__(raise_errors)
 
-        def call(self, columns, row, i, **kwargs):
+        def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",

@@ -41,6 +41,7 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
         """
         super().__init__(raise_errors)
 
+    @abc.abstractmethod
     def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
         """
 
