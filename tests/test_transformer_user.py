@@ -1,17 +1,30 @@
 import logging
 import yaml
 import pandas as pd
-
 import ontoweaver
+from ontoweaver import exceptions
 
 class user_transformer(ontoweaver.base.Transformer):
-    def __init__(self, properties_of, branching_properties=None, columns=None, **kwargs):
-        super().__init__(properties_of, branching_properties, columns, **kwargs)
+
+    class ValueMaker(ontoweaver.make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            for key in columns:
+                if key not in row:
+                    self.error(f"Column '{key}' not found in data", section="map.call",
+                               exception=exceptions.TransformerDataError)
+                yield row[key]
+
+    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties=None, columns=None, **kwargs):
+        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, **kwargs)
 
     def __call__(self, row, i):
-        for key in self.columns:
-            res, edge, node = self.create(row[key])
-            yield res, edge, node
+
+        for value in self.value_maker(self.columns, row, i):
+            yield self.create(value, row)
+
 
 def test_transformer_user():
     # Add the passed transformer to the list available to OntoWeaver.

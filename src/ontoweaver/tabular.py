@@ -13,7 +13,6 @@ from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
 
-from networkx.conftest import has_scipy
 from numpy.ma.core import set_fill_value
 
 from . import errormanager
@@ -22,6 +21,7 @@ from . import types
 from . import transformer
 from . import exceptions
 from . import validate
+from . import make_labels
 
 logger = logging.getLogger("ontoweaver")
 
@@ -125,7 +125,7 @@ class PandasAdapter(base.Adapter):
         self.transformers = transformers
         self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
-        # logger.debug(self.properties_of)
+        # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
 
     def source_type(self, row):
@@ -149,7 +149,7 @@ class PandasAdapter(base.Adapter):
 
     def make_id(self, entry_type, entry_name):
         """
-        Create a unique id for the given cell consisting of the entry name and type,
+        LabelMaker a unique id for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration.
 
         Args:
@@ -199,7 +199,7 @@ class PandasAdapter(base.Adapter):
         return True
 
 
-    def properties(self, properity_dict, row, i, edge_t, node_t, node = False):
+    def properties(self, property_dict, row, i, edge_t, node_t, node = False):
 
         """
         Extract properties of each property category for the given node type.
@@ -218,13 +218,14 @@ class PandasAdapter(base.Adapter):
         """
         properties = {}
 
-        for prop_transformer, property_name in properity_dict.items():
+        for prop_transformer, property_name in property_dict.items():
             self.property_transformers.append(prop_transformer)
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
+                    logging.info(f"                 LabelMaker property `{property_name}` with value `{properties[property_name]}`.")
                 else:
-                    self.error(f"Failed to extract valid property with {prop_transformer} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                    self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
 
         # If the metadata dictionary is not empty add the metadata to the property dictionary.
@@ -242,7 +243,7 @@ class PandasAdapter(base.Adapter):
 
     def make_node(self, node_t, id, properties):
         """
-        Create nodes of a certain type.
+        LabelMaker nodes of a certain type.
 
         Args:
             node_t: The type of the node.
@@ -257,7 +258,7 @@ class PandasAdapter(base.Adapter):
 
     def make_edge(self, edge_t, id_target, id_source, properties):
         """
-        Create edges of a certain type.
+        LabelMaker edges of a certain type.
 
         Args:
             edge_t: The type of the edge.
@@ -297,7 +298,7 @@ class PandasAdapter(base.Adapter):
             logger.debug(f"Process row {i}...")
             local_rows += 1
             # There can be only one subject, so transformers yielding multiple IDs cannot be used.
-            logger.debug("\tCreate subject node:")
+            logger.debug("\tLabelMaker subject node:")
             subject_generator_list = list(self.subject_transformer(row, i))
             if (len(subject_generator_list) > 1):
                 local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. "
@@ -324,7 +325,7 @@ class PandasAdapter(base.Adapter):
                     local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
                                                    indent=2, exception = exceptions.DeclarationError))
 
-                # Loop over list of transformer instances and create corresponding nodes and edges.
+                # Loop over list of transformer instances and label_maker corresponding nodes and edges.
                 # FIXME the transformer variable here shadows the transformer module.
                 for j,transformer in enumerate(self.transformers):
                     local_transformations += 1
@@ -345,7 +346,7 @@ class PandasAdapter(base.Adapter):
                                                                                          i, target_edge, target_node, node=True)))
 
                             # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                            # list to find the transformer instance mapping to the correct type, and then create new
+                            # list to find the transformer instance mapping to the correct type, and then label_maker new
                             # subject id.
 
                             # FIXME add hook functions to be overloaded.
@@ -526,7 +527,7 @@ class Declare(errormanager.ErrorManager):
 
     def make_node_class(self, name, properties={}, base=base.Node):
         """
-        Create a node class with the given name and properties.
+        LabelMaker a node class with the given name and properties.
 
         Args:
             name: The name of the node class.
@@ -560,7 +561,7 @@ class Declare(errormanager.ErrorManager):
 
     def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge, ):
         """
-        Create an edge class with the given name, source type, target type, and properties.
+        LabelMaker an edge class with the given name, source type, target type, and properties.
 
         Args:
             name: The name of the edge class.
@@ -614,9 +615,9 @@ class Declare(errormanager.ErrorManager):
         return t
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
-                               properties=None, columns=None, output_validator=None, raise_errors = True, **kwargs):
+                               properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):
         """
-        Create a transformer class with the given parameters.
+        LabelMaker a transformer class with the given parameters.
 
         Args:
             multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
@@ -644,6 +645,7 @@ class Declare(errormanager.ErrorManager):
                             output_validator=output_validator,
                             multi_type_dict = multi_type_dictionary,
                             branching_properties = branching_properties,
+                            label_maker = label_maker,
                             raise_errors = raise_errors,
                             **kwargs)
         else:
@@ -744,7 +746,7 @@ class YamlParser(Declare):
                 return pconfig[k]
         return None
 
-    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, type, columns):
+    def _extract_metadata(self, k_metadata_column, metadata_list, metadata, types, columns):
         """
         Extract metadata and update the metadata dictionary.
 
@@ -752,32 +754,54 @@ class YamlParser(Declare):
             k_metadata_column (list): List of keys to be used for adding source column names.
             metadata_list (list): List of metadata items to be added.
             metadata (dict): The metadata dictionary to be updated.
-            type (str): The type of the node or edge.
+            types (str): The type of the node or edge.
             columns (list): List of columns to be added to the metadata.
 
         Returns:
             dict: The updated metadata dictionary.
         """
-        if metadata_list and type:
-                metadata.setdefault(type, {})
+        # TODO: Redundant code with the _extract_metadata function.
+        if metadata_list and types:
+            if type(types) != set:
+                t = types
+                metadata.setdefault(t, {})
                 for item in metadata_list:
-                    metadata[type].update(item)
+                    metadata[t].update(item)
                 for key in k_metadata_column:
-                    if key in metadata[type]:
+                    if key in metadata[t]:
                         # Use the value of k_metadata_column as the key.
-                        key_name = metadata[type][key]
+                        key_name = metadata[t][key]
                         # Remove the k_metadata_column key from the metadata dictionary.
-                        if key_name in metadata[type]:
-                            msg = f"The key you used for adding source column names: `{key_name}` to node: `{type}` already exists in the metadata dictionary."
+                        if key_name in metadata[t]:
+                            msg = f"The key you used for adding source column names: `{key_name}` to node: `{t}` already exists in the metadata dictionary."
                             # FIXME is it an error or a warning?
                             # self.error(msg)
                             logger.warning(msg)
-                        del metadata[type][key]
+                        del metadata[t][key]
                         if columns:
                             # TODO make the separator a parameter.
-                            metadata[type][key_name] = ", ".join(columns)
+                            metadata[t][key_name] = ", ".join(columns)
+            else:
+                for t in types:
+                    metadata.setdefault(t, {})
+                    for item in metadata_list:
+                        metadata[t].update(item)
+                    for key in k_metadata_column:
+                        if key in metadata[t]:
+                            # Use the value of k_metadata_column as the key.
+                            key_name = metadata[t][key]
+                            # Remove the k_metadata_column key from the metadata dictionary.
+                            if key_name in metadata[t]:
+                                msg = f"The key you used for adding source column names: `{key_name}` to node: `{t}` already exists in the metadata dictionary."
+                                # FIXME is it an error or a warning?
+                                # self.error(msg)
+                                logger.warning(msg)
+                            del metadata[t][key]
+                            if columns:
+                                # TODO make the separator a parameter.
+                                metadata[t][key_name] = ", ".join(columns)
 
-                return metadata
+            return metadata
         else:
             return None
 
@@ -802,7 +826,7 @@ class YamlParser(Declare):
       
     def _make_output_validator(self, output_validation_rules = None):
         """
-        Create a validator for the output of a transformer.
+        LabelMaker a validator for the output of a transformer.
 
         Args:
             output_validation_rules: The output validation rules for the transformer extracted from yaml file.
@@ -820,93 +844,52 @@ class YamlParser(Declare):
 
         return output_validator
 
-
-    def __call__(self):
+    def parse_properties(self, properties_of, possible_subject_types, transformers_list):
         """
-        Parse the configuration and return the subject transformer and transformers.
-
-        Returns:
-            tuple: The subject transformer and a list of transformers.
+        Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
         """
-        logger.debug(f"Parse mapping:")
-
-        properties_of = {}
-        transformers = []
-        metadata = {}
-
-        # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
-        k_row = ["row", "entry", "line", "subject", "source"]
-        k_subject_type = ["to_subject"]
-        k_columns = ["columns", "fields", "column", "match_column"]
-        k_target = ["to_target", "to_object", "to_node"]
-        k_subject = ["from_subject", "from_source"]
-        k_edge = ["via_edge", "via_relation", "via_predicate"]
-        k_properties = ["to_properties", "to_property"]
-        k_prop_to_object = ["for_objects", "for_object"]
-        k_transformer = ["transformers"]
-        k_metadata = ["metadata"]
-        k_metadata_column = ["add_source_column_names_as"]
-        k_validate_output = ["validate_output"]
-        k_final_type = ["final_type", "final_object", "final_node", "final_subject"]
-
-        transformers_list = self.get(k_transformer)
-
-        # First, parse subject's type
-        logger.debug(f"Declare subject type...")
-        subject_dict = self.get(k_row)
-        subject_transformer_class = list(subject_dict.keys())[0]
-        subject_type = self.get(k_subject_type, subject_dict[subject_transformer_class])
-        subject_kwargs = self.get_not(k_subject_type + k_columns, subject_dict[subject_transformer_class])
-        subject_columns = self.get(k_columns, subject_dict[subject_transformer_class])
-        s_final_type = self.get(k_final_type, subject_dict[subject_transformer_class])
-        if subject_columns != None and type(subject_columns) != list:
-            logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
-            assert(type(subject_columns) == str)
-            subject_columns = [subject_columns]
-        logger.debug(f"\tDeclare subject of type: '{subject_type}', subject transformer: '{subject_transformer_class}', "
-                      f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
-
-        # Parse the validation rules for the output of the subject transformer.
-        s_output_validation_rules = self.get(k_validate_output, subject_dict[subject_transformer_class])
-        s_output_validator = self._make_output_validator(s_output_validation_rules)
-
-        # Then, parse property mappings.
         logger.debug(f"Parse properties...")
-        for n_transformer,transformer_types in enumerate(transformers_list):
+        for n_transformer, transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
                     self.error(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
                                f" did you forget an indentation?", "transformers",
-                               n_transformer, exception = exceptions.MissingFieldError)
+                               n_transformer, exception=exceptions.MissingFieldError)
 
-                if any(field in field_dict for field in k_properties):
-                    object_types = self.get(k_prop_to_object, pconfig=field_dict)
-                    property_names = self.get(k_properties, pconfig=field_dict)
+                if any(field in field_dict for field in self.k_properties):
+                    object_types = self.get(self.k_prop_to_object, pconfig=field_dict)
+                    property_names = self.get(self.k_properties, pconfig=field_dict)
                     if type(property_names) != list:
                         logger.debug(f"\tDeclared singular property")
-                        assert(type(property_names) == str)
+                        assert (type(property_names) == str)
                         property_names = [property_names]
-                    if not object_types:
-                        logger.info(f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject `{subject_type}`")
-                        object_types = [subject_type]
+                    if not object_types:  # FIXME: Creates errors with branching subject types and subject final type features.
+                        logger.info(
+                            f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject(s) `{possible_subject_types}`")
+                        if type(possible_subject_types) == set and len(possible_subject_types) == 1:
+                            object_types = list(possible_subject_types)[0]
+                        if type(possible_subject_types) == set and len(possible_subject_types) > 1:
+                            object_types = list(possible_subject_types)
                     if type(object_types) != list:
                         logger.debug(f"\tDeclared singular for_object: `{object_types}`")
-                        assert(type(object_types) == str)
+                        assert (type(object_types) == str)
                         object_types = [object_types]
 
-                    column_names = self.get(k_columns, pconfig=field_dict)
-                    if  column_names != None and type(column_names) != list:
+                    column_names = self.get(self.k_columns, pconfig=field_dict)
+                    if column_names != None and type(column_names) != list:
                         logger.debug(f"\tDeclared singular column `{column_names}`")
-                        assert(type(column_names) == str)
+                        assert (type(column_names) == str)
                         column_names = [column_names]
-                    gen_data = self.get_not(k_target + k_edge + k_columns, pconfig=field_dict)
+                    gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns, pconfig=field_dict)
 
                     # Parse the validation rules for the output of the property transformer.
-                    p_output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                    p_output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
                     p_output_validator = self._make_output_validator(p_output_validation_rules)
 
                     prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
-                                                                   output_validator=p_output_validator, **gen_data)
+                                                                   output_validator=p_output_validator,
+                                                                   label_maker=make_labels.SimpleLabelMaker(
+                                                                       raise_errors=self.raise_errors), **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -914,66 +897,128 @@ class YamlParser(Declare):
                             properties_of[object_type].setdefault(prop_transformer, property_name)
                         logger.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
+        return properties_of
 
-        metadata_list = self.get(k_metadata)
+    def parse_subject(self, properties_of, transformers_list, metadata_list, metadata):
+        """
+        Parse the subject transformer and its properties from the YAML mapping.
+        """
 
-        logger.debug(f"Parse subject transformer...")
-        source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+        logger.debug(f"Declare subject type...")
+        subject_transformer_dict = self.get(self.k_row)
+        subject_transformer_class = list(subject_transformer_dict.keys())[0]
+        subject_kwargs = self.get_not(self.k_subject_type + self.k_columns, subject_transformer_dict[
+            subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
+        subject_columns = self.get(self.k_columns, subject_transformer_dict[subject_transformer_class])
+        subject_final_type = self.get(self.k_final_type, subject_transformer_dict[subject_transformer_class])
+        if subject_columns != None and type(subject_columns) != list:
+            logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
+            assert (type(subject_columns) == str)
+            subject_columns = [subject_columns]
+
+        # Parse the validation rules for the output of the subject transformer.
+        subject_output_validation_rules = self.get(self.k_validate_output,
+                                                   subject_transformer_dict[subject_transformer_class])
+        subject_output_validator = self._make_output_validator(subject_output_validation_rules)
 
         subject_multi_type_dict = {}
+        # TODO: assert subject_transformer_dict contains only ONE transformer.
 
-        # FIXME make single function because of duplicated code?
-        if "match" in subject_dict.keys():
-            for entry in subject_dict['match']:
-                for k, v in entry.items():
+        subject_transformer_params = subject_transformer_dict[subject_transformer_class]
+
+        possible_subject_types = set()
+        subject_branching = False
+
+        if "match" in subject_transformer_params:
+            for matching_pattern in subject_transformer_params['match']:
+                subject_branching = True
+                for k, v in matching_pattern.items():
                     if isinstance(v, dict):
                         key = k
                         subject_multi_type_dict[key] = {k1: v1 for k1, v1 in v.items()}
-                        alt_target = self.get(k_target, v)
-                        alt_target_t = self.make_node_class(alt_target,
-                                                            properties_of.get(alt_target, {}))
-                        alt_edge = self.get(k_edge, v)
-                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
-                                                          properties_of.get(alt_edge, {}))
+                        alt_subject = self.get(self.k_subject, v)
+                        alt_subject_t = self.make_node_class(alt_subject,
+                                                             properties_of.get(alt_subject, {})) #FIXME does not do anything since possible_subject_types not all declared.
+
+                        possible_subject_types.add(alt_subject)
+
                         subject_multi_type_dict[key] = {
-                            'to_object': alt_target_t,
-                            'via_relation': alt_edge_t
+                            'to_object': alt_subject_t,
+                            # Via relation is always None, since there is never an edge declared for the subject type.
+                            'via_relation': None
                         }
+                source_t = None # Source_t is used to declare the subject type, but it is not used in the case of a branching subject type.
+                # Here we declare None only for returning purposes.
+                logger.debug(f"Parse subject transformer...")
+
+                if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
+                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
+                                                                            match_type_from_column=subject_kwargs['match_type_from_column'])
+                else:
+                    s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+
         # "None" key is used to return any type of string, in case no branching is needed.
         else:
+            subject_type = self.get(self.k_subject_type, subject_transformer_dict[subject_transformer_class])
+            source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
             subject_multi_type_dict = {'None': {
                 'to_object': source_t,
                 'via_relation': None
             }}
 
+            possible_subject_types.add(source_t.__name__)
+
+            s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
+
+        properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
+
         subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
                                                           multi_type_dictionary=subject_multi_type_dict,
-                                                          properties=properties_of.get(subject_type, {}),
-                                                          columns=subject_columns, output_validator=s_output_validator,
-                                                          raise_errors = self.raise_errors,
+                                                          branching_properties=properties_of if subject_branching else None,
+                                                          properties=properties_of.get(subject_type,
+                                                                                       {}) if not subject_branching else None,
+                                                          columns=subject_columns,
+                                                          output_validator=subject_output_validator,
+                                                          label_maker=s_label_maker, raise_errors=self.raise_errors,
                                                           **subject_kwargs)
 
-        if s_final_type:
-            s_final_type_class = self.make_node_class(subject_transformer.final_type, properties_of.get(subject_transformer.final_type, {}))
+        if subject_final_type:
+            s_final_type_class = self.make_node_class(subject_transformer.final_type,
+                                                      properties_of.get(subject_transformer.final_type, {}))
             subject_transformer.final_type = s_final_type_class
+            possible_subject_types.add(s_final_type_class.__name__)
 
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
-        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, subject_type, subject_columns)
+        logger.debug(
+            f"\tDeclare subject of possible types: '{possible_subject_types}', subject transformer: '{subject_transformer_class}', "
+            f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
+
+        extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, possible_subject_types, subject_columns)
         if extracted_metadata:
             metadata.update(extracted_metadata)
 
+        return possible_subject_types, subject_transformer, source_t, subject_columns
 
-        # Then, declare types.
+
+    def parse_targets(self, transformers_list, properties_of, source_t, metadata_list, metadata):
+        """
+        Parse the target transformers and their properties from the YAML mapping.
+        """
+
+        transformers = []
+        possible_target_types = set()
+        possible_edge_types = set()
+
         logger.debug(f"Declare types...")
         for n_transformer,transformer_types in enumerate(transformers_list):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
                     continue
-                elif any(field in field_dict for field in k_properties):
-                    if any(field in field_dict for field in k_target):
-                        prop = self.get(k_properties, field_dict)
-                        target = self.get(k_target, field_dict)
+                elif any(field in field_dict for field in self.k_properties):
+                    if any(field in field_dict for field in self.k_target):
+                        prop = self.get(self.k_properties, field_dict)
+                        target = self.get(self.k_target, field_dict)
                         self.error(f"ERROR in transformer '{transformer_type}': one cannot "
                                       f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
                                    n_transformer, exception = exceptions.CardinalityError)
@@ -982,31 +1027,31 @@ class YamlParser(Declare):
                     if type(field_dict) != dict:
                         self.error(str(field_dict)+" is not a dictionary", exception = exceptions.ParsingDeclarationsError)
 
-                    columns = self.get(k_columns, pconfig=field_dict)
+                    columns = self.get(self.k_columns, pconfig=field_dict)
                     if type(columns) != list:
                         logger.debug(f"\tDeclared singular column")
                         assert(type(columns) == str)
                         columns = [columns]
 
-                    target = self.get(k_target, pconfig=field_dict)
+                    target = self.get(self.k_target, pconfig=field_dict)
                     if type(target) == list:
                         self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
                                    section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
-                    subject = self.get(k_subject, pconfig=field_dict)
+                    subject = self.get(self.k_subject, pconfig=field_dict)
                     if type(subject) == list:
                         self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
                                    section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
-                    edge = self.get(k_edge, pconfig=field_dict)
+                    edge = self.get(self.k_edge, pconfig=field_dict)
                     if type(edge) == list:
                         self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
                                    section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
 
-                    gen_data = self.get_not(k_target + k_edge + k_columns + k_final_type, pconfig=field_dict)
+                    gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type, pconfig=field_dict)
 
                     # Extract the final type if defined in the mapping.
-                    final_type = self.get(k_final_type, pconfig=field_dict)
+                    final_type = self.get(self.k_final_type, pconfig=field_dict)
 
                     # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
                     # from_subject` is used in the transformer class to refer to the source node type.
@@ -1022,12 +1067,34 @@ class YamlParser(Declare):
                                     if isinstance(v, dict):
                                         key = k
                                         multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
-                                        alt_target = self.get(k_target, v)
+                                        alt_target = self.get(self.k_target, v)
                                         alt_target_t = self.make_node_class(alt_target,
                                                                             properties_of.get(alt_target, {}))
-                                        alt_edge = self.get(k_edge, v)
-                                        alt_edge_t = self.make_edge_class(alt_edge, source_t, alt_target_t,
+
+                                        possible_target_types.add(alt_target)
+
+                                        alt_edge = self.get(self.k_edge, v)
+                                        alt_edge_t = self.make_edge_class(alt_edge, None, alt_target_t,
                                                                           properties_of.get(alt_edge, {}))
+
+                                        possible_edge_types.add(alt_edge)
+
+                                        # Update extracted metadata here, because each alt target and edge type must be declared
+                                        # in the metadata dictionary.The same does not apply if the `final_type` keyword, since
+                                        # is used, since in that case, the metadata is added before the type is changed.
+
+                                        extracted_alt_target_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                                    metadata_list, metadata, alt_target,
+                                                                                    columns)
+                                        if extracted_alt_target_metadata:
+                                            metadata.update(extracted_alt_target_metadata)
+
+                                        extracted_alt_edge_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                                        metadata_list, metadata, alt_edge,
+                                                                                        None)
+                                        if extracted_alt_edge_metadata:
+                                                metadata.update(extracted_alt_edge_metadata)
+
                                         multi_type_dictionary[key] = {
                                             'to_object': alt_target_t,
                                             'via_relation': alt_edge_t
@@ -1035,20 +1102,24 @@ class YamlParser(Declare):
 
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
-                    output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                    output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
                     output_validator = self._make_output_validator(output_validation_rules)
 
                     if target and edge:
                         logger.debug(f"\tDeclare node .target for `{target}`...")
                         target_t = self.make_node_class(target, properties_of.get(target, {}))
+                        possible_target_types.add(target)
                         logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
                         if subject:
                             logger.debug(f"\tDeclare subject for `{subject}`...")
                             subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
+                            possible_target_types.add(subject_t.__name__)
                             edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
+                            possible_edge_types.add(edge_t.__name__)
                         else:
                             logger.debug(f"\tDeclare edge for `{edge}`...")
                             edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+                            possible_edge_types.add(edge_t.__name__)
 
                         # "None" key is used to return any type of string, in case no branching is needed.
                         multi_type_dictionary['None'] = {
@@ -1058,20 +1129,24 @@ class YamlParser(Declare):
 
                         # Parse the validation rules for the output of the transformer. Each transformer gets its own
                         # instance of the OutputValidator with (at least) the default output validation rules.
-                        output_validation_rules = self.get(k_validate_output, pconfig=field_dict)
+                        output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
                         output_validator = self._make_output_validator(output_validation_rules)
 
                         logger.debug(f"\tDeclare transformer `{transformer_type}`...")
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                    multi_type_dictionary=multi_type_dictionary,
-                                                    properties=properties_of.get(target, {}),
-                                                    columns=columns,
-                                                    output_validator=output_validator,
-                                                    raise_errors=self.raise_errors, **gen_data)
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         properties=properties_of.get(target, {}),
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         label_maker=make_labels.SimpleLabelMaker(
+                                                                             raise_errors=self.raise_errors),
+                                                                         raise_errors=self.raise_errors, **gen_data)
+
                         if final_type:
-                            # If there is a final type defined, create a class and assign it to the transformer.
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                             target_transformer.final_type = final_type_class
+                            possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
                         logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
@@ -1080,31 +1155,97 @@ class YamlParser(Declare):
                                    indent=2, exception = exceptions.MissingDataError)
 
 
-                    elif multi_type_dictionary and not target and not edge:
+                    elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
                         target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                        multi_type_dictionary=multi_type_dictionary,
-                                                                        branching_properties=properties_of,
-                                                                        columns=columns,
-                                                                        output_validator=output_validator,
-                                                                        raise_errors = self.raise_errors, **gen_data)
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         branching_properties=properties_of,
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         label_maker=make_labels.MultiTypeOnColumnLabelMaker(
+                                                                             raise_errors=self.raise_errors, match_type_from_column=gen_data["match_type_from_column"]),
+                                                                         raise_errors=self.raise_errors, **gen_data)
+
                         if final_type:
-                            # If there is a final type defined, create a class and assign it to the transformer.
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
                             final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                             target_transformer.final_type = final_type_class
+                            possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
 
-                    extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, target, columns)
+                    elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
+                        target_transformer = self.make_transformer_class(transformer_type=transformer_type,
+                                                                         multi_type_dictionary=multi_type_dictionary,
+                                                                         branching_properties=properties_of,
+                                                                         columns=columns,
+                                                                         output_validator=output_validator,
+                                                                         label_maker=make_labels.MultiTypeLabelMaker(
+                                                                             raise_errors=self.raise_errors),
+                                                                         raise_errors=self.raise_errors, **gen_data)
+
+                        if final_type:
+                            # If there is a final type defined, label_maker a class and assign it to the transformer.
+                            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+                            target_transformer.final_type = final_type_class
+                            possible_target_types.add(final_type_class.__name__)
+                        transformers.append(target_transformer)
+
+                    # Declare the metadata for the target and edge types.
+
+                    extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
                         metadata.update(extracted_metadata)
 
                     if edge:
-                        extracted_metadata = self._extract_metadata(k_metadata_column, metadata_list, metadata, edge, None)
+                        extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, edge, None)
                         if extracted_metadata:
                             metadata.update(extracted_metadata)
 
+        return transformers, possible_target_types, possible_edge_types
+
+
+    def __call__(self):
+        """
+        Parse the configuration and return the subject transformer and transformers.
+
+        Returns:
+            tuple: The subject transformer and a list of transformers.
+        """
+        logger.debug(f"Parse mapping:")
+
+        properties_of = {}
+        metadata = {}
+
+        # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
+        self.k_row = ["row", "entry", "line", "subject", "source"]
+        self.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column"]
+        self.k_columns = ["columns", "fields", "column", "match_column", "id_from_column"]
+        self.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
+        self.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
+        self.k_edge = ["via_edge", "via_relation", "via_predicate"]
+        self.k_properties = ["to_properties", "to_property"]
+        self.k_prop_to_object = ["for_objects", "for_object"]
+        self.k_transformer = ["transformers"]
+        self.k_metadata = ["metadata"]
+        self.k_metadata_column = ["add_source_column_names_as"]
+        self.k_validate_output = ["validate_output"]
+        self.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
+
+        # Extract transformer list and metadata list from the config.
+        transformers_list = self.get(self.k_transformer)
+        metadata_list = self.get(self.k_metadata)
+
+        # Parse subject type, metadata for subject, and properties for both subject and target types (parse_subject calls parse_properties).
+        possible_subject_types, subject_transformer, source_t, subject_columns = self.parse_subject(properties_of, transformers_list, metadata_list, metadata)
+
+        # Parse the target types and target metadata.
+        transformers, possible_target_types, possible_edge_types = self.parse_targets(transformers_list, properties_of, source_t, metadata_list, metadata)
+
         validator = self._get_input_validation_rules()
 
-        logger.debug(f"source class: {source_t}")
+        if source_t:
+            logger.debug(f"source class: {source_t}")
+        elif possible_edge_types:
+            logger.debug(f"possible_source_types: {possible_subject_types}")
         logger.debug(f"properties_of: {properties_of}")
         logger.debug(f"transformers: {transformers}")
         logger.debug(f"metadata: {metadata}")

@@ -25,11 +25,13 @@ from . import fusion
 from . import exceptions
 from . import owl_to_biocypher
 from . import biocypher_to_owl
+from . import make_value
+from . import make_labels
 
 logger = logging.getLogger("ontoweaver")
 
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate',
-           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'owl_to_biocypher', 'biocypher_to_owl']
+           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'owl_to_biocypher', 'biocypher_to_owl', 'make_value', "make_labels"]
 
 def read_file(filename, **kwargs):
     """Read a file with Pandas, using its extension to guess its format.

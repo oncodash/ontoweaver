@@ -1,6 +1,3 @@
-Overview
---------
-
 OntoWeaver is a tool for importing table data in Semantic Knowledge
 Graphs (SKG) databases.
 

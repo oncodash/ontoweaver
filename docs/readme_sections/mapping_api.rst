@@ -422,6 +422,72 @@ subject type ``line`` with different edge types. The cell values
 values ``sensitivity`` and ``productivity`` would be mapped to the node
 type ``noun`` via the edge type ``line_is_noun``.
 
+Type branching based on value from another column
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In some cases the type of the node or edge you would like to assign to a value extracted from the current column depends on the
+value extracted from another column. For example, lets look at the following table:
+
++-----------+--------------+----------+-------+
+| furniture | localisation | will_sit?| name  |
++===========+==============+==========+=======+
+| chair     | kitchen      | n        | Peter |
++-----------+--------------+----------+-------+
+| sofa      | bathroom     | y        | Paul  |
++-----------+--------------+----------+-------+
+| fridge    | kitchen      | n        | Mary  |
++-----------+--------------+----------+-------+
+
+In this example we have a table with furniture, their localisation, whether they will be sat on or not, and the name of the person who owns them.
+
+The mapping file for this table could look like this:
+
+.. code:: yaml
+
+    row:
+       map:
+          id_from_column: furniture
+          match_type_from_column: localisation
+          match:
+            - kitchen:
+                to_subject: kitchen_furniture
+            - ^(?!kitchen$).*:
+                to_subject: rest_of_house_furniture
+    transformers:
+        - map:
+            id_from_column: name
+            match_type_from_column: will_sit?
+            match:
+                - y:
+                    to_object: person
+                    via_relation: will_sit
+                - n:
+                    to_object: person
+                    via_relation: will_not_sit
+
+With this mapping, we want to map the column ``furniture`` to the node types ``kitchen_furniture`` and
+``rest_of_house_furniture`` based on their localisation. The localisation of each piece of furniture is extracted from
+the column ``localisation``. The mapping uses the ``match`` clause to apply different type mappings based on the
+localisation of the furniture, similarly as it was done in the previous example. This time, however, the ``match`` clause
+needs to look at the values of another column — ``localisation``, to determine the type of the node to be created.
+In this case, we use the keyword ``match_type_from_column`` to indicate that the type of the node to be created depends
+on the value of the ``localisation`` column. The ``id_from_column`` keyword indicates that the identifier of the node to be
+created should be taken from the column ``furniture``.
+
+Next, we want to map the column ``name`` to the node type ``person``, and define the edge type based on whether the
+furniture will be "sat on" or not. We extract the name of the person from the column ``name``, using the ``id_form_column``
+keyword and the edge type will be defined based on the value extracted from the column ``will_sit?``.
+The mapping uses the ``match`` clause to apply different type mappings based on the value of the column
+``will_sit?``, defined via the ``match_type_from_column`` keyword. The ``match`` clause defines two regex rules:
+``y`` which matches the value ``y`` and maps the node type ``person`` via the edge type ``will_sit``, and ``n`` which
+matches the value ``n`` and maps the node type ``person`` via the edge type ``will_not_sit``.
+
+This mapping would result in three nodes of type ``person``: ``Peter``, ``Paul``, and ``Mary``, and two nodes of type
+``kitchen_furniture``: ``chair`` and ``fridge``, and one node of type ``rest_of_house_furniture``: ``sofa``. The
+nodes of type ``person`` would be connected to the nodes of type ``kitchen_furniture`` via an edge of type
+``will_not_sit``, and to the node of type ``rest_of_house_furniture`` via an edge of type ``will_sit``.
+
+
 User-defined Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -494,8 +560,9 @@ Here is the list of available synonyms:
 
 - ``subject`` = ``row`` = ``entry`` = ``line`` = ``source``
 - ``column`` = ``columns`` = ``fields``
-- ``to_object`` = ``to_target`` = ``to_node``
+- ``to_object`` = ``to_target`` = ``to_node`` = ``to_type`` = ``to_label``
 - ``from_subject`` = ``from_source``
 - ``via_relation`` = ``via_edge`` = ``via_predicate``
 - ``to_property`` = ``to_properties``
 - ``for_object`` = ``for_objects``
+- ``final_type`` = ``final_object`` = ``final_label`` = ``final_node`` = ``final_target`` = ``final_subject``

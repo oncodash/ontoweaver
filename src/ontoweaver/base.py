@@ -7,11 +7,13 @@ from typing import TypeAlias
 from typing import Optional
 import pandas as pd
 import pandera as pa
+from jinja2.compiler import has_safe_repr
 
 from . import errormanager
 from . import validate
 from . import serialize
 from . import exceptions
+from . import make_value
 
 logger = logging.getLogger("ontoweaver")
 
@@ -414,14 +416,16 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
+    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
         :param properties_of: the properties of each node type.
+        :param value_maker: the ValueMaker object used for the logic of cell value selection for each transformer. Default is None.
+        :param label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
         :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
         :param columns: the columns to use in the mapping.
-        :param output_validator: the OutputValidator object used for validating transformer output. Default is None, however,
+        :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
         :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
         the tabular module.
@@ -430,6 +434,8 @@ class Transformer(errormanager.ErrorManager):
         super().__init__(raise_errors)
 
         self.properties_of = properties_of
+        self.value_maker = value_maker
+        self.label_maker = label_maker
         self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator
@@ -437,6 +443,7 @@ class Transformer(errormanager.ErrorManager):
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
         self.multi_type_dict = multi_type_dict
+        self.kwargs = kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -481,7 +488,7 @@ class Transformer(errormanager.ErrorManager):
         target_name = ""
         edge_name = ""
 
-        if self.multi_type_dict:
+        if hasattr(self, "multi_type_dict") and self.multi_type_dict is not None:
             for key, value in self.multi_type_dict.items():
                 if value['to_object'] and value['via_relation']:
                     target_name = value['to_object']
@@ -535,73 +542,39 @@ class Transformer(errormanager.ErrorManager):
 
         return representation
 
-    def create(self, item):
-        """"
-        Function used to validate the output of the transformer and return the value with the correct type and relation.
-        
-        Args:
-                       
-            item (any): The item to be validated and transformed.
-                
-        Returns:
-            
-            tuple: A tuple containing the validated item, the relation type, and the target object type.
-                   Returns (None, None, None) if validation fails.
-        """""
-
+    def validate(self, res):
+        """
+        Validate the output of the transformer, using the output_validator. of the transformer instance.
+        """
         try:
-            res = str(item)
             if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                return self.branch(self.multi_type_dict, res)
+                return True
             else:
-                return None, None, None
+                return False
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
 
-    def branch(self, multi_type_dict, item):
-        """"
-        Branch on the correct edge and node type based on the regex input matching the item returned by the transformer.
+    def create(self, returned_value, row):
+        """
+        Create the output of the transformer, using the label_maker of the transformer instance.
 
-        Parameters:
-            
-            multi_type_dict (dict): A dictionary holding regex patterns for node and edge type branching based on cell values,
-            as well as the target object type.
-            item (str): The validated item to be branched on.
-    
         Returns:
-            
-            tuple: A tuple containing the item, the relation type, and the target object type. In case the multi_type_dict
-            dictionary is not passed - returns the item, None, None.
-            
-        
-        """""
+            Extracted cell value (can be node ID, property value, edge ID), edge type and target node type.
+        """
+        result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
+        if result_object.target_node_type:
+            self.target_type = result_object.target_node_type.__name__
+        if result_object.target_element_properties is not None:
+            self.properties_of = result_object.target_element_properties
+        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type
 
-        if multi_type_dict:
-            if "None" in multi_type_dict.keys():
-                # No branching needed. The transformer is not a branching transformer.
-                self.target_type = multi_type_dict["None"]["to_object"].__name__
-                return item, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"]
-            for key, types in multi_type_dict.items():
-                # Branching is performed on the regex patterns.
-                try:
-                    if re.search(key, item):
-                        self.target_type = types["to_object"].__name__
-                        if self.branching_properties:
-                            self.properties_of = self.branching_properties.get(types["to_object"].__name__, {})
-                        else:
-                            self.properties_of = {}
-                        return item, types["via_relation"], types["to_object"]
-                except re.error:
-                    raise ValueError(f"Branching key {key} is not a string or regex.")
-        else:
-            return item, None, None
 
 class All:
     """Gathers lists of subclasses of Element and their fields
     existing in a given module.
 
-    Is generally used to create an `all` variable in a module:
+    Is generally used to label_maker an `all` variable in a module:
     .. code-block:: python
 
         all = base.All(sys.modules[__name__])
