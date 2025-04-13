@@ -36,6 +36,6 @@ jobs:
           poetry install
 
       - name: Run tests
-        run: poetry run pytest
+        run: poetry run pytest -v
         env:
           SHELL: /bin/bash
