@@ -6,3 +6,4 @@ biocypher
 owlready2
 pooch
 numpy
+pandera
