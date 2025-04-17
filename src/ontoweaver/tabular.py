@@ -128,6 +128,7 @@ class PandasAdapter(base.Adapter):
         # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
 
+    # FIXME not used, maybe will come in handy?
     def source_type(self, row):
         """
         Accessor to the row type actually used by `run`.
@@ -219,7 +220,6 @@ class PandasAdapter(base.Adapter):
         properties = {}
 
         for prop_transformer, property_name in property_dict.items():
-            self.property_transformers.append(prop_transformer)
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
@@ -318,6 +318,8 @@ class PandasAdapter(base.Adapter):
                 if source_node_id:
                     logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
                     local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
+                                                      # FIXME: Should we use the meta-way of accessing node properties as well?
+                                                      # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
                                                       properties=self.properties(self.subject_transformer.properties_of,
                                                                                  row, i, subject_edge, subject_node,
                                                                                  node=True)))
@@ -342,6 +344,8 @@ class PandasAdapter(base.Adapter):
                             target_node_id = self.make_id(target_node.__name__, target_id)
                             logger.debug(f"\t\tMake node {target_node_id}")
                             local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
+                                                              # FIXME: Should we use the meta-way of accessing node properties as well?
+                                                              # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
                                                               properties=self.properties(transformer.properties_of, row,
                                                                                          i, target_edge, target_node, node=True)))
 
@@ -371,7 +375,7 @@ class PandasAdapter(base.Adapter):
                                                 local_edges.append(
                                                     self.make_edge(edge_t=target_edge, id_source=subject_node_id,
                                                                    id_target=target_node_id,
-                                                                   properties=self.properties(transformer.properties_of,
+                                                                   properties=self.properties(target_edge.fields(),
                                                                                               row, i, s_edge, s_node)))
 
                                             else:
@@ -559,7 +563,7 @@ class Declare(errormanager.ErrorManager):
         setattr(self.module, t.__name__, t)
         return t
 
-    def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge, ):
+    def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge):
         """
         LabelMaker an edge class with the given name, source type, target type, and properties.
 
@@ -573,26 +577,19 @@ class Declare(errormanager.ErrorManager):
         Returns:
             The created edge class.
         """
-        # If type already exists, return it.
+        # If type already exists, check if the fields are the same.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
-            logger.info(
-                f"\t\tEdge class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-            for t, p in properties.items():
-                if p not in cls.fields():
-                    logger.warning(f"\t\tProperty `{p}` not found in fields.")
+            cls_fields = cls.fields()
 
-            tt_list = cls.target_type()
+            # Compare the properties with the existing class fields
+            if properties == cls_fields:
+                logger.info(
+                    f"\t\tEdge class `{name}` (prop: `{cls_fields}`) already exists with the same properties, I will not create another one.")
+                return cls
 
-            # FIXME: should we keep target_type approach?
-            tt_list.append(target_t)
-
-            def tt():
-                return tt_list
-
-            cls.target_type = staticmethod(tt)
-
-            return cls
+            logger.warning(f"\t\tEdge class `{name}` already exists, but properties do not match.")
+            # If properties do not match, we proceed to create a new class with the new properties.
 
         def fields():
             return properties
