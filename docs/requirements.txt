@@ -6,3 +6,5 @@ biocypher
 owlready2
 pooch
 numpy
+pandera
+sphinx_rtd_theme
