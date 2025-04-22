@@ -546,7 +546,7 @@ class Transformer(errormanager.ErrorManager):
 
         else:
             #The transformer is a property transformer. We add the property name and value in the tabular.properties() function.
-            representation += (f"<Transformer:{type(self).__name__}() {','.join(self.columns)} =>")
+            representation += (f"<Transformer:{type(self).__name__}() {','.join(self.columns) if self.columns else ''} =>")
 
         return representation
 
