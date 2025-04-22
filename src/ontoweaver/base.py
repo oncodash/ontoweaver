@@ -457,6 +457,7 @@ class Transformer(errormanager.ErrorManager):
     def __call__(self, row, i):
         raise NotImplementedError
 
+    #FIXME: The functions below are never implemented.
     @abstract
     def nodes(self):
         raise NotImplementedError
@@ -543,7 +544,9 @@ class Transformer(errormanager.ErrorManager):
 
                 representation += (f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>")
 
-        # FIXME: The property transformer is not handled here, since the `multi_type_dict` attribute does not exist in the property transformer.
+        else:
+            #The transformer is a property transformer. We add the property name and value in the tabular.properties() function.
+            representation += (f"<Transformer:{type(self).__name__}() {','.join(self.columns)} =>")
 
         return representation
 
