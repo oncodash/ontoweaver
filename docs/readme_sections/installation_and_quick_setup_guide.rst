@@ -18,6 +18,11 @@ Poetry will create a virtual environment according to your configuration
 (either centrally or in the project folder). You can activate it by
 running ``poetry shell`` inside the project directory.
 
+If you are using Poetry version ``2.0.0`` or later, you can use ``poetry env activate`` instead of
+``poetry shell``. This command will output a line which you should copy and run to activate the environment.
+Alternatively, you may use the `poetry-plugin-shell <https://github.com/python-poetry/poetry-plugin-shell>`_
+plugin to enable the ``poetry shell`` command to work with Poetry ``2.0.0`` or later.
+
 Output Database
 ~~~~~~~~~~~~~~~
 
