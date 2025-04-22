@@ -208,7 +208,7 @@ class PandasAdapter(base.Adapter):
         If no properties are found, return an empty dictionary.
 
         Args:
-            properity_dict: Dictionary of property mappings.
+            property_dict: Dictionary of property mappings.
             row: The current row of the DataFrame.
             i: The index of the current row.
             edge_t: The type of the edge of the current transformer.
@@ -224,12 +224,12 @@ class PandasAdapter(base.Adapter):
             for property, none_node, none_edge in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
-                    logging.info(f"                 LabelMaker property `{property_name}` with value `{properties[property_name]}`.")
+                    logger.info(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
                 else:
                     self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
 
-        # If the metadata dictionary is not empty add the metadata to the property dictionary.
+        # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
             if node:
                 elem = node_t
