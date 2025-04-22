@@ -16,7 +16,7 @@ jsonargparse = "^4.38"
 xdg-base-dirs = "^6.0.2"
 pandera = { version = "^0.23.1", extras = ["io"] }
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 sphinx_rtd_theme = "^3.0.2"
 
