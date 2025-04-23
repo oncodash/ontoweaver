@@ -540,6 +540,8 @@ class Transformer(errormanager.ErrorManager):
 
                 representation += (f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>")
 
+        # FIXME: The property transformer is not handled here, since the `multi_type_dict` attribute does not exist in the property transformer.
+
         return representation
 
     def validate(self, res):
