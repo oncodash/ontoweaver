@@ -735,7 +735,7 @@ def test_2_databases():
     data_mapping = {f"tests/{directory_name2}/data.csv": f"tests/{directory_name2}/mapping.yaml",
                     f"tests/{directory_name1}/data.csv": f"tests/{directory_name1}/mapping.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", raise_errors=False)
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", validate_output=True, raise_errors=False)
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
     f_node_set = testing_functions.convert_to_set(nodes)
