@@ -157,3 +157,46 @@ class OutputValidator(Validator):
 
         # Update the validation rules
         self.validation_rules = pa.DataFrameSchema(merged_rules)
+
+class SimpleOutputValidator(Validator):
+
+    def __init__(self, validation_rules = None, raise_errors = True):
+        """Constructor for the SimpleValidator class. This class is used in case of absence of any validation rules outside
+        of checking for none-types and empty strings. The class is used to bypass the use of the Pandera package for validation,
+        which saves a lot of computational time when big datasets are used.
+
+        Args:
+            validation_rules: The schema used for validation.
+        """
+        super().__init__(validation_rules, raise_errors)
+
+    def __call__(self, val):
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if math.isnan(val) or val == float("nan"):
+                return False
+
+        elif str(val).lower() == "nan" or val == "":
+            return False
+
+        return True
+
+class SkipValidator(Validator):
+    """Class used for skipping validation. This class is used to skip validation for specific transformers.
+    We implement the SkipValidator class in order to keep the validation logic in the same place as the other validators,
+    and keep the code in base.py uniform for all validation options."""
+
+    def __init__(self, validation_rules = None, raise_errors = True):
+        """Constructor for the SkipValidator class.
+
+        Args:
+            validation_rules: The schema used for validation.
+        """
+        super().__init__(validation_rules, raise_errors)
+
+    def __call__(self, val):
+
+        logger.info(f"Transformer output validation skipped. This could result in some empty or `nan` nodes in your knowledge graph."
+                    f" To enable output validation set validate_output to True.")
+
+        return True
+

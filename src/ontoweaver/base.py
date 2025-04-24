@@ -14,6 +14,7 @@ from . import validate
 from . import serialize
 from . import exceptions
 from . import make_value
+from .validate import SkipValidator
 
 logger = logging.getLogger("ontoweaver")
 
@@ -416,18 +417,20 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None, output_validator: validate.OutputValidator() = None, multi_type_dict = None,  raise_errors = True, **kwargs):
+    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None,
+                 output_validator: validate.OutputValidator() = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
         Instantiate transformers.
 
         :param properties_of: the properties of each node type.
         :param value_maker: the ValueMaker object used for the logic of cell value selection for each transformer. Default is None.
         :param label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
-        :param branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
+        :param branching_properties: in case of branching on cell values, the dictionary holds the properties for each branch.
         :param columns: the columns to use in the mapping.
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
         :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
-        each transformer is instantiated with a default OutputValidator object, and additional user defined rules if needed in
+        :param raise_errors: whether to raise errors or not. Default is True.
+        each transformer is instantiated with a default OutputValidator object, and additional user-defined rules if needed in
         the tabular module.
 
         """
@@ -549,10 +552,19 @@ class Transformer(errormanager.ErrorManager):
         Validate the output of the transformer, using the output_validator. of the transformer instance.
         """
         try:
-            if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                return True
+            if isinstance(self.output_validator, validate.SimpleOutputValidator) or isinstance(self.output_validator, SkipValidator):
+                # The SimpleOutputValidator and SkipValidator do not use the Pandera package, and the value is therefore not
+                # required to be in a DataFrame format. Voiding the creation of a DataFrame here saves computational time for
+                # large datasets.
+                if self.output_validator(res):
+                    return True
+                else:
+                    return False
             else:
-                return False
+                if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
+                    return True
+                else:
+                    return False
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
