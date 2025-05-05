@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ontoweaver"
-version = "0.2.0"
+version = "0.2.1"
 description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
 authors = ["Johann Dreo <johann.dro@pasteur.fr>, Marko Baric <marko.baric@pasteur.fr>, Claire Laudy <claire.laudy@thalesgroup.com>, Matthieu Najm <matthieu.najm@pasteur.fr>, Benno Schwikowski <benno.schwikowski@pasteur.fr>"]
 readme = "README.md"
