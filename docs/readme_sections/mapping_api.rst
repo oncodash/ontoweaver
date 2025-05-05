@@ -506,11 +506,31 @@ from ``ontoweaver.base.Transformer``:
 
    class my_transformer(ontoweaver.base.Transformer):
 
+       # Each transformer class should have a ValueMaker nested - class, to define how the value is extracted from the cell.
+       # The ValueMaker class should inherit from the ontoweaver.make_value.ValueMaker class.
+        class ValueMaker(ontoweaver.make_value.ValueMaker):
+            def __init__(self, raise_errors: bool = True):
+                super().__init__(raise_errors)
+
+            # The call interface is called when processing a row. Here you should define how the value is extracted from the cell.
+            def __call__(self, columns, row, i):
+
+                # We define that for each column name, we should extract the value from the corresponding cell in the row.
+                for key in columns:
+                    if key not in row:
+
+                        # We raise an error if the column name is not found in the row.
+                        self.error(f"Column '{key}' not found in data", section="map.call",
+                                   exception=exceptions.TransformerDataError)
+
+                    # Finally, we yield the value of the cell back to the transformer.
+                    yield row[key]
+
        # The constructor is called when parsing the YAML mapping.
-       def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
+        def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties=None, columns=None, **kwargs):
 
            # All the arguments passed to the super class are available as member variables.
-           super().__init__(target, properties_of, edge, columns, **kwargs)
+           super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, **kwargs)
 
            # If you want user-defined parameters, you may get them from
            # the corresponding member variables (e.g. `self.my_param`).
@@ -519,22 +539,18 @@ from ``ontoweaver.base.Transformer``:
            self.my_param = kwargs.get("my_param", None) # Defaults to None.
 
        # The call interface is called when processing a row.
-       def __call__(self, row, index):
+       def __call__(self, row, i):
 
            # You should take care of your parameters:
            if not self.my_param:
                raise ValueError("You forgot the `my_param` keyword")
 
-           # The columns declared by the user (with the "column(s)" keyword)
-           # are available as a member variable:
-           for col in self.columns:
-               # Some methods of base.Transformer may be useful, like `valid`
-               # which checks whether a cell value is something useful.
-               if self.valid(row[col]):
-                   result = row[col]
-                   # […] Do something of your own with row[col] […]
-                   # You are finally required to yield a string:
-                   yield str(result)
+            # For each value extracted from the cell, we call the `create` method, which checks the value validity and
+            # creates the node and corresponding edge.
+            for value in self.value_maker(self.columns, row, i):
+
+                # We yield the value back to the main function.
+                yield self.create(value, row)
 
 Once your transformer class is implemented, you should make it available
 to the ``ontoweaver`` module which will process the mapping:
