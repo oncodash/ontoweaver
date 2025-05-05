@@ -18,4 +18,3 @@ Overview
    Information Fusion <./readme_sections/information_fusion.rst>
    Data Validation <./readme_sections/data_validation.rst>
    ontoweaver
-   tools
