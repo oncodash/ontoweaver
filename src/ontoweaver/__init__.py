@@ -94,7 +94,7 @@ def read_file(filename, **kwargs):
     return read_funcs[ext](filename, **kwargs)
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", raise_errors = True, **kwargs):
+def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", validate_output = False, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -109,6 +109,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
            separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
            affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
+           validate_output: Whether to validate the output of the transformers. Defaults to False.
            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
            kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
@@ -134,6 +135,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
+                validate_output=validate_output,
                 raise_errors = raise_errors,
             )
 
@@ -149,6 +151,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
+                validate_output=validate_output,
                 raise_errors=raise_errors,
             )
 
@@ -171,7 +174,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
     return import_file
 
 
-def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -181,6 +184,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
+        validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
@@ -207,6 +211,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
+                validate_output=validate_output,
                 raise_errors = raise_errors,
             )
 
@@ -223,6 +228,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
                 parallel_mapping=parallel_mapping,
                 affix=affix,
                 separator=affix_separator,
+                validate_output=validate_output,
                 raise_errors=raise_errors,
             )
 

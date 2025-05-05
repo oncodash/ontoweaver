@@ -723,7 +723,7 @@ def test_oncokb():
 
     data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", parallel_mapping=8, raise_errors=False)
+    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", parallel_mapping=8, validate_output=True, raise_errors=False)
 
     # The fusion functions is not being used due to the large number of duplicates, resulting in the properties being
     # fused in varying orders. This is not normally an issue, as the properties are still the same.

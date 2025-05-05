@@ -137,6 +137,9 @@ def main():
     do.add_argument("-v", "--validate-only", action="store_true",
                     help="Only validate the given input data, do not apply the mapping.")
 
+    do.add_argument("-V", "--validate-output", action="store_true",
+                    help="Validate the output data against the mapping rules.")
+
     do.add_argument("-Ds", "--database-sep", metavar="CHARACTER",
         help="Character used to separate values in the database.")
 
@@ -169,6 +172,8 @@ def main():
     logger.info(f"    debug: `{asked.debug}`")
     logger.info(f"    log-level: `{asked.log_level}`")
     logger.info(f"    pass-errors: `{asked.pass_errors}`")
+    logger.info(f"    validate-only: `{asked.validate_only}`")
+    logger.info(f"    validate-output: `{asked.validate_output}`")
 
     logger.info(f"    asked mappings: `{asked.mapping}`")
     asked_mapping = []
@@ -239,6 +244,11 @@ def main():
         check_file(data_file)
         check_file(map_file)
 
+    if asked.validate_output:
+        validate_output = True
+    else:
+        validate_output = False
+
     logger.info(f"Running OntoWeaver...")
     if asked.debug:
         import_file = ontoweaver.extract_reconciliate_write(
@@ -249,6 +259,7 @@ def main():
             separator=asked.prop_sep,
             affix=asked.type_affix,
             affix_separator = asked.type_affix_sep,
+            validate_output = validate_output,
             raise_errors = not asked.pass_errors)
     else:
         try:
@@ -260,6 +271,7 @@ def main():
                 separator=asked.prop_sep,
                 affix=asked.type_affix,
                 affix_separator = asked.type_affix_sep,
+                validate_output = validate_output,
                 raise_errors = not asked.pass_errors)
         # Manage exceptions wih specific error codes:
         except ontoweaver.exceptions.ConfigError as e:

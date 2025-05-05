@@ -22,6 +22,7 @@ from . import transformer
 from . import exceptions
 from . import validate
 from . import make_labels
+from .validate import OutputValidator
 
 logger = logging.getLogger("ontoweaver")
 
@@ -478,7 +479,7 @@ class PandasAdapter(base.Adapter):
                 f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
 
-def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", raise_errors = True):
+def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
     """
     Proxy function for extracting from a table all nodes, edges and properties
     that are defined in a PandasAdapter configuration.
@@ -490,12 +491,13 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
         module: The module in which to insert the types declared by the configuration.
         affix (str): The type affix to use (default is "suffix").
         separator (str): The separator to use between labels and type annotations (default is ":").
+        validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         PandasAdapter: The configured adapter.
     """
-    parser = YamlParser(config, module, raise_errors = raise_errors)
+    parser = YamlParser(config, module, validate_output = validate_output, raise_errors = raise_errors)
     mapping = parser()
 
     adapter = PandasAdapter(
@@ -693,16 +695,19 @@ class YamlParser(Declare):
     :return tuple: subject_transformer, transformers, metadata as needed by the Adapter.
     """
 
-    def __init__(self, config: dict, module=types, raise_errors = True):
+    def __init__(self, config: dict, module=types, validate_output = False, raise_errors = True):
         """
         Initialize the YamlParser.
 
         Args:
             config (dict): The configuration dictionary.
+            validate_output (bool): Whether to validate the output of the transformers. Defaults to False.
             module: The module in which to insert the types declared by the configuration.
         """
         super().__init__(module, raise_errors = raise_errors)
         self.config = config
+        self.validate_output = validate_output
+
 
         logger.debug(f"Classes will be created in module '{self.module}'")
 
@@ -820,7 +825,6 @@ class YamlParser(Declare):
 
         return validator
 
-      
     def _make_output_validator(self, output_validation_rules = None):
         """
         LabelMaker a validator for the output of a transformer.
@@ -831,13 +835,19 @@ class YamlParser(Declare):
         Returns:
             validate.OutputValidator: The created validator.
         """
-        output_validator = validate.OutputValidator(raise_errors=self.raise_errors)
-        if output_validation_rules:
-            # Adjust the formatting for output validation rules to match the expected format. This is so the
-            # user would not have to type `columns` and `cell_value` in the configuration file each time.
-            dict_output_validation_rules = {"columns": {"cell_value": output_validation_rules}}
-            yaml_output_validation_rules = yaml.dump(dict_output_validation_rules, default_flow_style=False)
-            output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
+
+        if self.validate_output:
+            if output_validation_rules:
+                output_validator = validate.OutputValidator(raise_errors=self.raise_errors)
+                # Adjust the formatting for output validation rules to match the expected format. This is so the
+                # user would not have to type `columns` and `cell_value` in the configuration file each time.
+                dict_output_validation_rules = {"columns": {"cell_value": output_validation_rules}}
+                yaml_output_validation_rules = yaml.dump(dict_output_validation_rules, default_flow_style=False)
+                output_validator.update_rules(pa.DataFrameSchema.from_yaml(yaml_output_validation_rules))
+            else:
+                output_validator = validate.SimpleOutputValidator(raise_errors=self.raise_errors)
+        else:
+            output_validator = validate.SkipValidator(raise_errors=self.raise_errors)
 
         return output_validator
 

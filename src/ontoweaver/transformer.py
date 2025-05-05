@@ -161,7 +161,16 @@ class cat_format(base.Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and label_maker nodes with
     their respective values as id."""
 
-    #FIXME label_maker selector
+    class ValueMaker(make_value.ValueMaker):
+
+        def __init__(self, raise_errors: bool = True, format_string: str = None):
+            self.format_string = format_string
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+
+            formatted_string = self.format_string.format_map(row)
+            yield formatted_string
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, format_string = None,  **kwargs):
         """
@@ -179,12 +188,13 @@ class cat_format(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
 
-        super().__init__(properties_of, label_maker, branching_properties, columns, output_validator, multi_type_dict,
-                         raise_errors=raise_errors, **kwargs)
-
         if not format_string:  # Neither empty string nor None.
             self.error(f"The `format_string` parameter of the `{self.__name__}` transformer cannot be an empty string.")
         self.format_string = format_string
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors, format_string=self.format_string)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator, multi_type_dict,
+                         raise_errors=raise_errors, **kwargs)
 
     def __call__(self, row, i):
         """
@@ -200,14 +210,9 @@ class cat_format(base.Transformer):
         Raises:
             Exception: If the format string is not defined or if invalid content is encountered.
         """
-        if hasattr(self, "format_string"):
-            formatted_string = self.format_string.format_map(row)
-            yield self.create(formatted_string, row)
 
-
-        else:
-            self.error(f"Format string not defined for `cat_format` transformer. Define a format string or use the `cat` transformer.", section="cat_format.call", exception = exceptions.TransformerConfigError)
-
+        for value in self.value_maker(self.columns, row, i):
+            yield self.create(value, row)
 
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
