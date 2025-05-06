@@ -453,15 +453,12 @@ class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
     class ValueMaker(make_value.ValueMaker):
-        def __init__(self, raise_errors: bool = True):
+        def __init__(self, raise_errors: bool = True, string: str = None):
+            self.string = string
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
-            for key in columns:
-                if key not in row:
-                    self.error(f"Column '{key}' not found in data", section="map.call",
-                               exception=exceptions.TransformerDataError)
-                yield row[key]
+            yield self.string
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
@@ -479,11 +476,11 @@ class string(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
 
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+        self.value = kwargs.get("value", None)
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors, string=self.value)
 
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
-        self.value = kwargs.get("value", None)
 
     def __call__(self, row, i):
         """
@@ -502,7 +499,8 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        yield self.create(self.value, row)
+        for value in self.value_maker(self.columns, row, i):
+            yield self.create(value, row)
 
 class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
