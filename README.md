@@ -4,7 +4,7 @@ OntoWeaver is a tool for transforming tabular data in
 Semantic Knowledge Graphs (SKG) databases.
 
 OntoWeaver allows writing a simple declarative mapping to express how columns from
-a table should be converted as typed nodes, edges or properties in an SKG.
+a table should be converted as typed nodes, edges, or properties in an SKG.
 
 ![](docs/OntoWeaver_simple-summary.svg)
 
