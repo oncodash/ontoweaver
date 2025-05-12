@@ -13,8 +13,6 @@ from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
 
-from numpy.ma.core import set_fill_value
-
 from . import errormanager
 from . import base
 from . import types
@@ -22,7 +20,6 @@ from . import transformer
 from . import exceptions
 from . import validate
 from . import make_labels
-from .validate import OutputValidator
 
 logger = logging.getLogger("ontoweaver")
 
@@ -308,7 +305,7 @@ class PandasAdapter(base.Adapter):
 
             source_id, subject_edge, subject_node = subject_generator_list[0]
 
-            if hasattr(self.subject_transformer, "final_type"):
+            if self.subject_transformer.final_type:
                 # If a final_type attribute is present in the transformer, use it as the source node type, instead
                 # of the default type.
                 subject_node = self.subject_transformer.final_type
@@ -337,7 +334,7 @@ class PandasAdapter(base.Adapter):
                         local_nb_nodes += 1
                         if target_id and target_edge and target_node:
 
-                            if hasattr(transformer, 'final_type'):
+                            if transformer.final_type:
                                 # If a final_type attribute is present in the transformer, use it as the target node type, instead
                                 # of the default type.
                                 target_node = transformer.final_type
@@ -367,7 +364,7 @@ class PandasAdapter(base.Adapter):
                                         found_valid_subject = True
                                         for s_id, s_edge, s_node in t(row, i):
                                             if s_id and s_edge and s_node:
-                                                if hasattr(t, 'final_type'):
+                                                if t.final_type:
                                                     s_node = t.final_type
                                                 subject_id = s_id
                                                 subject_node_id = self.make_id(t.target_type, subject_id)
@@ -851,6 +848,71 @@ class YamlParser(Declare):
 
         return output_validator
 
+    def _make_branching_dict(self, subject: bool, match_parser, properties_of, metadata_list, metadata, columns, final_type_class,
+                             multi_type_dictionary, possible_node_types, possible_edge_types):
+        """
+        Helper function to parse the `match` clause of the YAML configuration file for subject and target transformers.
+        """
+
+        k_extract  = self.k_subject if subject else self.k_target
+
+        for entry in match_parser:
+            for k, v in entry.items():
+                if isinstance(v, dict):
+                    key = k
+                    multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
+                    alt_type = self.get(k_extract, v)
+                    alt_type_class = self.make_node_class(alt_type, properties_of.get(alt_type, {})) #FIXME does not do anything since possible_subject_types not all declared.
+
+                    possible_node_types.add(alt_type)
+
+                    alt_final_type = self.get(self.k_final_type, v)
+                    if alt_final_type:
+                        alt_final_type_class = self.make_node_class(alt_final_type,
+                                                                    properties_of.get(alt_final_type, {}))
+                        possible_node_types.add(alt_final_type_class.__name__)
+                        extracted_alt_final_type_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                                     metadata_list, metadata,
+                                                                                     alt_final_type,
+                                                                                     columns)
+                        if extracted_alt_final_type_metadata:
+                            metadata.update(extracted_alt_final_type_metadata)
+                    else:
+                        alt_final_type_class = None
+
+                    if not subject:
+                        alt_edge = self.get(self.k_edge, v)
+                        alt_edge_class = self.make_edge_class(alt_edge, None, alt_type_class,
+                                                              properties_of.get(alt_edge, {}))
+
+                        possible_edge_types.add(alt_edge)
+
+                        extracted_alt_edge_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                             metadata_list, metadata, alt_edge,
+                                                                             None)
+
+                        if extracted_alt_edge_metadata:
+                            metadata.update(extracted_alt_edge_metadata)
+
+                    extracted_alt_type_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                           metadata_list, metadata, alt_type,
+                                                                           columns)
+                    if extracted_alt_type_metadata:
+                        metadata.update(extracted_alt_type_metadata)
+
+                    if extracted_alt_type_metadata:
+                        metadata.update(extracted_alt_type_metadata)
+
+                    multi_type_dictionary[key] = {
+                        'to_object': alt_type_class,
+                        # Via relation is always None for subject, since there is never an edge declared for the subject type.
+                        'via_relation': None if subject is True else alt_edge_class,
+                        # We first try and declare the final type passed to the whole class of the
+                        # transformer, and if it is not defined, we use the final type of the
+                        # alternative node type, under the `match` clause.
+                        'final_type': final_type_class if final_type_class else alt_final_type_class
+                    }
+
     def parse_properties(self, properties_of, possible_subject_types, transformers_list):
         """
         Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
@@ -936,41 +998,41 @@ class YamlParser(Declare):
         possible_subject_types = set()
         subject_branching = False
 
+        if subject_final_type:
+            s_final_type_class = self.make_node_class(subject_final_type, properties_of.get(subject_final_type, {}))
+            possible_subject_types.add(s_final_type_class.__name__)
+        else:
+            s_final_type_class = None
+
         if "match" in subject_transformer_params:
-            for matching_pattern in subject_transformer_params['match']:
-                subject_branching = True
-                for k, v in matching_pattern.items():
-                    if isinstance(v, dict):
-                        key = k
-                        subject_multi_type_dict[key] = {k1: v1 for k1, v1 in v.items()}
-                        alt_subject = self.get(self.k_subject, v)
-                        alt_subject_t = self.make_node_class(alt_subject,
-                                                             properties_of.get(alt_subject, {})) #FIXME does not do anything since possible_subject_types not all declared.
 
-                        possible_subject_types.add(alt_subject)
+            subject_branching = True
 
-                        subject_multi_type_dict[key] = {
-                            'to_object': alt_subject_t,
-                            # Via relation is always None, since there is never an edge declared for the subject type.
-                            'via_relation': None
-                        }
-                source_t = None # Source_t is used to declare the subject type, but it is not used in the case of a branching subject type.
-                # Here we declare None only for returning purposes.
-                logger.debug(f"Parse subject transformer...")
+            self._make_branching_dict(subject = True, match_parser = subject_transformer_params["match"],
+                                      properties_of = properties_of, metadata_list = metadata_list, metadata = metadata,
+                                      columns = subject_columns, final_type_class = s_final_type_class,
+                                      multi_type_dictionary = subject_multi_type_dict, possible_node_types = possible_subject_types,
+                                      possible_edge_types = set())
 
-                if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
-                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
-                                                                            match_type_from_column=subject_kwargs['match_type_from_column'])
-                else:
-                    s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+            source_t = None # Subject_type declared None because the subject transformer is a branching transformer.
+            subject_type = None
+            logger.debug(f"Parse subject transformer...")
+
+            if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
+                s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
+                                                                        match_type_from_column=subject_kwargs['match_type_from_column'])
+            else:
+                s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
 
         # "None" key is used to return any type of string, in case no branching is needed.
         else:
             subject_type = self.get(self.k_subject_type, subject_transformer_dict[subject_transformer_class])
             source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+
             subject_multi_type_dict = {'None': {
                 'to_object': source_t,
-                'via_relation': None
+                'via_relation': None,
+                'final_type': s_final_type_class
             }}
 
             possible_subject_types.add(source_t.__name__)
@@ -988,12 +1050,6 @@ class YamlParser(Declare):
                                                           output_validator=subject_output_validator,
                                                           label_maker=s_label_maker, raise_errors=self.raise_errors,
                                                           **subject_kwargs)
-
-        if subject_final_type:
-            s_final_type_class = self.make_node_class(subject_transformer.final_type,
-                                                      properties_of.get(subject_transformer.final_type, {}))
-            subject_transformer.final_type = s_final_type_class
-            possible_subject_types.add(s_final_type_class.__name__)
 
         logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
@@ -1060,6 +1116,13 @@ class YamlParser(Declare):
                     # Extract the final type if defined in the mapping.
                     final_type = self.get(self.k_final_type, pconfig=field_dict)
 
+                    if final_type:
+                        # If there is a final type defined, label_maker a class and assign it to the transformer.
+                        final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+                        possible_target_types.add(final_type_class.__name__)
+                    else:
+                        final_type_class = None
+
                     # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
                     # from_subject` is used in the transformer class to refer to the source node type.
                     if 'from_source' in gen_data:
@@ -1069,43 +1132,14 @@ class YamlParser(Declare):
                     multi_type_dictionary = {}
 
                     if "match" in gen_data:
-                        for entry in gen_data['match']:
-                                for k, v in entry.items():
-                                    if isinstance(v, dict):
-                                        key = k
-                                        multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
-                                        alt_target = self.get(self.k_target, v)
-                                        alt_target_t = self.make_node_class(alt_target,
-                                                                            properties_of.get(alt_target, {}))
 
-                                        possible_target_types.add(alt_target)
-
-                                        alt_edge = self.get(self.k_edge, v)
-                                        alt_edge_t = self.make_edge_class(alt_edge, None, alt_target_t,
-                                                                          properties_of.get(alt_edge, {}))
-
-                                        possible_edge_types.add(alt_edge)
-
-                                        # Update extracted metadata here, because each alt target and edge type must be declared
-                                        # in the metadata dictionary.The same does not apply if the `final_type` keyword, since
-                                        # is used, since in that case, the metadata is added before the type is changed.
-
-                                        extracted_alt_target_metadata = self._extract_metadata(self.k_metadata_column,
-                                                                                    metadata_list, metadata, alt_target,
-                                                                                    columns)
-                                        if extracted_alt_target_metadata:
-                                            metadata.update(extracted_alt_target_metadata)
-
-                                        extracted_alt_edge_metadata = self._extract_metadata(self.k_metadata_column,
-                                                                                        metadata_list, metadata, alt_edge,
-                                                                                        None)
-                                        if extracted_alt_edge_metadata:
-                                                metadata.update(extracted_alt_edge_metadata)
-
-                                        multi_type_dictionary[key] = {
-                                            'to_object': alt_target_t,
-                                            'via_relation': alt_edge_t
-                                        }
+                        self._make_branching_dict(subject=False, match_parser=gen_data["match"],
+                                                  properties_of=properties_of, metadata_list=metadata_list,
+                                                  metadata=metadata,
+                                                  columns=columns, final_type_class=final_type_class,
+                                                  multi_type_dictionary=multi_type_dictionary,
+                                                  possible_node_types=possible_target_types,
+                                                  possible_edge_types=possible_edge_types)
 
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
@@ -1131,7 +1165,8 @@ class YamlParser(Declare):
                         # "None" key is used to return any type of string, in case no branching is needed.
                         multi_type_dictionary['None'] = {
                             'to_object': target_t,
-                            'via_relation': edge_t
+                            'via_relation': edge_t,
+                            'final_type': final_type_class
                         }
 
                         # Parse the validation rules for the output of the transformer. Each transformer gets its own
@@ -1148,12 +1183,6 @@ class YamlParser(Declare):
                                                                          label_maker=make_labels.SimpleLabelMaker(
                                                                              raise_errors=self.raise_errors),
                                                                          raise_errors=self.raise_errors, **gen_data)
-
-                        if final_type:
-                            # If there is a final type defined, label_maker a class and assign it to the transformer.
-                            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
-                            target_transformer.final_type = final_type_class
-                            possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
                         logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
                     elif (target and not edge) or (edge and not target):
@@ -1172,11 +1201,6 @@ class YamlParser(Declare):
                                                                              raise_errors=self.raise_errors, match_type_from_column=gen_data["match_type_from_column"]),
                                                                          raise_errors=self.raise_errors, **gen_data)
 
-                        if final_type:
-                            # If there is a final type defined, label_maker a class and assign it to the transformer.
-                            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
-                            target_transformer.final_type = final_type_class
-                            possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
 
                     elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
@@ -1189,11 +1213,6 @@ class YamlParser(Declare):
                                                                              raise_errors=self.raise_errors),
                                                                          raise_errors=self.raise_errors, **gen_data)
 
-                        if final_type:
-                            # If there is a final type defined, label_maker a class and assign it to the transformer.
-                            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
-                            target_transformer.final_type = final_type_class
-                            possible_target_types.add(final_type_class.__name__)
                         transformers.append(target_transformer)
 
                     # Declare the metadata for the target and edge types.
@@ -1236,6 +1255,8 @@ class YamlParser(Declare):
         self.k_metadata_column = ["add_source_column_names_as"]
         self.k_validate_output = ["validate_output"]
         self.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
+
+        #TODO create make node class for nested final_type instantiation
 
         # Extract transformer list and metadata list from the config.
         transformers_list = self.get(self.k_transformer)
