@@ -1,15 +1,27 @@
 # OntoWeaver
 
-OntoWeaver is a tool for importing table data in
+OntoWeaver is a tool for transforming tabular data in
 Semantic Knowledge Graphs (SKG) databases.
 
 OntoWeaver allows writing a simple declarative mapping to express how columns from
-a [Pandas](https://pandas.pydata.org/) table are to be converted as typed nodes
-or edges in an SKG.
+a table should be converted as typed nodes, edges, or properties in an SKG.
 
-![](docs/OntoWeaver_logo__big.svg)
+![](docs/OntoWeaver_simple-summary.svg)
 
-It provides a simple layer of abstraction on top of [Biocypher](https://biocypher.org),
+SKG databases allow for an easy integration of very heterogeneous data, and
+OntoWeaver brings a reproducible approach to building them.
+
+With OntoWeaver, you can very easily implement a script that will allow you
+to automatically reconfigure a new SKG from the input data, each time you need it.
+
+OntoWeaver has been tested on large scale biomedical use cases, and we can
+guarantee that it is simple to operate by anyone having a basic knowledge
+of programming.
+
+
+## Basics
+
+OntoWeaver provides a simple layer of abstraction on top of [Biocypher](https://biocypher.org),
 which remains responsible for doing the ontology alignment,
 supporting several graph database backends,
 and allowing reproducible & configurable builds.
@@ -37,7 +49,11 @@ metadata: # Optional properties added to every node and edge.
     - version: "v1.2.3"
 ```
 
-### Installation 
+OntoWeaver can read anything that [Pandas](https://pandas.pydata.org/) can load,
+which means a lot of tabular formats.
+
+
+### Installation
 
 The project is written in Python and uses [Poetry](https://python-poetry.org).
 You can install the necessary dependencies in a virtual environment like this:
@@ -57,10 +73,12 @@ any [graph] database supported by BioCypher
 (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite, NetworkX, …
 see [BioCypher's documentation](https://biocypher.org/output/index.html)).
 
+
 ### Usage Documentation
 
-Detailed documentation with tutorials and a more detailed installation guide is available 
+Detailed documentation with tutorials and a more detailed installation guide is available
 [on the OntoWeaver website](https://ontoweaver.readthedocs.io/en/latest/).
+
 
 ### Tests
 
@@ -72,12 +90,9 @@ To run tests, use `pytest`:
 ```
 poetry run pytest
 ```
-or, alternatively:
-```
-poetry shell
-pytest
-```
+
 
 ### Contributing
 
-In case of any questions, or improvements feel free to open an issue or a pull request!
+In case of any questions or improvements feel free to open an issue or a pull request!
+
