@@ -8,7 +8,7 @@ a table should be converted as typed nodes, edges or properties in an SKG.
 
 ![](docs/OntoWeaver_simple-summary.svg)
 
-SKG databases allows for an easy integration of very heterogeneous data, and
+SKG databases allow for an easy integration of very heterogeneous data, and
 OntoWeaver brings a reproducible approach to building them.
 
 With OntoWeaver, you can very easily implement a script that will allow you
