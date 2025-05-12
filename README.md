@@ -94,5 +94,5 @@ poetry run pytest
 
 ### Contributing
 
-In case of any questions, or improvements feel free to open an issue or a pull request!
+In case of any questions or improvements feel free to open an issue or a pull request!
 
