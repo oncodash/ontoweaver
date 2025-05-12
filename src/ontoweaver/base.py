@@ -446,6 +446,8 @@ class Transformer(errormanager.ErrorManager):
             self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
         self.parameters = kwargs
         self.multi_type_dict = multi_type_dict
+        self.final_type = None # The final type is to be passed by the label maker class based on the YAML mapping. That
+                               # is why here it is None by default
         self.kwargs = kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -584,6 +586,7 @@ class Transformer(errormanager.ErrorManager):
             self.target_type = result_object.target_node_type.__name__
         if result_object.target_element_properties is not None:
             self.properties_of = result_object.target_element_properties
+        self.final_type = result_object.final_type
         return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type
 
 
