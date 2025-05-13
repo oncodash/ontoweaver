@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-biocypher = "^0.9.4"
+biocypher = "^0.9.5"
 pooch = "^1.7.0" # Dep of biocypher
 pandas = "^2.0.1"
 numpy = "^2.2.4"
