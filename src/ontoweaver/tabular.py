@@ -848,6 +848,18 @@ class YamlParser(Declare):
 
         return output_validator
 
+    # TODO: Use function below instead of repeated code when defining final types.
+
+    # def _extract_final_type_metadata(self, metadata, possible_types, metadata_list, final_type, columns, properties_of):
+    #     final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+    #     possible_types.add(final_type_class.__name__)
+    #     extracted_s_final_type_metadata = self._extract_metadata(self.k_metadata_column,
+    #                                                              metadata_list, metadata,
+    #                                                              final_type,
+    #                                                              columns)
+    #     if extracted_s_final_type_metadata:
+    #         metadata.update(extracted_s_final_type_metadata)
+
     def _make_branching_dict(self, subject: bool, match_parser, properties_of, metadata_list, metadata, columns, final_type_class,
                              multi_type_dictionary, possible_node_types, possible_edge_types):
         """
@@ -868,6 +880,7 @@ class YamlParser(Declare):
 
                     alt_final_type = self.get(self.k_final_type, v)
                     if alt_final_type:
+
                         alt_final_type_class = self.make_node_class(alt_final_type,
                                                                     properties_of.get(alt_final_type, {}))
                         possible_node_types.add(alt_final_type_class.__name__)
@@ -1001,6 +1014,13 @@ class YamlParser(Declare):
         if subject_final_type:
             s_final_type_class = self.make_node_class(subject_final_type, properties_of.get(subject_final_type, {}))
             possible_subject_types.add(s_final_type_class.__name__)
+            extracted_s_final_type_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                   metadata_list, metadata,
+                                                                   subject_final_type,
+                                                                   subject_columns)
+            if extracted_s_final_type_metadata:
+                metadata.update(extracted_s_final_type_metadata)
+
         else:
             s_final_type_class = None
 
@@ -1122,6 +1142,12 @@ class YamlParser(Declare):
                         # If there is a final type defined, label_maker a class and assign it to the transformer.
                         final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
                         possible_target_types.add(final_type_class.__name__)
+                        extracted_final_type_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                                     metadata_list, metadata,
+                                                                                     final_type,
+                                                                                     columns)
+                        if extracted_final_type_metadata:
+                            metadata.update(extracted_final_type_metadata)
                     else:
                         final_type_class = None
 
