@@ -23,6 +23,12 @@ transformers:
                 via_relation: will_not_sit
                 final_type: dddddd
 
+    - map:
+        column: localisation
+        to_object: localisation
+        final_type: eeeeee
+        via_relation: has_localisation
+
     - cat:
         columns:
             - name
