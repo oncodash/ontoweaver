@@ -9,14 +9,20 @@ def test_final_type():
 
     assert_nodes = [('chair:aaaaaa', 'aaaaaa', {'localisation': 'Peterkitchen', 'blabla': 'blabla', 'source_columns': 'furniture'}),
                     ('Peter:dddddd', 'dddddd', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('kitchen:QQQQQQQQ', 'QQQQQQQQ', {}),
                     ('sofa:aaaaaa', 'aaaaaa', {'localisation': 'Paulbathroom', 'blabla': 'blabla', 'source_columns': 'furniture'}),
                     ('Paul:cccccc', 'cccccc', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('bathroom:QQQQQQQQ', 'QQQQQQQQ', {}),
                     ('fridge:aaaaaa', 'aaaaaa', {'localisation': 'Marykitchen', 'blabla': 'blabla', 'source_columns': 'furniture'}),
-                    ('Mary:dddddd', 'dddddd', {'blabla': 'blabla', 'source_columns': 'name'}),]
+                    ('Mary:dddddd', 'dddddd', {'blabla': 'blabla', 'source_columns': 'name'}),
+                    ('kitchen:QQQQQQQQ', 'QQQQQQQQ', {}),]
 
     assert_edges = [('', 'chair:aaaaaa', 'Peter:dddddd', 'will_not_sit', {'blabla': 'blabla'}),
+                    ('', 'chair:aaaaaa', 'kitchen:QQQQQQQQ', 'has_localisation', {'blabla': 'blabla'}),
                     ('', 'sofa:aaaaaa', 'Paul:cccccc', 'will_sit', {'blabla': 'blabla'}),
-                    ('', 'fridge:aaaaaa', 'Mary:dddddd', 'will_not_sit', {'blabla': 'blabla'})]
+                    ('', 'sofa:aaaaaa', 'bathroom:QQQQQQQQ', 'has_localisation', {'blabla': 'blabla'}),
+                    ('', 'fridge:aaaaaa', 'Mary:dddddd', 'will_not_sit', {'blabla': 'blabla'}),
+                    ('', 'fridge:aaaaaa', 'kitchen:QQQQQQQQ', 'has_localisation', {'blabla': 'blabla'}),]
 
 
     data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
