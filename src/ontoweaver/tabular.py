@@ -1093,8 +1093,10 @@ class YamlParser(Declare):
                     columns = self.get(self.k_columns, pconfig=field_dict)
                     if type(columns) != list:
                         logger.debug(f"\tDeclared singular column")
-                        assert(type(columns) == str)
-                        columns = [columns]
+                        # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
+                        if transformer_type != "rowIndex":
+                            assert(type(columns) == str)
+                            columns = [columns]
 
                     target = self.get(self.k_target, pconfig=field_dict)
                     if type(target) == list:
