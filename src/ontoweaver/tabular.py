@@ -1102,6 +1102,7 @@ class YamlParser(Declare):
                     if type(columns) != list:
                         logger.debug(f"\tDeclared singular column")
                         # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
+                        # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
                         if transformer_type != "rowIndex":
                             assert(type(columns) == str)
                             columns = [columns]
