@@ -848,6 +848,26 @@ class YamlParser(Declare):
 
         return output_validator
 
+    def _extract_final_type_class(self, final_type, possible_types, metadata, metadata_list, columns, properties_of):
+        """
+        Extract metadata and class for the final type and update the metadata dictionary.
+        """
+
+        if final_type:
+            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+            possible_types.add(final_type_class.__name__)
+            extracted_s_final_type_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                     metadata_list, metadata,
+                                                                     final_type,
+                                                                     columns)
+            if extracted_s_final_type_metadata:
+                metadata.update(extracted_s_final_type_metadata)
+
+            return final_type_class
+
+        return None
+
+
     def _make_branching_dict(self, subject: bool, match_parser, properties_of, metadata_list, metadata, columns, final_type_class,
                              multi_type_dictionary, possible_node_types, possible_edge_types):
         """
@@ -862,23 +882,14 @@ class YamlParser(Declare):
                     key = k
                     multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
                     alt_type = self.get(k_extract, v)
-                    alt_type_class = self.make_node_class(alt_type, properties_of.get(alt_type, {})) #FIXME does not do anything since possible_subject_types not all declared.
+                    alt_type_class = self.make_node_class(alt_type, properties_of.get(alt_type, {}))
 
                     possible_node_types.add(alt_type)
 
                     alt_final_type = self.get(self.k_final_type, v)
-                    if alt_final_type:
-                        alt_final_type_class = self.make_node_class(alt_final_type,
-                                                                    properties_of.get(alt_final_type, {}))
-                        possible_node_types.add(alt_final_type_class.__name__)
-                        extracted_alt_final_type_metadata = self._extract_metadata(self.k_metadata_column,
-                                                                                     metadata_list, metadata,
-                                                                                     alt_final_type,
-                                                                                     columns)
-                        if extracted_alt_final_type_metadata:
-                            metadata.update(extracted_alt_final_type_metadata)
-                    else:
-                        alt_final_type_class = None
+
+                    alt_final_type_class = self._extract_final_type_class(alt_final_type, possible_node_types, metadata,
+                                                                          metadata_list, columns, properties_of)
 
                     if not subject:
                         alt_edge = self.get(self.k_edge, v)
@@ -998,11 +1009,8 @@ class YamlParser(Declare):
         possible_subject_types = set()
         subject_branching = False
 
-        if subject_final_type:
-            s_final_type_class = self.make_node_class(subject_final_type, properties_of.get(subject_final_type, {}))
-            possible_subject_types.add(s_final_type_class.__name__)
-        else:
-            s_final_type_class = None
+        s_final_type_class = self._extract_final_type_class(subject_final_type, possible_subject_types, metadata,
+                                                            metadata_list, subject_columns, properties_of)
 
         if "match" in subject_transformer_params:
 
@@ -1093,8 +1101,11 @@ class YamlParser(Declare):
                     columns = self.get(self.k_columns, pconfig=field_dict)
                     if type(columns) != list:
                         logger.debug(f"\tDeclared singular column")
-                        assert(type(columns) == str)
-                        columns = [columns]
+                        # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
+                        # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
+                        if transformer_type != "rowIndex":
+                            assert(type(columns) == str)
+                            columns = [columns]
 
                     target = self.get(self.k_target, pconfig=field_dict)
                     if type(target) == list:
@@ -1116,12 +1127,8 @@ class YamlParser(Declare):
                     # Extract the final type if defined in the mapping.
                     final_type = self.get(self.k_final_type, pconfig=field_dict)
 
-                    if final_type:
-                        # If there is a final type defined, label_maker a class and assign it to the transformer.
-                        final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
-                        possible_target_types.add(final_type_class.__name__)
-                    else:
-                        final_type_class = None
+                    final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
+                                                                      metadata_list, columns, properties_of)
 
                     # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
                     # from_subject` is used in the transformer class to refer to the source node type.

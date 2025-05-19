@@ -75,7 +75,7 @@ class SimpleLabelMaker(LabelMaker):
             if multi_type_dict:
                 if "None" in multi_type_dict.keys():
                     # No branching needed. The transformer is not a branching transformer.
-                    return ReturnCreate(res, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"])
+                    return ReturnCreate(res, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"], None, multi_type_dict["None"]["final_type"])
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(res)
