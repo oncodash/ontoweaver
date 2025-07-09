@@ -1,20 +1,20 @@
 [tool.poetry]
 name = "ontoweaver"
-version = "0.2.3"
+version = "0.2.4"
 description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
 authors = ["Johann Dreo <johann.dro@pasteur.fr>, Marko Baric <marko.baric@pasteur.fr>, Claire Laudy <claire.laudy@thalesgroup.com>, Matthieu Najm <matthieu.najm@pasteur.fr>, Benno Schwikowski <benno.schwikowski@pasteur.fr>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-biocypher = "^0.9.5"
+biocypher = "^0.9.6"
 pooch = "^1.7.0" # Dep of biocypher
-pandas = "^2.0.1"
+pandas = "^2.3.1"
 numpy = "^2.2.4"
-owlready2 = "^0.47"
+owlready2 = "^0.48"
 jsonargparse = "^4.39"
 xdg-base-dirs = "^6.0.2"
-pandera = { version = "^0.23.1", extras = ["io"] }
+pandera = { version = "^0.25.0", extras = ["io"] }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
