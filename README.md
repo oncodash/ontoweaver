@@ -6,7 +6,7 @@ Semantic Knowledge Graphs (SKG) databases.
 OntoWeaver allows writing a simple declarative mapping to express how columns from
 a table should be converted as typed nodes, edges or properties in an SKG.
 
-![](docs/OntoWeaver_simple-summary.svg)
+![Diagram showing that OntoWeaver needs ontologies, tabular data and graph schema to produce a Semantic Knowledge Graph.](https://raw.githubusercontent.com/oncodash/ontoweaver/refs/heads/main/docs/OntoWeaver__simple-summary.svg)
 
 
 SKG databases allows for an easy integration of very heterogeneous data, and
