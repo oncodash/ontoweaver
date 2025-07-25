@@ -27,8 +27,7 @@ To build up a SKG from scratch, you will need at least five files:
    ontology: ``mapping.yaml``.
 
 .. image:: OntoWeaver_simple-example.svg
-   :alt: Un diagramme montrant les différents fichiers nécessaires pour
-         configurer un run d'OntoWeaver.
+   :alt: A diagram showcasing the various files needed to configure an OntoWeaver run.
 
 Let' say we want to extract a graph of 4 nodes and 3 edges from a table
 with 3 rows and 2 columns, those files would look like the following.
