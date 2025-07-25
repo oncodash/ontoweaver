@@ -1,0 +1,11 @@
+thing:
+    represented_as: node
+    label_in_input: thing
+
+node:
+    represented_as: node
+    label_in_input: node
+
+edge:
+    represented_as: edge
+    label_in_input: edge
