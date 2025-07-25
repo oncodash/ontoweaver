@@ -1,7 +1,8 @@
 biocypher:
     debug: true
     offline: true
-    schema_config_path: config/schema_config.yaml
+    schema_config_path: schema_config.yaml
+    dbms: neo4j
 
     # Ontology configuration
     head_ontology:
