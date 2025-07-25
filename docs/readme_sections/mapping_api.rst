@@ -43,10 +43,10 @@ with 3 rows and 2 columns, those files would look like the following.
    S2,GA
 
 
-.. code-block:: yaml
+.. code-block:: ttl
    :caption: The ``ontology.ttl`` file.
    
-   @prefix : <https://my.domain.tld/ontology#>
+   @prefix : <https://my.domain.tld/ontology#> .
    @prefix owl: <http://www.w3.org/2002/07/owl#> .
    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
    @prefix biocypher: <https://biocypher.org/biocypher#> .
@@ -55,15 +55,15 @@ with 3 rows and 2 columns, those files would look like the following.
         rdfs:label "BioCypherRoot" .
    
    owl:Thing a rdfs:Class ;
-       rdfs:label "Thing" ;
+       rdfs:label "Thing" ; # Note how labels are uppercased.
        rdfs:subClassOf biocypher:BioCypherRoot .
    
    :Node a rdfs:Class ;
-       rdfs:label "Node" ;
+       rdfs:label "Mynode" ;
        rdfs:subClassOf owl:Thing .
    
    :Edge a owl:ObjectProperty ;
-       rdfs:label "Edge" ;
+       rdfs:label "Myedge" ;
        rdfs:subPropertyOf biocypher:BioCypherRoot .
 
 
@@ -71,7 +71,6 @@ with 3 rows and 2 columns, those files would look like the following.
    :caption: The ``config.yaml`` file.
    
    biocypher:
-       schema_config_path: schema.yaml
        dbms: owl # For example, here, we output in an OWL file.
    
    head_ontology:
@@ -84,39 +83,105 @@ with 3 rows and 2 columns, those files would look like the following.
 
 
 .. code-block:: yaml
-   :caption: The ``schema.yaml`` file.
-
-   Thing:
-       represented_as: node
-       label_in_input: Thing
-   
-   Node:
-       represented_as: node
-       label_in_input: Node
-   
-   Edge:
-       represented_as: edge
-       label_in_input: Edge
-
-
-.. code-block:: yaml
    :caption: The ``mapping.yaml`` file.
    
    row:
-       column: Stuff
-       to_subect: Thing
+       map:
+           column: Stuff     # Columns are uppercased.
+           to_subject: thing # But types are converted to lowercase.
    transformers:
        - map:
            column: Gizmo
-           to_object: Node
-           via_relation: Edge
+           # You can map to any label,
+           # as the schema will have the
+           # last word on the actual type.
+           to_object: my_mapped_node
+           # But convention dictates to just
+           # use the type, as seen by BioCypher,
+           # because this is simpler to understand.
+           via_relation: myedge
+
+
+.. code-block:: yaml
+   :caption: The ``schema.yaml`` file.
+
+   # Note how BioCypher interprets
+   # uppercased labels as lowercased
+   # in this schenma file.
+   thing:
+       represented_as: node
+       label_in_input: thing
+   
+   mynode:
+       represented_as: node
+       # The label in input can be anything
+       # that comes from the mapping...
+       label_in_input: my_mapped_node
+   
+   myedge:
+       represented_as: edge
+       # ... or just the same than the type.
+       label_in_input: myedge
 
 
 Now, you have to run OntoWeaver, using all those files::
    
    location=$(ontoweave -C config.yaml -s schema.yaml data.csv:mapping.yaml)
 
-And now, ``echo $location`` will show you where is the populated OWL file.
+And now, ``echo $(dirname $location)`` will show you  in which directory is the populated OWL file.
+
+The output file should look like a populated OWL file:
+.. code-block:: ttl
+   :caption: The ``ontology.ttl`` file.
+   
+   # This part is the same as the input ontology:
+   @prefix : <https://my.domain.tld/ontology#> .
+   @prefix biocypher: <https://biocypher.org/biocypher#> .
+   @prefix owl: <http://www.w3.org/2002/07/owl#> .
+   @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+   owl:Thing a rdfs:Class ;
+       rdfs:label "Thing" ;
+       rdfs:subClassOf biocypher:BioCypherRoot .
+
+   biocypher:BioCypherRoot a rdfs:Class ;
+       rdfs:label "BioCypherRoot" .
+
+   :Node a rdfs:Class ;
+       rdfs:label "Mynode" ;
+       rdfs:subClassOf owl:Thing .
+
+   :Edge a owl:ObjectProperty ;
+       rdfs:label "Myedge" ;
+       rdfs:subPropertyOf biocypher:BioCypherRoot .
+
+   # This part contains the actual graph data:
+   :S1 a owl:NamedIndividual,
+           owl:Thing ;
+       rdfs:label "S1" ;
+       biocypher:id "S1" ;
+       biocypher:preferred_id "id" ;
+       :myedge :GA,
+           :GO .
+
+   :S2 a owl:NamedIndividual,
+           owl:Thing ;
+       rdfs:label "S2" ;
+       biocypher:id "S2" ;
+       biocypher:preferred_id "id" ;
+       :myedge :GO .
+
+   :GA a owl:NamedIndividual,
+           biocypher:Mynode ;
+       rdfs:label "GA" ;
+       biocypher:id "GA" ;
+       biocypher:preferred_id "id" .
+
+   :GO a owl:NamedIndividual,
+           biocypher:Mynode ;
+       rdfs:label "GO" ;
+       biocypher:id "GO" ;
+       biocypher:preferred_id "id" .
 
 
 Common Mapping

@@ -83,7 +83,7 @@ def read_file(filename, **kwargs):
         '.spss'   : pd.read_spss,
         '.stata'  : pd.read_stata,
     }
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
     ext = filepath.suffix
 
     if ext not in read_funcs:
