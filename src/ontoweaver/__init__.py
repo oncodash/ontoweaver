@@ -291,7 +291,7 @@ def read_table_file(filename, **kwargs):
         '.spss'   : pd.read_spss,
         '.stata'  : pd.read_stata,
     }
-    filepath = Path(filename)
+    filepath = pathlib.Path(filename)
     ext = filepath.suffix
 
     if ext not in read_funcs:
