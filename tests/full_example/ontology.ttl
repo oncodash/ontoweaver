@@ -1,0 +1,19 @@
+@prefix : <https://my.domain.tld/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix biocypher: <https://biocypher.org/biocypher#> .
+
+biocypher:BioCypherRoot a rdfs:Class ;
+     rdfs:label "BioCypherRoot" .
+
+owl:Thing a rdfs:Class ;
+    rdfs:label "Thing" ;
+    rdfs:subClassOf biocypher:BioCypherRoot .
+
+:Node a rdfs:Class ;
+    rdfs:label "Mynode" ;
+    rdfs:subClassOf owl:Thing .
+
+:Edge a owl:ObjectProperty ;
+    rdfs:label "Myedge" ;
+    rdfs:subPropertyOf biocypher:BioCypherRoot .

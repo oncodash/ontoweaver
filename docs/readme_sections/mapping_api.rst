@@ -10,13 +10,185 @@ file indicates:
 - to which (node) type to map columns of the table,
 - with which (edge) types to map relationships between nodes.
 
-The following explanations assume that you are familiar with
-`Biocypher’s
-configuration <https://biocypher.org/tutorial-ontology.html>`__, notably
-how it handles ontology alignment with schema configuration.
+
+Simplest possible full example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To build up a SKG from scratch, you will need at least five files:
+
+1. some data, for instance in a table: ``data.csv``,
+2. An ontology file, containing the taxonomy of types you want
+   to use: ``ontology.ttl``.
+3. a BioCypher configuration indicating what ontologies to use, and what
+   database to export to: ``config.yaml``,
+4. a schema configuration, indicating the graph structure that
+   you want: ``schema.yaml``,
+5. a mapping, indicating what column of the table to map on which type of the
+   ontology: ``mapping.yaml``.
+
+.. image:: OntoWeaver_simple-example.svg
+   :alt: A diagram showcasing the various files needed to configure an OntoWeaver run.
+
+Let' say we want to extract a graph of 4 nodes and 3 edges from a table
+with 3 rows and 2 columns, those files would look like the following.
+
+
+.. code-block:: csv
+   :caption: The ``data.csv`` file:
+   
+   Stuff,Gizmo
+   S1,GA
+   S1,GO
+   S2,GA
+
+
+.. code-block:: ttl
+   :caption: The ``ontology.ttl`` file.
+   
+   @prefix : <https://my.domain.tld/ontology#> .
+   @prefix owl: <http://www.w3.org/2002/07/owl#> .
+   @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+   @prefix biocypher: <https://biocypher.org/biocypher#> .
+   
+   biocypher:BioCypherRoot a rdfs:Class ;
+        rdfs:label "BioCypherRoot" .
+   
+   owl:Thing a rdfs:Class ;
+       rdfs:label "Thing" ; # Note how labels are uppercased.
+       rdfs:subClassOf biocypher:BioCypherRoot .
+   
+   :Node a rdfs:Class ;
+       rdfs:label "Mynode" ;
+       rdfs:subClassOf owl:Thing .
+   
+   :Edge a owl:ObjectProperty ;
+       rdfs:label "Myedge" ;
+       rdfs:subPropertyOf biocypher:BioCypherRoot .
+
+
+.. code-block:: yaml
+   :caption: The ``config.yaml`` file.
+   
+   biocypher:
+       dbms: owl # For example, here, we output in an OWL file.
+   
+   head_ontology:
+       url: my_ontology.ttl
+       root_node: BioCypherRoot
+   
+   owl: # Options for the chosen OWL DBMS.
+       rdf_format: turtle
+       edge_model: ObjectProperty
+
+
+.. code-block:: yaml
+   :caption: The ``mapping.yaml`` file.
+   
+   row:
+       map:
+           column: Stuff     # Columns are uppercased.
+           to_subject: thing # But types are converted to lowercase.
+   transformers:
+       - map:
+           column: Gizmo
+           # You can map to any label,
+           # as the schema will have the
+           # last word on the actual type.
+           to_object: my_mapped_node
+           # But convention dictates to just
+           # use the type, as seen by BioCypher,
+           # because this is simpler to understand.
+           via_relation: myedge
+
+
+.. code-block:: yaml
+   :caption: The ``schema.yaml`` file.
+
+   # Note how BioCypher interprets
+   # uppercased labels as lowercased
+   # in this schenma file.
+   thing:
+       represented_as: node
+       label_in_input: thing
+   
+   mynode:
+       represented_as: node
+       # The label in input can be anything
+       # that comes from the mapping...
+       label_in_input: my_mapped_node
+   
+   myedge:
+       represented_as: edge
+       # ... or just the same than the type.
+       label_in_input: myedge
+
+
+Now, you have to run OntoWeaver, using all those files::
+   
+   location=$(ontoweave -C config.yaml -s schema.yaml data.csv:mapping.yaml)
+
+And now, ``echo $(dirname $location)`` will show you  in which directory is the populated OWL file.
+
+The output file should look like a populated OWL file:
+.. code-block:: ttl
+   :caption: The ``ontology.ttl`` file.
+   
+   # This part is the same as the input ontology:
+   @prefix : <https://my.domain.tld/ontology#> .
+   @prefix biocypher: <https://biocypher.org/biocypher#> .
+   @prefix owl: <http://www.w3.org/2002/07/owl#> .
+   @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+   owl:Thing a rdfs:Class ;
+       rdfs:label "Thing" ;
+       rdfs:subClassOf biocypher:BioCypherRoot .
+
+   biocypher:BioCypherRoot a rdfs:Class ;
+       rdfs:label "BioCypherRoot" .
+
+   :Node a rdfs:Class ;
+       rdfs:label "Mynode" ;
+       rdfs:subClassOf owl:Thing .
+
+   :Edge a owl:ObjectProperty ;
+       rdfs:label "Myedge" ;
+       rdfs:subPropertyOf biocypher:BioCypherRoot .
+
+   # This part contains the actual graph data:
+   :S1 a owl:NamedIndividual,
+           owl:Thing ;
+       rdfs:label "S1" ;
+       biocypher:id "S1" ;
+       biocypher:preferred_id "id" ;
+       :myedge :GA,
+           :GO .
+
+   :S2 a owl:NamedIndividual,
+           owl:Thing ;
+       rdfs:label "S2" ;
+       biocypher:id "S2" ;
+       biocypher:preferred_id "id" ;
+       :myedge :GO .
+
+   :GA a owl:NamedIndividual,
+           biocypher:Mynode ;
+       rdfs:label "GA" ;
+       biocypher:id "GA" ;
+       biocypher:preferred_id "id" .
+
+   :GO a owl:NamedIndividual,
+           biocypher:Mynode ;
+       rdfs:label "GO" ;
+       biocypher:id "GO" ;
+       biocypher:preferred_id "id" .
+
 
 Common Mapping
 ~~~~~~~~~~~~~~
+
+The following explanations assume that you are familiar with `Biocypher’s
+configuration <https://biocypher.org/tutorial-ontology.html>`__, notably
+how it handles ontology alignment with schema configuration.
 
 The minimal configuration would be to map lines and one column, linked
 with a single-edge type.

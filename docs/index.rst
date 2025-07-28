@@ -18,3 +18,8 @@ Overview
    Information Fusion <./readme_sections/information_fusion.rst>
    Data Validation <./readme_sections/data_validation.rst>
    ontoweaver
+
+
+.. image:: OntoWeaver_simple-summary.svg
+   :alt: Diagram showing that OntoWeaver needs ontologies, tabular data and graph schema to produce a Semantic Knowledge Graph.
+
