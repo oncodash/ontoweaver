@@ -1,13 +1,11 @@
 import logging
 import math
-from abc import ABCMeta
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera import Column, Check
 
 from . import errormanager
-from . import base
 from . import exceptions
 
 logger = logging.getLogger("ontoweaver")

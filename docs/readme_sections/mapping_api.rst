@@ -130,6 +130,7 @@ Now, you have to run OntoWeaver, using all those files::
 And now, ``echo $(dirname $location)`` will show you  in which directory is the populated OWL file.
 
 The output file should look like a populated OWL file:
+
 .. code-block:: ttl
    :caption: The ``ontology.ttl`` file.
    
