@@ -7,6 +7,7 @@ import pathlib
 import platform
 import xdg_base_dirs as xdg
 import importlib
+import networkx
 
 error_codes = {
     "ParsingError"    :  65, # "data format"
@@ -16,6 +17,7 @@ error_codes = {
     "CannotAccessFile": 126, # "no perm"
     "FileError"       : 127, # "not found"
     "SubprocessError" : 128, # "bad exit"
+    "NetworkXError"   : 129, # probably "type not in the digraph"
     "OntoWeaverError" : 254,
     "Exception"       : 255,
 }
@@ -289,6 +291,10 @@ def main():
         except ontoweaver.exceptions.OntoWeaverError as e:
             logger.error(f"ERROR: "+str(e))
             sys.exit(error_codes["OntoWeaverError"])
+        except networkx.exception.NetworkXError as e:
+            logger.error(f"ERROR: "+str(e))
+            logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
+            sys.exit(error_codes["NetworkXError"])
         except Exception as e:
             logger.error(f"UNKNOWN ERROR: "+str(e))
             sys.exit(error_codes["Exception"])
