@@ -1129,6 +1129,10 @@ class YamlParser(Declare):
         return label_maker
 
     def _check_target_sanity(self, transformer_keyword_dict, transformer_type, transformer_index):
+        """
+        Preforms sanity checks on target transformer before assigning the target, edge and subject variables, and connected
+        columns.
+        """
 
         if not transformer_keyword_dict:
             self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
@@ -1175,6 +1179,8 @@ class YamlParser(Declare):
                     f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
 
+            logging.debug(f"AAAAAAAAAA{columns, target, edge, subject}")
+
             return columns, target, edge, subject
 
 
@@ -1197,46 +1203,12 @@ class YamlParser(Declare):
 
                 target_branching = False
 
-                # if not transformer_keyword_dict:
-                #     self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
-                #                f" `{transformer_index}`.", section="transformers", exception = exceptions.ParsingDeclarationsError)
-                #     continue
-                # elif any(field in transformer_keyword_dict for field in self.k_properties):
-                #     if any(field in transformer_keyword_dict for field in self.k_target):
-                #         prop = self.get(self.k_properties, transformer_keyword_dict)
-                #         target = self.get(self.k_target, transformer_keyword_dict)
-                #         self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
-                #                       f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
-                #                    transformer_index, exception = exceptions.CardinalityError)
-                #     continue
-                # elif type(transformer_keyword_dict) != dict:
-                #     self.error(str(transformer_keyword_dict) + " is not a dictionary", exception = exceptions.ParsingDeclarationsError)
-                # else:
-                #     columns = self.get(self.k_columns, pconfig=transformer_keyword_dict)
-                #     if type(columns) != list:
-                #         logger.debug(f"\tDeclared singular column")
-                #         # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
-                #         # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
-                #         if transformer_type != "rowIndex":
-                #             assert(type(columns) == str)
-                #             columns = [columns]
-                #
-                #     target = self.get(self.k_target, pconfig=transformer_keyword_dict)
-                #     if type(target) == list:
-                #         self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
-                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
-                #
-                #     subject = self.get(self.k_subject, pconfig=transformer_keyword_dict)
-                #     if type(subject) == list:
-                #         self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
-                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
-                #
-                #     edge = self.get(self.k_edge, pconfig=transformer_keyword_dict)
-                #     if type(edge) == list:
-                #         self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
-                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
+                elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
 
-                columns, target, edge, subject = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
+                if elements is None:
+                    continue
+                else:
+                    columns, target, edge, subject = elements
 
                 gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type, pconfig=transformer_keyword_dict)
 
