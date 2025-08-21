@@ -704,6 +704,10 @@ class YamlParser(Declare):
         super().__init__(module, raise_errors = raise_errors)
         self.config = config
         self.validate_output = validate_output
+        if not self.validate_output:
+            logger.info(
+                f"Transformer output validation will be skipped. This could result in some empty or `nan` nodes in your knowledge graph."
+                f" To enable output validation set `validate_output` to `True`.")
 
 
         logger.debug(f"Classes will be created in module '{self.module}'")
@@ -1178,8 +1182,6 @@ class YamlParser(Declare):
                 self.error(
                     f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
-
-            logging.debug(f"AAAAAAAAAA{columns, target, edge, subject}")
 
             return columns, target, edge, subject
 

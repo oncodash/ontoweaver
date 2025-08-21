@@ -193,8 +193,5 @@ class SkipValidator(Validator):
 
     def __call__(self, val):
 
-        logger.info(f"Transformer output validation skipped. This could result in some empty or `nan` nodes in your knowledge graph."
-                    f" To enable output validation set validate_output to True.")
-
         return True
 
