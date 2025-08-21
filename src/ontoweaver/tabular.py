@@ -1071,6 +1071,114 @@ class YamlParser(Declare):
 
         return possible_subject_types, subject_transformer, source_t, subject_columns
 
+    def _target_dictionary_sanity_checks(self, transformer_keyword_dict, transformer_type, transformer_index):
+        """
+        Helper function checking whether the keywords declared in the target transformer dictionary
+        are valid and existent.
+        """
+
+        if not transformer_keyword_dict:
+
+            self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
+                       f" `{transformer_index}`.", section="transformers",
+                       exception=exceptions.ParsingDeclarationsError)
+
+            return False
+
+        elif (any(field in transformer_keyword_dict for field in self.k_properties) and
+              any(field in transformer_keyword_dict for field in self.k_target)):
+
+                prop = self.get(self.k_properties, transformer_keyword_dict)
+                target = self.get(self.k_target, transformer_keyword_dict)
+
+                self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
+                           f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
+                           transformer_index, exception=exceptions.CardinalityError)
+
+                return False
+
+        elif type(transformer_keyword_dict) != dict:
+
+            self.error(str(transformer_keyword_dict) + " is not a dictionary",
+                       exception=exceptions.ParsingDeclarationsError)
+
+            return False
+
+        else:
+
+            return True
+
+
+    def _make_target_label_maker(self, target, edge, gen_data, columns, transformer_index, multi_type_dictionary):
+
+        label_maker = None
+
+        if (target and not edge) or (edge and not target):
+            self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
+                       f"missing either an object or a relation.", "transformers", transformer_index,
+                       indent=2, exception=exceptions.MissingDataError)
+        elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
+            label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
+                                                                match_type_from_column=gen_data["match_type_from_column"])
+
+        elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
+            label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+        else:
+            label_maker = make_labels.SimpleLabelMaker(raise_errors = self.raise_errors)
+
+        return label_maker
+
+    def _check_target_sanity(self, transformer_keyword_dict, transformer_type, transformer_index):
+
+        if not transformer_keyword_dict:
+            self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
+                       f" `{transformer_index}`.", section="transformers",
+                       exception=exceptions.ParsingDeclarationsError)
+
+        elif any(field in transformer_keyword_dict for field in self.k_properties):
+            if any(field in transformer_keyword_dict for field in self.k_target):
+                prop = self.get(self.k_properties, transformer_keyword_dict)
+                target = self.get(self.k_target, transformer_keyword_dict)
+                self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
+                           f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
+                           transformer_index, exception=exceptions.CardinalityError)
+
+        elif type(transformer_keyword_dict) != dict:
+            self.error(str(transformer_keyword_dict) + " is not a dictionary",
+                       exception=exceptions.ParsingDeclarationsError)
+
+        else:
+            columns = self.get(self.k_columns, pconfig=transformer_keyword_dict)
+            if type(columns) != list:
+                logger.debug(f"\tDeclared singular column")
+                # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
+                # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
+                if transformer_type != "rowIndex":
+                    assert (type(columns) == str)
+                    columns = [columns]
+
+            target = self.get(self.k_target, pconfig=transformer_keyword_dict)
+            if type(target) == list:
+                self.error(
+                    f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
+                    section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
+
+            subject = self.get(self.k_subject, pconfig=transformer_keyword_dict)
+            if type(subject) == list:
+                self.error(
+                    f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
+                    section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
+
+            edge = self.get(self.k_edge, pconfig=transformer_keyword_dict)
+            if type(edge) == list:
+                self.error(
+                    f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
+                    section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
+
+            return columns, target, edge, subject
+
+
+
 
     def parse_targets(self, transformers_list, properties_of, source_t, metadata_list, metadata):
         """
@@ -1082,156 +1190,138 @@ class YamlParser(Declare):
         possible_edge_types = set()
 
         logger.debug(f"Declare types...")
-        for n_transformer,transformer_types in enumerate(transformers_list):
-            for transformer_type, field_dict in transformer_types.items():
-                if not field_dict:
-                    continue
-                elif any(field in field_dict for field in self.k_properties):
-                    if any(field in field_dict for field in self.k_target):
-                        prop = self.get(self.k_properties, field_dict)
-                        target = self.get(self.k_target, field_dict)
-                        self.error(f"ERROR in transformer '{transformer_type}': one cannot "
-                                      f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
-                                   n_transformer, exception = exceptions.CardinalityError)
-                    continue
-                else:
-                    if type(field_dict) != dict:
-                        self.error(str(field_dict)+" is not a dictionary", exception = exceptions.ParsingDeclarationsError)
+        # Iterate through the list of target transformers and extract the information needed to create the
+        # corresponding classes.
+        for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
+            for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
-                    columns = self.get(self.k_columns, pconfig=field_dict)
-                    if type(columns) != list:
-                        logger.debug(f"\tDeclared singular column")
-                        # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
-                        # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
-                        if transformer_type != "rowIndex":
-                            assert(type(columns) == str)
-                            columns = [columns]
+                target_branching = False
 
-                    target = self.get(self.k_target, pconfig=field_dict)
-                    if type(target) == list:
-                        self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
-                                   section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
+                # if not transformer_keyword_dict:
+                #     self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
+                #                f" `{transformer_index}`.", section="transformers", exception = exceptions.ParsingDeclarationsError)
+                #     continue
+                # elif any(field in transformer_keyword_dict for field in self.k_properties):
+                #     if any(field in transformer_keyword_dict for field in self.k_target):
+                #         prop = self.get(self.k_properties, transformer_keyword_dict)
+                #         target = self.get(self.k_target, transformer_keyword_dict)
+                #         self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
+                #                       f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
+                #                    transformer_index, exception = exceptions.CardinalityError)
+                #     continue
+                # elif type(transformer_keyword_dict) != dict:
+                #     self.error(str(transformer_keyword_dict) + " is not a dictionary", exception = exceptions.ParsingDeclarationsError)
+                # else:
+                #     columns = self.get(self.k_columns, pconfig=transformer_keyword_dict)
+                #     if type(columns) != list:
+                #         logger.debug(f"\tDeclared singular column")
+                #         # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
+                #         # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
+                #         if transformer_type != "rowIndex":
+                #             assert(type(columns) == str)
+                #             columns = [columns]
+                #
+                #     target = self.get(self.k_target, pconfig=transformer_keyword_dict)
+                #     if type(target) == list:
+                #         self.error(f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
+                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
+                #
+                #     subject = self.get(self.k_subject, pconfig=transformer_keyword_dict)
+                #     if type(subject) == list:
+                #         self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
+                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
+                #
+                #     edge = self.get(self.k_edge, pconfig=transformer_keyword_dict)
+                #     if type(edge) == list:
+                #         self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
+                #                    section="transformers", index=transformer_index, indent=1, exception = exceptions.CardinalityError)
 
-                    subject = self.get(self.k_subject, pconfig=field_dict)
-                    if type(subject) == list:
-                        self.error(f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
-                                   section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
+                columns, target, edge, subject = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
 
-                    edge = self.get(self.k_edge, pconfig=field_dict)
-                    if type(edge) == list:
-                        self.error(f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
-                                   section="transformers", index=n_transformer, indent=1, exception = exceptions.CardinalityError)
+                gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type, pconfig=transformer_keyword_dict)
 
-                    gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type, pconfig=field_dict)
+                # Extract the final type if defined in the mapping.
+                final_type = self.get(self.k_final_type, pconfig=transformer_keyword_dict)
 
-                    # Extract the final type if defined in the mapping.
-                    final_type = self.get(self.k_final_type, pconfig=field_dict)
+                final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
+                                                                  metadata_list, columns, properties_of)
 
-                    final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
-                                                                      metadata_list, columns, properties_of)
+                # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
+                # from_subject` is used in the transformer class to refer to the source node type.
+                if 'from_source' in gen_data:
+                    gen_data['from_subject'] = gen_data['from_source']
+                    del gen_data['from_source']
 
-                    # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
-                    # from_subject` is used in the transformer class to refer to the source node type.
-                    if 'from_source' in gen_data:
-                        gen_data['from_subject'] = gen_data['from_source']
-                        del gen_data['from_source']
+                multi_type_dictionary = {}
 
-                    multi_type_dictionary = {}
+                if "match" in gen_data:
 
-                    if "match" in gen_data:
+                    target_branching = True
 
-                        self._make_branching_dict(subject=False, match_parser=gen_data["match"],
-                                                  properties_of=properties_of, metadata_list=metadata_list,
-                                                  metadata=metadata,
-                                                  columns=columns, final_type_class=final_type_class,
-                                                  multi_type_dictionary=multi_type_dictionary,
-                                                  possible_node_types=possible_target_types,
-                                                  possible_edge_types=possible_edge_types)
+                    self._make_branching_dict(subject=False, match_parser=gen_data["match"],
+                                              properties_of=properties_of, metadata_list=metadata_list,
+                                              metadata=metadata,
+                                              columns=columns, final_type_class=final_type_class,
+                                              multi_type_dictionary=multi_type_dictionary,
+                                              possible_node_types=possible_target_types,
+                                              possible_edge_types=possible_edge_types)
+
+                # Parse the validation rules for the output of the transformer. Each transformer gets its own
+                # instance of the OutputValidator with (at least) the default output validation rules.
+                output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
+                output_validator = self._make_output_validator(output_validation_rules)
+
+                if target and edge:
+                    logger.debug(f"\tDeclare node .target for `{target}`...")
+                    target_t = self.make_node_class(target, properties_of.get(target, {}))
+                    possible_target_types.add(target)
+                    logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
+                    if subject:
+                        logger.debug(f"\tDeclare subject for `{subject}`...")
+                        subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
+                        possible_target_types.add(subject_t.__name__)
+                        edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
+                        possible_edge_types.add(edge_t.__name__)
+                    else:
+                        logger.debug(f"\tDeclare edge for `{edge}`...")
+                        edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+                        possible_edge_types.add(edge_t.__name__)
+
+                    # "None" key is used to return any type of string, in case no branching is needed.
+                    multi_type_dictionary['None'] = {
+                        'to_object': target_t,
+                        'via_relation': edge_t,
+                        'final_type': final_type_class
+                    }
 
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
-                    output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
+                    output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
                     output_validator = self._make_output_validator(output_validation_rules)
 
-                    if target and edge:
-                        logger.debug(f"\tDeclare node .target for `{target}`...")
-                        target_t = self.make_node_class(target, properties_of.get(target, {}))
-                        possible_target_types.add(target)
-                        logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
-                        if subject:
-                            logger.debug(f"\tDeclare subject for `{subject}`...")
-                            subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
-                            possible_target_types.add(subject_t.__name__)
-                            edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
-                            possible_edge_types.add(edge_t.__name__)
-                        else:
-                            logger.debug(f"\tDeclare edge for `{edge}`...")
-                            edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
-                            possible_edge_types.add(edge_t.__name__)
+                    logger.debug(f"\tDeclare transformer `{transformer_type}`...")
 
-                        # "None" key is used to return any type of string, in case no branching is needed.
-                        multi_type_dictionary['None'] = {
-                            'to_object': target_t,
-                            'via_relation': edge_t,
-                            'final_type': final_type_class
-                        }
+                label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
+                target_transformer = self.make_transformer_class(transformer_type=transformer_type,
+                                                                 multi_type_dictionary=multi_type_dictionary,
+                                                                 branching_properties=properties_of if target_branching else None,
+                                                                 properties=properties_of.get(target_t.__name__,
+                                                                                              {}) if not target_branching else None,
+                                                                 columns=columns,
+                                                                 output_validator=output_validator,
+                                                                 label_maker=label_maker,
+                                                                 raise_errors=self.raise_errors, **gen_data)
+                transformers.append(target_transformer)
+                # Declare the metadata for the target and edge types.
 
-                        # Parse the validation rules for the output of the transformer. Each transformer gets its own
-                        # instance of the OutputValidator with (at least) the default output validation rules.
-                        output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
-                        output_validator = self._make_output_validator(output_validation_rules)
+                extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, target, columns)
+                if extracted_metadata:
+                    metadata.update(extracted_metadata)
 
-                        logger.debug(f"\tDeclare transformer `{transformer_type}`...")
-                        target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                         multi_type_dictionary=multi_type_dictionary,
-                                                                         properties=properties_of.get(target, {}),
-                                                                         columns=columns,
-                                                                         output_validator=output_validator,
-                                                                         label_maker=make_labels.SimpleLabelMaker(
-                                                                             raise_errors=self.raise_errors),
-                                                                         raise_errors=self.raise_errors, **gen_data)
-                        transformers.append(target_transformer)
-                        logger.debug(f"\t\tDeclared mapping `{columns}` => `{edge_t.__name__}`")
-                    elif (target and not edge) or (edge and not target):
-                        self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
-                                   f"missing either an object or a relation.", "transformers", n_transformer,
-                                   indent=2, exception = exceptions.MissingDataError)
-
-
-                    elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
-                        target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                         multi_type_dictionary=multi_type_dictionary,
-                                                                         branching_properties=properties_of,
-                                                                         columns=columns,
-                                                                         output_validator=output_validator,
-                                                                         label_maker=make_labels.MultiTypeOnColumnLabelMaker(
-                                                                             raise_errors=self.raise_errors, match_type_from_column=gen_data["match_type_from_column"]),
-                                                                         raise_errors=self.raise_errors, **gen_data)
-
-                        transformers.append(target_transformer)
-
-                    elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
-                        target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                         multi_type_dictionary=multi_type_dictionary,
-                                                                         branching_properties=properties_of,
-                                                                         columns=columns,
-                                                                         output_validator=output_validator,
-                                                                         label_maker=make_labels.MultiTypeLabelMaker(
-                                                                             raise_errors=self.raise_errors),
-                                                                         raise_errors=self.raise_errors, **gen_data)
-
-                        transformers.append(target_transformer)
-
-                    # Declare the metadata for the target and edge types.
-
-                    extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, target, columns)
+                if edge:
+                    extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, edge, None)
                     if extracted_metadata:
                         metadata.update(extracted_metadata)
-
-                    if edge:
-                        extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, edge, None)
-                        if extracted_metadata:
-                            metadata.update(extracted_metadata)
 
         return transformers, possible_target_types, possible_edge_types
 
