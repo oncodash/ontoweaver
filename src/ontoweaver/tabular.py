@@ -1186,6 +1186,30 @@ class YamlParser(Declare):
             return columns, target, edge, subject
 
 
+    def _make_target_classes(self, target, properties_of, edge, source_t, final_type_class, possible_target_types, possible_edge_types, multi_type_dictionary):
+        """
+        Helper function to create the target and edge classes for a target transformer, and store them in the multi_type_dictionary.
+        """
+
+        logger.debug(f"\tDeclare node .target for `{target}`...")
+        target_t = self.make_node_class(target, properties_of.get(target, {}))
+        possible_target_types.add(target)
+        logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
+
+        logger.debug(f"\tDeclare edge for `{edge}`...")
+        edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+        possible_edge_types.add(edge_t.__name__)
+
+        # "None" key is used to return any type of string, in case no branching is needed.
+        multi_type_dictionary['None'] = {
+            'to_object': target_t,
+            'via_relation': edge_t,
+            'final_type': final_type_class
+        }
+
+        return edge_t, target_t
+
+
 
 
     def parse_targets(self, transformers_list, properties_of, source_t, metadata_list, metadata):
@@ -1228,6 +1252,21 @@ class YamlParser(Declare):
 
                 multi_type_dictionary = {}
 
+                #The target transformer is a simple transformer if it does not have a `match` clause. We create a simple multi_type_dictionary,
+                #with a "None" key, to indicate that no branching is needed.
+                if target and edge:
+
+                    edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, possible_target_types, possible_edge_types, multi_type_dictionary)
+
+                    # Parse the validation rules for the output of the transformer. Each transformer gets its own
+                    # instance of the OutputValidator with (at least) the default output validation rules.
+                    output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
+                    output_validator = self._make_output_validator(output_validation_rules)
+
+                    logger.debug(f"\tDeclare transformer `{transformer_type}`...")
+
+                #The target transformer is a branching transformer if it has a `match` clause. We create a branching dictionary.
+                #The keys of the dictionary are the regex patterns to be matched against the extracted value of the column.
                 if "match" in gen_data:
 
                     target_branching = True
@@ -1244,36 +1283,6 @@ class YamlParser(Declare):
                 # instance of the OutputValidator with (at least) the default output validation rules.
                 output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
                 output_validator = self._make_output_validator(output_validation_rules)
-
-                if target and edge:
-                    logger.debug(f"\tDeclare node .target for `{target}`...")
-                    target_t = self.make_node_class(target, properties_of.get(target, {}))
-                    possible_target_types.add(target)
-                    logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
-                    if subject:
-                        logger.debug(f"\tDeclare subject for `{subject}`...")
-                        subject_t = self.make_node_class(subject, properties_of.get(subject, {}))
-                        possible_target_types.add(subject_t.__name__)
-                        edge_t = self.make_edge_class(edge, subject_t, target_t, properties_of.get(edge, {}))
-                        possible_edge_types.add(edge_t.__name__)
-                    else:
-                        logger.debug(f"\tDeclare edge for `{edge}`...")
-                        edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
-                        possible_edge_types.add(edge_t.__name__)
-
-                    # "None" key is used to return any type of string, in case no branching is needed.
-                    multi_type_dictionary['None'] = {
-                        'to_object': target_t,
-                        'via_relation': edge_t,
-                        'final_type': final_type_class
-                    }
-
-                    # Parse the validation rules for the output of the transformer. Each transformer gets its own
-                    # instance of the OutputValidator with (at least) the default output validation rules.
-                    output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
-                    output_validator = self._make_output_validator(output_validation_rules)
-
-                    logger.debug(f"\tDeclare transformer `{transformer_type}`...")
 
                 label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
                 target_transformer = self.make_transformer_class(transformer_type=transformer_type,
