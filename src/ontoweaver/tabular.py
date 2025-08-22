@@ -269,6 +269,127 @@ class PandasAdapter(base.Adapter):
         """
         return edge_t(id_source=id_source, id_target=id_target, properties=properties)
 
+    # ==========================
+    # Helper functions for run
+    # ==========================
+
+    def _make_default_source_node_id(self, row, i, local_nodes, local_errors):
+        """
+        Helper function to create the default source node id for each row. Referred to as default because of possibility
+        of it changing type with `from_subject` attribute in transformers.
+        """
+
+        logger.debug("\tLabelMaker subject node:")
+        subject_generator_list = list(self.subject_transformer(row, i))
+        if (len(subject_generator_list) > 1):
+            local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. "
+                                           f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
+                                           f"{subject_generator_list}", indent=2,
+                                           exception=exceptions.TransformerInterfaceError))
+
+        source_id, subject_edge, subject_node = subject_generator_list[0]
+
+        if self.subject_transformer.final_type:
+            # If a final_type attribute is present in the transformer, use it as the source node type, instead
+            # of the default type.
+            subject_node = self.subject_transformer.final_type
+
+        if source_id:
+            source_node_id = self.make_id(subject_node.__name__, source_id)
+
+            if source_node_id:
+                logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
+                local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
+                                                  # FIXME: Should we use the meta-way of accessing node properties as well?
+                                                  # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
+                                                  properties=self.properties(self.subject_transformer.properties_of,
+                                                                             row, i, subject_edge, subject_node,
+                                                                             node=True)))
+            else:
+                local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
+                                               indent=2, exception=exceptions.DeclarationError))
+
+            return source_node_id
+
+        else:
+            local_errors.append(self.error(f"No valid source node identifier from {self.subject_transformer} for {i}th row."
+                                           f" This row will be skipped.", indent=2, exception = exceptions.TransformerDataError))
+
+    def _make_target_node_id(self, row, i, transformer, j, target_id, target_edge, target_node, local_nodes, local_errors):
+        """
+        Helper function to create the target node id for each target transformer.
+        """
+
+        if target_id and target_edge and target_node:
+
+            if transformer.final_type:
+                # If a final_type attribute is present in the transformer, use it as the target node type, instead
+                # of the default type.
+                target_node = transformer.final_type
+
+            target_node_id = self.make_id(target_node.__name__, target_id)
+            logger.debug(f"\t\tMake node {target_node_id}")
+            local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
+                                              # FIXME: Should we use the meta-way of accessing node properties as well?
+                                              # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
+                                              properties=self.properties(transformer.properties_of, row,
+                                                                         i, target_edge, target_node, node=True)))
+
+        else:
+            local_errors.append(self.error(f"No valid target node identifier from {transformer}"
+                                           f" for {i}th row.", indent=2, section="transformers",
+                                           index=j, exception=exceptions.TransformerDataError))
+
+            target_node_id = None
+
+        return target_node_id
+
+    def _make_alternative_source_node_id(self, row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors):
+        """
+        Helper function to create an alternative source node id, in case the target transformer has a `from_subject` attribute.
+        """
+
+        found_valid_subject = False
+
+        for t in self.transformers:
+            if transformer.from_subject == t.target_type:
+                found_valid_subject = True
+                for s_id, s_edge, s_node in t(row, i):
+                    if s_id and s_edge and s_node:
+                        if t.final_type:
+                            s_node = t.final_type
+                        subject_id = s_id
+                        subject_node_id = self.make_id(t.target_type, subject_id)
+                        logger.debug(
+                            f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
+                        local_edges.append(
+                            self.make_edge(edge_t=target_edge, id_source=subject_node_id,
+                                           id_target=target_node_id,
+                                           properties=self.properties(target_edge.fields(),
+                                                                      row, i, s_edge, s_node)))
+
+                    else:
+                        local_errors.append(self.error(
+                            f"No valid identifiers from {t} for {i}th row, when trying to change default subject type",
+                            f"by {transformer} with `from_subject` attribute.",
+                            indent=7, section="transformers", index=j,
+                            exception=exceptions.TransformerDataError))
+                        continue
+
+            else:
+                # The transformer instance type does not match the type in the `from_subject` attribute.
+                continue
+
+        if not found_valid_subject:
+            local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
+                                           f" The subject you declared in the `from_subject` directive: `"
+                                           f"{transformer.from_subject}` must not be the same as the default subject type.",
+                                           exception=exceptions.ConfigError))
+
+    # =============
+    # Run function
+    # =============
+
     def run(self):
         """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
 
@@ -289,127 +410,55 @@ class PandasAdapter(base.Adapter):
             local_nodes = []
             local_edges = []
             local_errors = []
+            #FIXME: Final counter numbers seem a bit off for local_transformations.
             local_rows = 0
             local_transformations = 0
             local_nb_nodes = 0
 
             logger.debug(f"Process row {i}...")
             local_rows += 1
-            # There can be only one subject, so transformers yielding multiple IDs cannot be used.
-            logger.debug("\tLabelMaker subject node:")
-            subject_generator_list = list(self.subject_transformer(row, i))
-            if (len(subject_generator_list) > 1):
-                local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. "
-                                               f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
-                                               f"{subject_generator_list}", indent=2, exception = exceptions.TransformerInterfaceError))
 
-            source_id, subject_edge, subject_node = subject_generator_list[0]
+            source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
 
-            if self.subject_transformer.final_type:
-                # If a final_type attribute is present in the transformer, use it as the source node type, instead
-                # of the default type.
-                subject_node = self.subject_transformer.final_type
+            if source_node_id:
+                local_nb_nodes += 1
 
-            if source_id:
-                source_node_id = self.make_id(subject_node.__name__, source_id)
+            # Loop over list of transformer instances and label_maker corresponding nodes and edges.
+            # FIXME the transformer variable here shadows the transformer module.
+            for j,transformer in enumerate(self.transformers):
+                local_transformations += 1
+                logger.debug(f"\tCalling transformer: {transformer}...")
+                for target_id, target_edge, target_node in transformer(row, i):
+                    target_node_id = self._make_target_node_id(row, i, transformer, j, target_id, target_edge,
+                                                               target_node, local_nodes, local_errors)
 
-                if source_node_id:
-                    logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
-                    local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
-                                                      # FIXME: Should we use the meta-way of accessing node properties as well?
-                                                      # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                                                      properties=self.properties(self.subject_transformer.properties_of,
-                                                                                 row, i, subject_edge, subject_node,
-                                                                                 node=True)))
-                else:
-                    local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
-                                                   indent=2, exception = exceptions.DeclarationError))
-
-                # Loop over list of transformer instances and label_maker corresponding nodes and edges.
-                # FIXME the transformer variable here shadows the transformer module.
-                for j,transformer in enumerate(self.transformers):
-                    local_transformations += 1
-                    logger.debug(f"\tCalling transformer: {transformer}...")
-                    for target_id, target_edge, target_node in transformer(row, i):
+                    #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
+                    #and we move to the next iteration of the loop.
+                    if target_node_id is None:
+                        continue
+                    else:
                         local_nb_nodes += 1
-                        if target_id and target_edge and target_node:
 
-                            if transformer.final_type:
-                                # If a final_type attribute is present in the transformer, use it as the target node type, instead
-                                # of the default type.
-                                target_node = transformer.final_type
+                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                        # list to find the transformer instance mapping to the correct type, and then label_maker new
+                        # subject id.
 
-                            target_node_id = self.make_id(target_node.__name__, target_id)
-                            logger.debug(f"\t\tMake node {target_node_id}")
-                            local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
-                                                              # FIXME: Should we use the meta-way of accessing node properties as well?
-                                                              # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                                                              properties=self.properties(transformer.properties_of, row,
-                                                                                         i, target_edge, target_node, node=True)))
+                        # FIXME add hook functions to be overloaded.
 
-                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                            # list to find the transformer instance mapping to the correct type, and then label_maker new
-                            # subject id.
+                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
-                            # FIXME add hook functions to be overloaded.
+                        if hasattr(transformer, "from_subject"):
 
-                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
-
-                            if hasattr(transformer, "from_subject"):
-
-                                found_valid_subject = False
-
-                                for t in self.transformers:
-                                    if transformer.from_subject == t.target_type:
-                                        found_valid_subject = True
-                                        for s_id, s_edge, s_node in t(row, i):
-                                            if s_id and s_edge and s_node:
-                                                if t.final_type:
-                                                    s_node = t.final_type
-                                                subject_id = s_id
-                                                subject_node_id = self.make_id(t.target_type, subject_id)
-                                                logger.debug(
-                                                    f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
-                                                local_edges.append(
-                                                    self.make_edge(edge_t=target_edge, id_source=subject_node_id,
-                                                                   id_target=target_node_id,
-                                                                   properties=self.properties(target_edge.fields(),
-                                                                                              row, i, s_edge, s_node)))
-
-                                            else:
-                                                local_errors.append(self.error(
-                                                    f"No valid identifiers from {t} for {i}th row, when trying to change default subject type",
-                                                    f"by {transformer} with `from_subject` attribute.",
-                                                    indent=7, section="transformers", index=j,
-                                                    exception=exceptions.TransformerDataError))
-                                                continue
-
-                                    else:
-                                        # The transformer instance type does not match the type in the `from_subject` attribute.
-                                        continue
-
-                                if not found_valid_subject:
-                                    local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
-                                                                   f" The subject you declared in the `from_subject` directive: `"
-                                                                   f"{transformer.from_subject}` must not be the same as the default subject type.",
-                                                                   exception=exceptions.ConfigError))
+                            self._make_alternative_source_node_id(
+                                row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors)
 
 
-                            else: # no attribute `from_subject` in `transformer`
-                                logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
-                                local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
-                                                                  id_source=source_node_id,
-                                                                  properties=self.properties(target_edge.fields(),
-                                                                                             row, i, target_edge, target_node)))
-                        else:
-                            local_errors.append(self.error(f"No valid target node identifier from {transformer}"
-                                                           f" for {i}th row.", indent=2, section="transformers",
-                                                           index=j, exception = exceptions.TransformerDataError))
-                            continue
-            else:
-                local_errors.append(self.error(f"No valid source node identifier from {self.subject_transformer} for {i}th row."
-                                               f" This row will be skipped.", indent=2, exception = exceptions.TransformerDataError))
-                return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
+                        else: # no attribute `from_subject` in `transformer`
+                            logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
+                            local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
+                                                              id_source=source_node_id,
+                                                              properties=self.properties(target_edge.fields(),
+                                                                                         row, i, target_edge, target_node)))
 
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
         # End of process_row local function
@@ -527,6 +576,8 @@ class Declare(errormanager.ErrorManager):
                  ):
         super().__init__(raise_errors)
         self.module = module
+
+
 
     def make_node_class(self, name, properties={}, base=base.Node):
         """
@@ -712,6 +763,29 @@ class YamlParser(Declare):
 
         logger.debug(f"Classes will be created in module '{self.module}'")
 
+
+    def _get_input_validation_rules(self,):
+        """
+        Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
+        """
+        k_validate = ["validate"]
+        validation_rules = self.get(k_validate)
+        yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
+        validator = None
+
+        try:
+            validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
+            validator = validate.InputValidator(validation_schema, raise_errors=self.raise_errors)
+        except Exception as e:
+            self.error(f"Failed to parse the input validation schema: {e}", exception=exceptions.ConfigError)
+
+        return validator
+
+
+    # ====================================================================
+    # Getter functions for retrieval of dictionary items from YAML config
+    # ====================================================================
+
     def get_not(self, keys, pconfig=None):
         """
         Get the first dictionary (key, item) not matching any of the passed keys.
@@ -748,6 +822,11 @@ class YamlParser(Declare):
             if k in pconfig:
                 return pconfig[k]
         return None
+
+
+    # ================================================================
+    # Helper Functions for both Target, Subject and Property parsing
+    # ================================================================
 
     def _extract_metadata(self, k_metadata_column, metadata_list, metadata, types, columns):
         """
@@ -807,24 +886,6 @@ class YamlParser(Declare):
             return metadata
         else:
             return None
-
-
-    def _get_input_validation_rules(self,):
-        """
-        Extract input data validation schema from yaml file and instantiate a Pandera DataFrameSchema object and validator.
-        """
-        k_validate = ["validate"]
-        validation_rules = self.get(k_validate)
-        yaml_validation_rules = yaml.dump(validation_rules, default_flow_style=False)
-        validator = None
-
-        try:
-            validation_schema = pa.DataFrameSchema.from_yaml(yaml_validation_rules)
-            validator = validate.InputValidator(validation_schema, raise_errors=self.raise_errors)
-        except Exception as e:
-            self.error(f"Failed to parse the input validation schema: {e}", exception=exceptions.ConfigError)
-
-        return validator
 
     def _make_output_validator(self, output_validation_rules = None):
         """
@@ -928,6 +989,11 @@ class YamlParser(Declare):
                         'final_type': final_type_class if final_type_class else alt_final_type_class
                     }
 
+
+    # ============================================================
+    # Property parsing
+    # ============================================================
+
     def parse_properties(self, properties_of, possible_subject_types, transformers_list):
         """
         Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
@@ -982,6 +1048,10 @@ class YamlParser(Declare):
                         logger.debug(f"\t\tDeclared property mapping for `{object_type}`: {properties_of[object_type]}")
 
         return properties_of
+
+    # ============================================================
+    # Subject parsing
+    # ============================================================
 
     def parse_subject(self, properties_of, transformers_list, metadata_list, metadata):
         """
@@ -1075,6 +1145,9 @@ class YamlParser(Declare):
 
         return possible_subject_types, subject_transformer, source_t, subject_columns
 
+    # ============================================================
+    # Target Transformer Parsing and Helper Functions
+    # ============================================================
 
     def _make_target_label_maker(self, target, edge, gen_data, columns, transformer_index, multi_type_dictionary):
 
@@ -1172,8 +1245,9 @@ class YamlParser(Declare):
 
         return edge_t, target_t
 
-
-
+    # ============================================================
+    # Target parsing
+    # ============================================================
 
     def parse_targets(self, transformers_list, properties_of, source_t, metadata_list, metadata):
         """
