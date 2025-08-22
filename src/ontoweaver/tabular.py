@@ -1075,43 +1075,6 @@ class YamlParser(Declare):
 
         return possible_subject_types, subject_transformer, source_t, subject_columns
 
-    def _target_dictionary_sanity_checks(self, transformer_keyword_dict, transformer_type, transformer_index):
-        """
-        Helper function checking whether the keywords declared in the target transformer dictionary
-        are valid and existent.
-        """
-
-        if not transformer_keyword_dict:
-
-            self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
-                       f" `{transformer_index}`.", section="transformers",
-                       exception=exceptions.ParsingDeclarationsError)
-
-            return False
-
-        elif (any(field in transformer_keyword_dict for field in self.k_properties) and
-              any(field in transformer_keyword_dict for field in self.k_target)):
-
-                prop = self.get(self.k_properties, transformer_keyword_dict)
-                target = self.get(self.k_target, transformer_keyword_dict)
-
-                self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
-                           f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
-                           transformer_index, exception=exceptions.CardinalityError)
-
-                return False
-
-        elif type(transformer_keyword_dict) != dict:
-
-            self.error(str(transformer_keyword_dict) + " is not a dictionary",
-                       exception=exceptions.ParsingDeclarationsError)
-
-            return False
-
-        else:
-
-            return True
-
 
     def _make_target_label_maker(self, target, edge, gen_data, columns, transformer_index, multi_type_dictionary):
 
@@ -1230,7 +1193,6 @@ class YamlParser(Declare):
                 target_branching = False
 
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
-
                 if elements is None:
                     continue
                 else:
@@ -1240,7 +1202,6 @@ class YamlParser(Declare):
 
                 # Extract the final type if defined in the mapping.
                 final_type = self.get(self.k_final_type, pconfig=transformer_keyword_dict)
-
                 final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
                                                                   metadata_list, columns, properties_of)
 
@@ -1255,14 +1216,11 @@ class YamlParser(Declare):
                 #The target transformer is a simple transformer if it does not have a `match` clause. We create a simple multi_type_dictionary,
                 #with a "None" key, to indicate that no branching is needed.
                 if target and edge:
-
                     edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, possible_target_types, possible_edge_types, multi_type_dictionary)
-
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
                     output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
                     output_validator = self._make_output_validator(output_validation_rules)
-
                     logger.debug(f"\tDeclare transformer `{transformer_type}`...")
 
                 #The target transformer is a branching transformer if it has a `match` clause. We create a branching dictionary.
@@ -1270,7 +1228,6 @@ class YamlParser(Declare):
                 if "match" in gen_data:
 
                     target_branching = True
-
                     self._make_branching_dict(subject=False, match_parser=gen_data["match"],
                                               properties_of=properties_of, metadata_list=metadata_list,
                                               metadata=metadata,
@@ -1278,7 +1235,6 @@ class YamlParser(Declare):
                                               multi_type_dictionary=multi_type_dictionary,
                                               possible_node_types=possible_target_types,
                                               possible_edge_types=possible_edge_types)
-
                 # Parse the validation rules for the output of the transformer. Each transformer gets its own
                 # instance of the OutputValidator with (at least) the default output validation rules.
                 output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
@@ -1300,7 +1256,6 @@ class YamlParser(Declare):
                 extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, target, columns)
                 if extracted_metadata:
                     metadata.update(extracted_metadata)
-
                 if edge:
                     extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, edge, None)
                     if extracted_metadata:
