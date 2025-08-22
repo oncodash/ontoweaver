@@ -386,86 +386,10 @@ class PandasAdapter(base.Adapter):
                                            f"{transformer.from_subject}` must not be the same as the default subject type.",
                                            exception=exceptions.ConfigError))
 
-    # =============
-    # Run function
-    # =============
-
-    def run(self):
-        """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
-
-        # Thread-safe containers with their respective locks
-        self._nodes = []
-        self._edges = []
-        self._errors = []
-        self._nodes_lock = threading.Lock()
-        self._edges_lock = threading.Lock()
-        self._errors_lock = threading.Lock()
-        self._row_lock = threading.Lock()
-        self._transformations_lock = threading.Lock()
-        self._local_nb_nodes_lock = threading.Lock()
-
-        # Function to process a single row and collect operations
-        def process_row(row_data):
-            i, row = row_data
-            local_nodes = []
-            local_edges = []
-            local_errors = []
-            #FIXME: Final counter numbers seem a bit off for local_transformations.
-            local_rows = 0
-            local_transformations = 0
-            local_nb_nodes = 0
-
-            logger.debug(f"Process row {i}...")
-            local_rows += 1
-
-            source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
-
-            if source_node_id:
-                local_nb_nodes += 1
-
-            # Loop over list of transformer instances and label_maker corresponding nodes and edges.
-            # FIXME the transformer variable here shadows the transformer module.
-            for j,transformer in enumerate(self.transformers):
-                local_transformations += 1
-                logger.debug(f"\tCalling transformer: {transformer}...")
-                for target_id, target_edge, target_node in transformer(row, i):
-                    target_node_id = self._make_target_node_id(row, i, transformer, j, target_id, target_edge,
-                                                               target_node, local_nodes, local_errors)
-
-                    #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
-                    #and we move to the next iteration of the loop.
-                    if target_node_id is None:
-                        continue
-                    else:
-                        local_nb_nodes += 1
-
-                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                        # list to find the transformer instance mapping to the correct type, and then label_maker new
-                        # subject id.
-
-                        # FIXME add hook functions to be overloaded.
-
-                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
-
-                        if hasattr(transformer, "from_subject"):
-
-                            self._make_alternative_source_node_id(
-                                row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors)
-
-
-                        else: # no attribute `from_subject` in `transformer`
-                            logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
-                            local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
-                                                              id_source=source_node_id,
-                                                              properties=self.properties(target_edge.fields(),
-                                                                                         row, i, target_edge, target_node)))
-
-            return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
-        # End of process_row local function
-
-        nb_rows = 0
-        nb_transformations = 0
-        nb_nodes = 0
+    def _run_final_logs(self, process_row, nb_rows, nb_transformations, nb_nodes):
+        """
+        Perform the final logging after processing all rows.
+        """
 
         if self.parallel_mapping > 0:
             logger.info(f"Processing dataframe in parallel. Number of workers set to: {self.parallel_mapping} ...")
@@ -523,6 +447,88 @@ class PandasAdapter(base.Adapter):
         else:
             logger.info(
                 f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+
+    # =============
+    # Run function
+    # =============
+
+    def run(self):
+        """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
+
+        # Thread-safe containers with their respective locks
+        self._nodes = []
+        self._edges = []
+        self._errors = []
+        self._nodes_lock = threading.Lock()
+        self._edges_lock = threading.Lock()
+        self._errors_lock = threading.Lock()
+        self._row_lock = threading.Lock()
+        self._transformations_lock = threading.Lock()
+        self._local_nb_nodes_lock = threading.Lock()
+
+        # Function to process a single row and collect operations
+        def process_row(row_data):
+            i, row = row_data
+            local_nodes = []
+            local_edges = []
+            local_errors = []
+            local_rows = 0
+            local_transformations = 0 # Count of transformations for this row. Does not include the property transformers.
+            local_nb_nodes = 0
+
+            logger.debug(f"Process row {i}...")
+            local_rows += 1
+
+            source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
+
+            if source_node_id:
+                local_nb_nodes += 1
+
+            # Loop over list of transformer instances and label_maker corresponding nodes and edges.
+            # FIXME the transformer variable here shadows the transformer module.
+            for j,transformer in enumerate(self.transformers):
+                local_transformations += 1
+                logger.debug(f"\tCalling transformer: {transformer}...")
+                for target_id, target_edge, target_node in transformer(row, i):
+                    target_node_id = self._make_target_node_id(row, i, transformer, j, target_id, target_edge,
+                                                               target_node, local_nodes, local_errors)
+
+                    #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
+                    #and we move to the next iteration of the loop.
+                    if target_node_id is None:
+                        continue
+                    else:
+                        local_nb_nodes += 1
+
+                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                        # list to find the transformer instance mapping to the correct type, and then label_maker new
+                        # subject id.
+
+                        # FIXME add hook functions to be overloaded.
+
+                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
+
+                        if hasattr(transformer, "from_subject"):
+
+                            self._make_alternative_source_node_id(
+                                row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors)
+
+
+                        else: # no attribute `from_subject` in `transformer`
+                            logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
+                            local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
+                                                              id_source=source_node_id,
+                                                              properties=self.properties(target_edge.fields(),
+                                                                                         row, i, target_edge, target_node)))
+
+            return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
+        # End of process_row local function
+
+        nb_rows = 0
+        nb_transformations = 0
+        nb_nodes = 0
+
+        self._run_final_logs(process_row, nb_rows, nb_transformations, nb_nodes)
 
 
 def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
