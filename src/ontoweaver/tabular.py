@@ -3,6 +3,8 @@ import yaml
 import logging
 import threading
 
+from alive_progress import alive_bar
+
 import types as pytypes
 import pandas as pd
 import pandera as pa
@@ -442,14 +444,16 @@ class PandasAdapter(base.Adapter):
 
         elif self.parallel_mapping == 0:
             logger.info(f"Processing dataframe sequentially...")
-            for i, row in self.df.iterrows():
-                local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
-                self.nodes_append(local_nodes)
-                self.edges_append(local_edges)
-                self.errors += local_errors
-                nb_rows += local_rows
-                nb_transformations += local_transformations
-                nb_nodes += local_nb_nodes
+            with alive_bar(len(self.df)) as progress:
+                for i, row in self.df.iterrows():
+                    local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
+                    self.nodes_append(local_nodes)
+                    self.edges_append(local_edges)
+                    self.errors += local_errors
+                    nb_rows += local_rows
+                    nb_transformations += local_transformations
+                    nb_nodes += local_nb_nodes
+                    progress()
 
         else:
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
