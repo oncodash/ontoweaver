@@ -587,7 +587,7 @@ class Transformer(errormanager.ErrorManager):
         if result_object.target_element_properties is not None:
             self.properties_of = result_object.target_element_properties
         self.final_type = result_object.final_type
-        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type
+        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
 
 class All:

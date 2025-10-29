@@ -11,7 +11,7 @@ class ReturnCreate:
     and properties of the target node type.
     """
 
-    def __init__(self, extracted_cell_value = None, edge_type = None, target_node_type = None, properties_of = None, final_type = None):
+    def __init__(self, extracted_cell_value = None, edge_type = None, target_node_type = None, properties_of = None, final_type = None, reverse_relation = None):
         """
         Initializes the ReturnCreate object.
 
@@ -21,6 +21,7 @@ class ReturnCreate:
             target_node_type: The type of the target node.
             properties_of: The properties of the returned target node type.
             final_type: The final type of the target node.
+            reverse_relation: The reverse relation of the current edge.
         """
 
         self.extracted_cell_value = extracted_cell_value # Can serve as ID of the node, ID of the edge, or value of property.
@@ -28,6 +29,7 @@ class ReturnCreate:
         self.target_node_type = target_node_type
         self.target_element_properties = properties_of
         self.final_type = final_type
+        self.reverse_relation = reverse_relation
 
 class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
     """Interface for defining the correct labels (types) for each extracted value.
@@ -75,7 +77,8 @@ class SimpleLabelMaker(LabelMaker):
             if multi_type_dict:
                 if "None" in multi_type_dict.keys():
                     # No branching needed. The transformer is not a branching transformer.
-                    return ReturnCreate(res, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"], None, multi_type_dict["None"]["final_type"])
+                    return ReturnCreate(res, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"],
+                                        None, multi_type_dict["None"]["final_type"], multi_type_dict["None"]["reverse_relation"])
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(res)
@@ -101,7 +104,8 @@ class MultiTypeLabelMaker(LabelMaker):
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of, types["final_type"])
+                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
+                                            types["final_type"], types["reverse_relation"])
                     else:
                         logger.info(f"          Branching key `{key}` does not match extracted value `{res}`.")
                         continue
@@ -132,7 +136,8 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of, types["final_type"])
+                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
+                                            types["final_type"], types["reverse_relation"])
                     else:
                         logger.info(f"          Branching key `{key}` does not match extracted value `{row[self.match_type_from_column]}`.")
                         continue

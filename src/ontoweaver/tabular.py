@@ -287,7 +287,7 @@ class PandasAdapter(base.Adapter):
                                            f"{subject_generator_list}", indent=2,
                                            exception=exceptions.TransformerInterfaceError))
 
-        source_id, subject_edge, subject_node = subject_generator_list[0]
+        source_id, subject_edge, subject_node, subject_reverse_relation = subject_generator_list[0]
 
         if self.subject_transformer.final_type:
             # If a final_type attribute is present in the transformer, use it as the source node type, instead
@@ -489,7 +489,7 @@ class PandasAdapter(base.Adapter):
             for j,transformer in enumerate(self.transformers):
                 local_transformations += 1
                 logger.debug(f"\tCalling transformer: {transformer}...")
-                for target_id, target_edge, target_node in transformer(row, i):
+                for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
                     target_node_id = self._make_target_node_id(row, i, transformer, j, target_id, target_edge,
                                                                target_node, local_nodes, local_errors)
 
@@ -520,6 +520,15 @@ class PandasAdapter(base.Adapter):
                                                               id_source=source_node_id,
                                                               properties=self.properties(target_edge.fields(),
                                                                                          row, i, target_edge, target_node)))
+
+                            if reverse_relation:
+                                logger.info(f"\t\t\tMake reverse edge {reverse_relation.__name__} from {target_node_id} to {source_node_id}")
+                                local_edges.append(self.make_edge(edge_t=reverse_relation, id_target=source_node_id,
+                                                                  id_source=target_node_id,
+                                                                  properties=self.properties(reverse_relation.fields(),
+                                                                                             row, i, reverse_relation, source_node_id.__class__)))
+
+
 
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
         # End of process_row local function
@@ -646,6 +655,7 @@ class Declare(errormanager.ErrorManager):
 
             logger.warning(f"\t\tEdge class `{name}` already exists, but properties do not match.")
             # If properties do not match, we proceed to create a new class with the new properties.
+            # FIXME: Would make much more sense to just append(?) new properties to existing class instead of creating new class.
 
         def fields():
             return properties
@@ -976,6 +986,21 @@ class YamlParser(Declare):
                         if extracted_alt_edge_metadata:
                             metadata.update(extracted_alt_edge_metadata)
 
+                        # Extract reverse edge, if specified in config.
+                        alt_reverse_edge = self.get(self.k_reverse_edge, v)
+                        alt_reverse_edge_class = self.make_edge_class(alt_reverse_edge, None, alt_type_class,
+                                                                      properties_of.get(alt_reverse_edge, {}))
+
+                        possible_edge_types.add(alt_reverse_edge)
+                        extracted_alt_reverse_edge_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                             metadata_list, metadata, alt_reverse_edge,
+                                                                             None)
+
+                        if extracted_alt_reverse_edge_metadata:
+                            metadata.update(extracted_alt_reverse_edge_metadata)
+
+                        #TODO: Create new function or add this to make edge class?
+
                     extracted_alt_type_metadata = self._extract_metadata(self.k_metadata_column,
                                                                            metadata_list, metadata, alt_type,
                                                                            columns)
@@ -992,7 +1017,10 @@ class YamlParser(Declare):
                         # We first try and declare the final type passed to the whole class of the
                         # transformer, and if it is not defined, we use the final type of the
                         # alternative node type, under the `match` clause.
-                        'final_type': final_type_class if final_type_class else alt_final_type_class
+                        'final_type': final_type_class if final_type_class else alt_final_type_class,
+                        # None if subject because subject does not come with edge, and None if alt reverse edge class is not
+                        # declared in mapping file.
+                        'reverse_relation': None if subject is True else alt_reverse_edge_class if alt_reverse_edge_class else None,
                     }
 
 
@@ -1120,7 +1148,8 @@ class YamlParser(Declare):
             subject_multi_type_dict = {'None': {
                 'to_object': source_t,
                 'via_relation': None,
-                'final_type': s_final_type_class
+                'final_type': s_final_type_class,
+                'reverse_relation': None
             }}
 
             possible_subject_types.add(source_t.__name__)
@@ -1225,30 +1254,45 @@ class YamlParser(Declare):
                     f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
 
-            return columns, target, edge, subject
+            reverse_relation = self.get(self.k_reverse_edge, pconfig=transformer_keyword_dict)
+            if type(reverse_relation) == list:
+                self.error(
+                    f"You cannot declare multiple reverse relations in transformers. For transformer `{transformer_type}`.",
+                    section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
+
+            return columns, target, edge, subject, reverse_relation
 
 
-    def _make_target_classes(self, target, properties_of, edge, source_t, final_type_class, possible_target_types, possible_edge_types, multi_type_dictionary):
+    def _make_target_classes(self, target, properties_of, edge, source_t, final_type_class, reverse_relation, possible_target_types, possible_edge_types, multi_type_dictionary):
         """
         Helper function to create the target and edge classes for a target transformer, and store them in the multi_type_dictionary.
         """
 
-        logger.debug(f"\tDeclare node .target for `{target}`...")
+        logger.debug(f"\tDeclare node target `{target}`...")
         target_t = self.make_node_class(target, properties_of.get(target, {}))
         possible_target_types.add(target)
-        logger.debug(f"\t\tDeclared target for `{target}`: {target_t.__name__}")
+        logger.debug(f"\t\tDeclared target`{target}`: {target_t.__name__}")
 
-        logger.debug(f"\tDeclare edge for `{edge}`...")
         edge_t = self.make_edge_class(edge, source_t, target_t, properties_of.get(edge, {}))
+        logger.debug(f"\tDeclare edge `{edge}: {edge_t.__name__}")
         possible_edge_types.add(edge_t.__name__)
+
+        if reverse_relation is not None:
+            reverse_relation_t = self.make_edge_class(reverse_relation, target_t, source_t, properties_of.get(reverse_relation, {}))
+            logger.debug(f"\tDeclare reverse relation `{reverse_relation}: {reverse_relation_t.__name__}")
+            possible_edge_types.add(reverse_relation_t)
+
+
 
         # "None" key is used to return any type of string, in case no branching is needed.
         multi_type_dictionary['None'] = {
             'to_object': target_t,
             'via_relation': edge_t,
-            'final_type': final_type_class
+            'final_type': final_type_class,
+            'reverse_relation': reverse_relation_t if reverse_relation is not None else None,
         }
 
+        # FIXME: Edge may not be needed as return here.
         return edge_t, target_t
 
     # ============================================================
@@ -1276,9 +1320,9 @@ class YamlParser(Declare):
                 if elements is None:
                     continue
                 else:
-                    columns, target, edge, subject = elements
+                    columns, target, edge, subject, reverse_relation = elements
 
-                gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type, pconfig=transformer_keyword_dict)
+                gen_data = self.get_not(self.k_target + self.k_edge + self.k_columns + self.k_final_type + self.k_reverse_edge, pconfig=transformer_keyword_dict)
 
                 # Extract the final type if defined in the mapping.
                 final_type = self.get(self.k_final_type, pconfig=transformer_keyword_dict)
@@ -1296,7 +1340,7 @@ class YamlParser(Declare):
                 #The target transformer is a simple transformer if it does not have a `match` clause. We create a simple multi_type_dictionary,
                 #with a "None" key, to indicate that no branching is needed.
                 if target and edge:
-                    edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, possible_target_types, possible_edge_types, multi_type_dictionary)
+                    edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, reverse_relation, possible_target_types, possible_edge_types, multi_type_dictionary)
                     # Parse the validation rules for the output of the transformer. Each transformer gets its own
                     # instance of the OutputValidator with (at least) the default output validation rules.
                     output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
@@ -1370,6 +1414,7 @@ class YamlParser(Declare):
         self.k_metadata_column = ["add_source_column_names_as"]
         self.k_validate_output = ["validate_output"]
         self.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
+        self.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate"]
 
         #TODO create make node class for nested final_type instantiation
 
