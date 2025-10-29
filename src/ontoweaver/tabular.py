@@ -218,7 +218,7 @@ class PandasAdapter(base.Adapter):
         properties = {}
 
         for prop_transformer, property_name in property_dict.items():
-            for property, none_node, none_edge in prop_transformer(row, i):
+            for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
                     logger.info(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
@@ -354,7 +354,7 @@ class PandasAdapter(base.Adapter):
         for t in self.transformers:
             if transformer.from_subject == t.target_type:
                 found_valid_subject = True
-                for s_id, s_edge, s_node in t(row, i):
+                for s_id, s_edge, s_node, s_reverse_edge in t(row, i):
                     if s_id and s_edge and s_node:
                         if t.final_type:
                             s_node = t.final_type
@@ -988,16 +988,17 @@ class YamlParser(Declare):
 
                         # Extract reverse edge, if specified in config.
                         alt_reverse_edge = self.get(self.k_reverse_edge, v)
-                        alt_reverse_edge_class = self.make_edge_class(alt_reverse_edge, None, alt_type_class,
-                                                                      properties_of.get(alt_reverse_edge, {}))
+                        if alt_reverse_edge:
+                            alt_reverse_edge_class = self.make_edge_class(alt_reverse_edge, None, alt_type_class,
+                                                                          properties_of.get(alt_reverse_edge, {}))
 
-                        possible_edge_types.add(alt_reverse_edge)
-                        extracted_alt_reverse_edge_metadata = self._extract_metadata(self.k_metadata_column,
-                                                                             metadata_list, metadata, alt_reverse_edge,
-                                                                             None)
+                            possible_edge_types.add(alt_reverse_edge)
+                            extracted_alt_reverse_edge_metadata = self._extract_metadata(self.k_metadata_column,
+                                                                                 metadata_list, metadata, alt_reverse_edge,
+                                                                                 None)
 
-                        if extracted_alt_reverse_edge_metadata:
-                            metadata.update(extracted_alt_reverse_edge_metadata)
+                            if extracted_alt_reverse_edge_metadata:
+                                metadata.update(extracted_alt_reverse_edge_metadata)
 
                         #TODO: Create new function or add this to make edge class?
 
@@ -1020,7 +1021,7 @@ class YamlParser(Declare):
                         'final_type': final_type_class if final_type_class else alt_final_type_class,
                         # None if subject because subject does not come with edge, and None if alt reverse edge class is not
                         # declared in mapping file.
-                        'reverse_relation': None if subject is True else alt_reverse_edge_class if alt_reverse_edge_class else None,
+                        'reverse_relation': None if subject is True else alt_reverse_edge_class if alt_reverse_edge else None,
                     }
 
 
