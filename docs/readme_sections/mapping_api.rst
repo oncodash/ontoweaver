@@ -736,7 +736,7 @@ You can have a look at the transformers provided by OntoWeaver to get
 inspiration for your own implementation:
 `ontoweaver/src/ontoweaver/transformer.py <https://github.com/oncodash/ontoweaver/blob/main/src/ontoweaver/transformer.py>`__
 
-Keywords Synonyms
+Keyword Synonyms
 ~~~~~~~~~~~~~~~~~
 
 Because several communities gathered around semantic knowledge graphs,
@@ -755,3 +755,4 @@ Here is the list of available synonyms:
 - ``to_property`` = ``to_properties``
 - ``for_object`` = ``for_objects``
 - ``final_type`` = ``final_object`` = ``final_label`` = ``final_node`` = ``final_target`` = ``final_subject``
+- ``reverse_relation`` = ``reverse_edge`` = ``reverse_predicate``

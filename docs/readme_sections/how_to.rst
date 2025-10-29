@@ -10,7 +10,7 @@ an existing node, use the ``to_property`` predicate, for example:
 .. code:: yaml
 
    row:
-      map:
+      rowIndex:
          to_subject: phenotype
    transformers:
        - map:
@@ -275,3 +275,26 @@ information see the ``Information Fusion`` section.
 
 An edge of type ``protein_protein_interaction``, will be created from
 node ``A`` to node ``B``, as well as from node ``C`` to node ``A``.
+
+How to Extract Reverse Relations For Declared Edges
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reverse relations can be extracted for each edge in a declarative manner.
+Let's assume you have a mapping file mapping each row index to the node type `disease`, and each cell value from the
+`patient` column to the node type `patient`. The two nodes are connected via a relation `disease_affects_patient`, but you
+would also wish to indicate a reverse edge of type `patient_has_disease`.
+
+This can be done by using the `reverse_relation` keyword, which extracts the reverse edge of the type you declared. You
+may consult the ``Keyword Synonyms`` section for more synonyms.
+
+.. code:: yaml
+
+   row:
+      rowIndex:
+         to_subject: disease
+   transformers:
+       - map:
+           column: patient
+           to_object: patient
+           via_relation: disease_affects_patient
+           reverse_relation: patient_has_disease
