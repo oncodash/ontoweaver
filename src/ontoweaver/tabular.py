@@ -1,17 +1,21 @@
 import math
 import yaml
+import rdflib
 import logging
 import threading
+import biocypher
 
 import types as pytypes
 import pandas as pd
 import pandera as pa
 
+from rdflib import RDF, RDFS, OWL
 from itertools import chain
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
+from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 
 from . import errormanager
 from . import base
@@ -52,29 +56,10 @@ class TypeAffixes(str, Enumerable):
     none = "none"
 
 
-class PandasAdapter(base.Adapter):
-    """Interface for extracting data from a Pandas DataFrame with a simple mapping configuration based on declared types.
-
-    The general idea is that each row of the table is mapped to a source node,
-    and some column values are mapped to an edge leading to another node.
-    Some other columns may also be mapped to properties of either a node or an edge.
-
-    The class expect a configuration formed by three objects:
-        - the type of the source node mapped for each row.
-        - a dictionary mapping each column name to the type of the edge (which contains the type of both the source and target node),
-        - a dictionary mapping each (node or edge) type to another dictionary listing which column is extracted to which property.
-
-    Note that, when using the `configure` mapping,
-    types are created by default in the `ontoweaver.types` module,
-    so that you may access the list of all declared types by using:
-        - `ontoweaver.types.all.nodes()`,
-        - `ontoweaver.types.all.node_fields()`,
-        - `ontoweaver.types.all.edges()`,
-        - `ontoweaver.types.all.edge_fields()`.
-    """
+class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
+    """Base class for implementing a Biocypher adapter that consumes iterative data."""
 
     def __init__(self,
-                 df: pd.DataFrame,
                  subject_transformer: base.Transformer,
                  transformers: Iterable[base.Transformer],
                  metadata: Optional[dict] = None,
@@ -88,7 +73,6 @@ class PandasAdapter(base.Adapter):
         Instantiate the adapter.
 
         Args:
-            df (pd.DataFrame): The table containing the input data.
             subject_transformer (base.Transformer): The transformer that maps the subject node.
             transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
             metadata (Optional[dict]): Metadata to be added to all the nodes and edges.
@@ -98,17 +82,6 @@ class PandasAdapter(base.Adapter):
             raise_errors (bool): if True, will raise an exception when an error is encountered, else, will log the error and try to proceed.
         """
         super().__init__(raise_errors)
-
-        logger.info("DataFrame info:")
-        # logger.info(df.info())
-        logger.debug("Columns:")
-        for c in df.columns:
-            logger.debug(f"\t`{c}`")
-        pd.set_option('display.max_rows', 30)
-        pd.set_option('display.max_columns', 30)
-        pd.set_option('display.width', 150)
-        logger.info("\n" + str(df))
-        self.df = df
 
         self.validator = validator
 
@@ -125,6 +98,7 @@ class PandasAdapter(base.Adapter):
         self.metadata = metadata
         # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
+
 
     # FIXME not used, maybe will come in handy?
     def source_type(self, row):
@@ -386,7 +360,7 @@ class PandasAdapter(base.Adapter):
                                            f"{transformer.from_subject}` must not be the same as the default subject type.",
                                            exception=exceptions.ConfigError))
 
-    def _run_final_logs(self, process_row, nb_rows, nb_transformations, nb_nodes):
+    def _run_all(self, process_row, nb_rows, nb_transformations, nb_nodes):
         """
         Perform the final logging after processing all rows.
         """
@@ -396,7 +370,7 @@ class PandasAdapter(base.Adapter):
             # Process the dataset in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor() as executor:
                 # Map the process_row function across the dataframe
-                results = list(executor.map(process_row, self.df.iterrows()))
+                results = list(executor.map(process_row, self.iterate() ))
 
             # Append the results in a thread-safe manner after all rows have been processed
             for local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes in results:
@@ -415,7 +389,7 @@ class PandasAdapter(base.Adapter):
 
         elif self.parallel_mapping == 0:
             logger.info(f"Processing dataframe sequentially...")
-            for i, row in self.df.iterrows():
+            for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 self.nodes_append(local_nodes)
                 self.edges_append(local_edges)
@@ -535,7 +509,216 @@ class PandasAdapter(base.Adapter):
         nb_transformations = 0
         nb_nodes = 0
 
-        self._run_final_logs(process_row, nb_rows, nb_transformations, nb_nodes)
+        self._run_all(process_row, nb_rows, nb_transformations, nb_nodes)
+
+
+    @abstractmethod
+    def iterate(self):
+        raise NotImplementedError
+
+
+class OWLAutoAdapter(base.Adapter):
+    def __init__(self,
+                 graph: rdflib.Graph,
+                 raise_errors = True,
+                 **kwargs
+                 ):
+
+        super().__init__(
+            raise_errors
+        )
+        self.graph = graph
+        logger.debug(f"OWLAutoAdapter on {len(self.graph)} input elements.")
+
+        if kwargs:
+            logger.warning(f"OWLAutoAdapter does not support mappings, but you passed: {kwargs}, I'll ignore those arguments.")
+
+
+    def run(self):
+        def iri(URI):
+            return str(URI).split('#')[-1]
+        def label_of(subj):
+            # First, get the label, if any; else use the IRI end tag.
+            triples = list(self.graph.triples((subj, RDFS.label, None)))
+            # logger.debug(f"\tLabel triples: {triples}")
+            if len(triples) == 0:
+                assert('#' in str(subj))
+                obj = iri(subj)
+                logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
+            else:
+                assert(len(triples[0]) == 3)
+                obj = str(triples[0][2])
+                logger.debug(f"\t\tUse label: {obj}")
+            # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
+            return obj[0].lower() + obj[1:]
+            # return obj
+
+        # Iterate over individuals.
+        for i,indi_triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
+            subj = indi_triple[0]
+            logger.debug(f"{i}:({iri(subj)})")
+            subj_label = label_of(subj)
+
+            node_type = None
+            for s,p,o in self.graph.triples((subj, RDF.type, None)):
+                logger.debug(f"({iri(s)})-[{iri(p)}]->({iri(o)})")
+                logger.debug(f"Individual type: {node_type}")
+                if node_type:
+                    raise RuntimeError(f"Instantiating from multiple classes is not supported, fix individual `{subj}`, instantiating both `{node_type}` and `{o}`")
+
+                if rdflib.URIRef(o) != OWL.NamedIndividual:
+                    node_type = o
+
+            logger.debug(f"Individual type: {node_type}")
+            if not node_type:
+                logger.warning(f"Individual `{subj}` has no owl:Class, I'll ignore it.")
+                continue
+
+            properties = {}
+            # Gather everything about the subject individual.
+            for _,rel,obj in self.graph.triples((subj, None, None)):
+                logger.debug(f"\t-[{iri(rel)}]->({iri(obj)})")
+                if obj == OWL.NamedIndividual:
+                    logger.debug("\t\t= pass")
+                    pass
+                elif rel == RDF.type:
+                    #e = base.GenericEdge(None, str(subj), str(obj), {}, str(rel))
+                    e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
+                    logger.debug(f"\t\t= {e}")
+                    self.edges_append(e)
+                elif type(obj) == rdflib.URIRef:
+                    e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
+                    logger.debug(f"\t\t= {e}")
+                    self.edges_append(e)
+                else:
+                    logger.debug(f"\t\t= prop[{iri(rel)}] = {iri(obj)}")
+                    properties[str(rel)] = str(obj)
+
+            assert(node_type)
+            n = base.Node(iri(subj), properties, label_of(node_type))
+            logger.debug(f"\tnode: {n}")
+            self.nodes_append(n)
+
+
+#class OWLAdapter(IterativeAdapter):
+#    def __init__(self,
+#                 graph: rdflib.Graph,
+#                 subject_transformer: base.Transformer,
+#                 transformers: Iterable[base.Transformer],
+#                 metadata: Optional[dict] = None,
+#                 validator: Optional[validate.InputValidator] = None,
+#                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+#                 type_affix_sep: Optional[str] = ":",
+#                 parallel_mapping: int = 0,
+#                 raise_errors = True,
+#                 ):
+#
+#        super().__init__(
+#            subject_transformer,
+#            transformers,
+#            metadata,
+#            validator,
+#            type_affix,
+#            type_affix_sep,
+#            parallel_mapping,
+#            raise_errors
+#        )
+#        self.graph = graph
+#
+#
+#    def iterate(self):
+#        # Iterate over individuals.
+#        for i,indi_triple in self.enumerate(self.graph.triples((None,RDF.Type,OWL.NamedIndividual))):
+#            subject_iri = indi_triple[0]
+#            subject = {}
+#            # Gather everything about the subject individual.
+#            for triple in self.graph.triples((subject_iri, None, None)):
+#                _,rel,obj = triple
+#                # Assemble all data for this individual in a dictionary.
+#                if rel in subject:
+#                    raise RuntimeError(f"Relation [{rel}]->({obj}) already declared for individual ({subject_iri})")
+#                subject[rel] = obj
+#
+#            # Yield each individual's dictionary.
+#            yield i,subject
+
+
+class PandasAdapter(IterativeAdapter):
+    """Interface for extracting data from a Pandas DataFrame with a simple mapping configuration based on declared types.
+
+    The general idea is that each row of the table is mapped to a source node,
+    and some column values are mapped to an edge leading to another node.
+    Some other columns may also be mapped to properties of either a node or an edge.
+
+    The class expect a configuration formed by three objects:
+        - the type of the source node mapped for each row.
+        - a dictionary mapping each column name to the type of the edge (which contains the type of both the source and target node),
+        - a dictionary mapping each (node or edge) type to another dictionary listing which column is extracted to which property.
+
+    Note that, when using the `configure` mapping,
+    types are created by default in the `ontoweaver.types` module,
+    so that you may access the list of all declared types by using:
+        - `ontoweaver.types.all.nodes()`,
+        - `ontoweaver.types.all.node_fields()`,
+        - `ontoweaver.types.all.edges()`,
+        - `ontoweaver.types.all.edge_fields()`.
+    """
+
+    def __init__(self,
+                 df: pd.DataFrame,
+                 subject_transformer: base.Transformer,
+                 transformers: Iterable[base.Transformer],
+                 metadata: Optional[dict] = None,
+                 validator: Optional[validate.InputValidator] = None,
+                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+                 type_affix_sep: Optional[str] = ":",
+                 parallel_mapping: int = 0,
+                 raise_errors = True,
+                 ):
+
+        super().__init__(
+            subject_transformer,
+            transformers,
+            metadata,
+            validator,
+            type_affix,
+            type_affix_sep,
+            parallel_mapping,
+            raise_errors
+        )
+
+        logger.info("DataFrame info:")
+        # logger.info(df.info())
+        logger.debug("Columns:")
+        for c in df.columns:
+            logger.debug(f"\t`{c}`")
+        pd.set_option('display.max_rows', 30)
+        pd.set_option('display.max_columns', 30)
+        pd.set_option('display.width', 150)
+        logger.info("\n" + str(df))
+        self.df = df
+
+
+    def iterate(self):
+        return self.df.iterrows()
+
+def extract(data, adapter_class: IterativeAdapter, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
+
+    parser = YamlParser(config, module, validate_output = validate_output, raise_errors = raise_errors)
+    mapping = parser()
+
+    adapter = adapter_class(
+        data,
+        *mapping,
+        type_affix=affix,
+        type_affix_sep=separator,
+        parallel_mapping=parallel_mapping,
+        raise_errors = raise_errors,
+    )
+
+    adapter.run()
+
+    return adapter
 
 
 def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
@@ -556,23 +739,46 @@ def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module =
     Returns:
         PandasAdapter: The configured adapter.
     """
-    parser = YamlParser(config, module, validate_output = validate_output, raise_errors = raise_errors)
-    mapping = parser()
-
-    adapter = PandasAdapter(
-        df,
-        *mapping,
-        type_affix=affix,
-        type_affix_sep=separator,
-        parallel_mapping=parallel_mapping,
-        raise_errors = raise_errors,
+    return extract(
+        df, PandasAdapter,
+        config,
+        parallel_mapping,
+        module,
+        affix,
+        separator,
+        validate_output,
+        raise_errors
     )
 
-    adapter.run()
 
-    return adapter
+def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
+    """
+    Proxy function for extracting from a table all nodes, edges and properties
+    that are defined in a PandasAdapter configuration.
 
+    Args:
+        graph (rdflib.Graph): The RDF graph containing the input data.
+        config (dict): The configuration dictionary.
+        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
+        module: The module in which to insert the types declared by the configuration.
+        affix (str): The type affix to use (default is "suffix").
+        separator (str): The separator to use between labels and type annotations (default is ":").
+        validate_output: Whether to validate the output of the transformers. Defaults to False.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
+    Returns:
+        OWLAdapter: The configured adapter.
+    """
+    return extract(
+        graph, OWLAdapter,
+        config,
+        parallel_mapping,
+        module,
+        affix,
+        separator,
+        validate_output,
+        raise_errors
+    )
 
 class Declare(errormanager.ErrorManager):
     """

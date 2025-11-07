@@ -356,22 +356,19 @@ class GenericEdge(Edge):
         return Node
 
 
-class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
-    """Base class for implementing a canonical Biocypher adapter."""
 
-    def __init__(self, raise_errors = True
-    ):
+class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
+    """Base class for implementing an adapter that consumes tabular data."""
+
+    def __init__(self, raise_errors = True):
         """Allow to indicate which Element subclasses and which property fields
         are allowed to be exported by Biocypher.
-
-        :param Iterable[Node] node_types: Allowed Node subclasses.
-        :param Iterable[Edge] edge_types: Allowed Edge subclasses.
         """
-
         self._nodes = []
         self._edges = []
         self.errors = []
         super().__init__(raise_errors)
+
 
     def nodes_append(self, node_s) -> None:
         """Append an Node (or each Node in a list of nodes) to the internal list of nodes."""
@@ -412,6 +409,10 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
         """Return a generator yielding edges."""
         for e in self._edges:
             yield e
+
+    @abstractmethod
+    def run(self):
+        raise NotImplementedError()
 
 
 class Transformer(errormanager.ErrorManager):

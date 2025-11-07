@@ -244,7 +244,8 @@ def main():
     for file_map in asked.mapping:
         data_file, map_file = file_map.split(":")
         check_file(data_file)
-        check_file(map_file)
+        if map_file != "automap":
+            check_file(map_file)
 
     if asked.validate_output:
         validate_output = True
@@ -253,26 +254,26 @@ def main():
 
     logger.info(f"Running OntoWeaver...")
     if asked.debug:
-        import_file = ontoweaver.extract_reconciliate_write(
+        import_file = ontoweaver.weave(
             asked.biocypher_config,
             asked.biocypher_schema,
             mappings,
             parallel_mapping=parallel,
             separator=asked.prop_sep,
             affix=asked.type_affix,
-            affix_separator = asked.type_affix_sep,
+            type_affix_sep = asked.type_affix_sep,
             validate_output = validate_output,
             raise_errors = not asked.pass_errors)
     else:
         try:
-            import_file = ontoweaver.extract_reconciliate_write(
+            import_file = ontoweaver.weave(
                 asked.biocypher_config,
                 asked.biocypher_schema,
                 mappings,
                 parallel_mapping=parallel,
                 separator=asked.prop_sep,
                 affix=asked.type_affix,
-                affix_separator = asked.type_affix_sep,
+                type_affix_sep = asked.type_affix_sep,
                 validate_output = validate_output,
                 raise_errors = not asked.pass_errors)
         # Manage exceptions wih specific error codes:

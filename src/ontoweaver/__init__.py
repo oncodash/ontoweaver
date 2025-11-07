@@ -1,11 +1,14 @@
-import logging
-from typing import Tuple
-from pathlib import Path
-
-import biocypher
 import yaml
+import rdflib
+import logging
+import pathlib
+import biocypher
+
 import pandas as pd
 import pandera as pa
+
+from typing import Tuple
+from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import base
 Node = base.Node
@@ -33,7 +36,213 @@ logger = logging.getLogger("ontoweaver")
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate',
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'owl_to_biocypher', 'biocypher_to_owl', 'make_value', "make_labels"]
 
-def read_file(filename, **kwargs):
+class Loader(metaclass = ABSTRACT):
+    def __call__(self, data, **kwargs):
+        if self.allows(data):
+            return self.load(data, **kwargs)
+
+    @abstractmethod
+    def allows(self, data):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def load(self, data, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def adapter(self):
+        return NotImplementedError()
+
+
+class LoadPandasDataframe(Loader):
+    def allows(self, data):
+        return type(data) == pd.DataFrame
+
+    def load(self, df, **kwargs):
+        return df
+
+    def adapter(self):
+        return PandasAdapter
+
+class LoadPandasFile(Loader):
+    def __init__(self):
+        self.read_funcs = {
+        '.csv'    : pd.read_csv,
+        '.tsv'    : pd.read_csv,
+        '.txt'    : pd.read_csv,
+
+        '.xls'    : pd.read_excel,
+        '.xlsx'   : pd.read_excel,
+        '.xlsm'   : pd.read_excel,
+        '.xlsb'   : pd.read_excel,
+        '.odf'    : pd.read_excel,
+        '.ods'    : pd.read_excel,
+        '.odt'    : pd.read_excel,
+
+        '.json'   : pd.read_json,
+        '.html'   : pd.read_html,
+        '.xml'    : pd.read_xml,
+        '.hdf'    : pd.read_hdf,
+        '.feather': pd.read_feather,
+        '.parquet': pd.read_parquet,
+        '.pickle' : pd.read_pickle,
+        '.orc'    : pd.read_orc,
+        '.sas'    : pd.read_sas,
+        '.spss'   : pd.read_spss,
+        '.stata'  : pd.read_stata,
+    }
+
+    def allows(self, filename):
+        ext = pathlib.Path(filename).suffix 
+        if type(filename) == str or type(filename) == pathlib.Path:
+            if ext in self.read_funcs:
+                return True
+
+        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.read_funcs.keys())})"
+        logger.warning(msg)
+        return False
+
+
+    def load(self, filename, **kwargs):
+        ext = pathlib.Path(filename).suffix
+        return self.read_funcs[ext](filename)
+
+    def adapter(self):
+        return tabular.PandasAdapter
+
+
+class LoadRDFGraph(Loader):
+    def allows(self, data):
+        return type(data) == rdflib.Graph
+
+    def load(self, g, **kwargs):
+        return g
+
+    def adapter(self):
+        return tabular.RDFAutoAdapter
+
+
+class LoadRDFFile(Loader):
+    def __init__(self):
+        self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
+
+    def allows(self, filename):
+        ext = pathlib.Path(filename).suffix 
+
+        if type(filename) == str or type(filename) == pathlib.Path:
+            if ext in self.allowed:
+                return True
+
+        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
+        logger.warning(msg)
+        return False
+
+    def load(self, filename, **kwargs):
+        g = rdflib.Graph()
+
+        ext = pathlib.Path(filename).suffix 
+        if ext == ".owl":
+            g.parse(filename, format = "xml")
+        else:
+            g.parse(filename) # Guess the format based on extension.
+
+        return g
+
+    def adapter(self):
+        return tabular.OWLAutoAdapter
+
+
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, separator = None, affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+    """Calls several mappings, each on the related Pandas-readable tabular data file,
+       then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
+       then export everything with BioCypher.
+       Returns the path to the resulting import file.
+
+       Args:
+           biocypher_config_path: the BioCypher configuration file.
+           schema_path: the assembling schema file.
+           filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+           parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
+           separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+           affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+           affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
+           validate_output: Whether to validate the output of the transformers. Defaults to False.
+           raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+           kwargs: A dictionary of arguments to pass to pandas.read_* functions.
+
+       Returns:
+           The path to the import file.
+   """
+    nodes = []
+    edges = []
+
+    lpf = LoadPandasFile()
+    lpd = LoadPandasDataframe()
+    lrf = LoadRDFFile()
+    lrg = LoadRDFGraph()
+
+    for data_file, mapping_file in filename_to_mapping.items():
+        found_loader = False
+        for loader in [lpf, lpd, lrf, lrg]:
+            if loader.allows(data_file):
+                found_loader = True
+                logger.info(f"Use loader `{loader.__class__.__name__}` to load `{data_file}`")
+                data = loader(data_file, **kwargs)
+
+                if mapping_file == "automap":
+                    mapping = {}
+                else:
+                    with open(mapping_file) as fd:
+                        config = yaml.full_load(fd)
+                        parser = tabular.YamlParser(
+                            config, 
+                            validate_output=validate_output,
+                            raise_errors = raise_errors,
+                        )
+                        mapping = parser()
+
+                adapter = loader.adapter()(
+                    data,
+                    *mapping,
+                    type_affix=affix,
+                    type_affix_sep=type_affix_sep,
+                    parallel_mapping=parallel_mapping,
+                    raise_errors = raise_errors,
+                )
+                adapter.run()
+                break
+
+        if not found_loader:
+            msg = f"I found no loader able to load `{data_file}`"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
+
+        nodes += adapter.nodes
+        edges += adapter.edges
+        logger.debug(f"Currently {len(nodes)} nodes and {len(edges)} edges")
+
+    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+    logger.debug(f"{len(fnodes)} nodes and {len(fedges)} edges after fusion")
+
+    logger.info("Load BioCypher")
+    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
+        biocypher_config_path = biocypher_config_path,
+        schema_config_path = schema_path
+    )
+    #bc.summary() # FIXME: AttributeError: 'NoneType' object has no attribute 'get_duplicate_nodes'
+
+
+    logger.info("Run BioCypher")
+    if fnodes:
+        bc.write_nodes(fnodes)
+    if fedges:
+        bc.write_edges(fedges)
+    import_file = bc.write_import_call()
+
+    return import_file
+
+
+def read_table_file(filename, **kwargs):
     """Read a file with Pandas, using its extension to guess its format.
 
     If no additional arguments are passed, it will call the
@@ -83,7 +292,7 @@ def read_file(filename, **kwargs):
         '.spss'   : pd.read_spss,
         '.stata'  : pd.read_stata,
     }
-    filepath = Path(filename)
+    filepath = pathlib.Path(filename)
     ext = filepath.suffix
 
     if ext not in read_funcs:
@@ -124,7 +333,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
         assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
         for data_file, mapping_file in filename_to_mapping.items():
-            table = read_file(data_file, **kwargs)
+            table = read_table_file(data_file, **kwargs)
 
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
@@ -200,7 +409,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
         assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
         for data_file, mapping_file in filename_to_mapping.items():
-            table = read_file(data_file, **kwargs)
+            table = read_table_file(data_file, **kwargs)
 
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
@@ -289,7 +498,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
     assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
     for data_file, mapping_file in filename_to_mapping.items():
-        table = read_file(data_file, **kwargs)
+        table = read_table_file(data_file, **kwargs)
 
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
