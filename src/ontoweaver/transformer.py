@@ -446,8 +446,8 @@ class translate(base.Transformer):
             else:
                 logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
 
-        for e, edge, node in self.map(row, i):
-            yield e, edge, node
+        for e, edge, node, rev_rel in self.map(row, i):
+            yield e, edge, node, rev_rel
 
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""

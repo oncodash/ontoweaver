@@ -579,7 +579,8 @@ class Transformer(errormanager.ErrorManager):
         Create the output of the transformer, using the label_maker of the transformer instance.
 
         Returns:
-            Extracted cell value (can be node ID, property value, edge ID), edge type and target node type.
+            Extracted cell value (can be node ID, property value, edge ID), edge type, target node type, and
+            reverse relation in case declared in the mapping.
         """
         result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
         if result_object.target_node_type:
@@ -587,7 +588,7 @@ class Transformer(errormanager.ErrorManager):
         if result_object.target_element_properties is not None:
             self.properties_of = result_object.target_element_properties
         self.final_type = result_object.final_type
-        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type
+        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
 
 class All:

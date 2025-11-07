@@ -1,0 +1,41 @@
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        column: patient
+        match:
+            - B:
+                to_object: patient
+                via_relation: patient_has_variant
+                reverse_relation: variant_of_patient
+            - A:
+                to_object: disease
+                via_relation: variant_to_disease
+            - C:
+                to_object: oncogenicity
+                via_relation: variant_to_oncogenicity
+                reverse_relation: oncogenicity_of_variant
+    - cat:
+        columns:
+          - patient
+          - variant_id
+        to_properties:
+          - whatever
+        for_objects:
+          - disease
+          - variant_to_oncogenicity
+          - variant
+          - variant_of_patient
+    - string:
+        value: "Whatever it is"
+        to_properties:
+          - something
+        for_objects:
+          - patient
+          - disease
+          - variant_to_disease
+          - oncogenicity_of_variant
+
+metadata:
+    - database_name: my_database
