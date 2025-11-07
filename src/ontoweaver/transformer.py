@@ -518,7 +518,7 @@ class replace(base.Transformer):
 
         def __call__(self, columns, row, i):
             for key in columns:
-                logger.info(
+                logger.debug(
                     f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
                 formatted = re.sub(self.forbidden, self.substitute, row[key])
                 strip_formatted = formatted.strip(self.substitute)

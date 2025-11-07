@@ -1,11 +1,13 @@
 import logging
 from typing import Tuple
 from pathlib import Path
+from alive_progress import alive_bar
 
 import biocypher
 import yaml
 import pandas as pd
 import pandera as pa
+
 
 from . import base
 Node = base.Node
@@ -124,23 +126,45 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
         assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
         for data_file, mapping_file in filename_to_mapping.items():
+            logging.info("Load input data... ", end="")
             table = read_file(data_file, **kwargs)
+            logging.info("OK")
 
+            logging.info("Load mapping...")
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
 
-            adapter = tabular.extract_table(
+            # adapter = tabular.extract_table(
+            #         table,
+            #         mapping,
+            #         parallel_mapping=parallel_mapping,
+            #         affix=affix,
+            #         separator=affix_separator,
+            #         validate_output=validate_output,
+            #         raise_errors = raise_errors,
+            #     )
+            parser = tabular.YamlParser(mapping, module = types, validate_output = validate_output, raise_errors = raise_errors)
+            mapping = parser()
+
+            adapter = tabular.PandasAdapter(
                 table,
-                mapping,
+                *mapping,
+                type_affix=affix,
+                type_affix_sep=affix_separator,
                 parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                validate_output=validate_output,
                 raise_errors = raise_errors,
             )
+            logging.info("OK")
+
+            logging.info("Map data into nodes and edges...")
+            with alive_bar(len(table)) as progress:
+                for n,e in adapter.run():
+                    progress()
 
             nodes += adapter.nodes
             edges += adapter.edges
+            logging.info("OK")
+
 
     if dataframe_to_mapping:
 
@@ -158,8 +182,11 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             nodes += adapter.nodes
             edges += adapter.edges
 
+    logging.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+    logging.info("OK")
 
+    logging.info("Export the graph...")
     bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
@@ -170,6 +197,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
     if fedges:
         bc.write_edges(fedges)
     import_file = bc.write_import_call()
+    logging.info("OK")
 
     return import_file
 

@@ -190,11 +190,9 @@ class SkipValidator(Validator):
             validation_rules: The schema used for validation.
         """
         super().__init__(validation_rules, raise_errors)
-
-    def __call__(self, val):
-
-        logger.info(f"Transformer output validation skipped. This could result in some empty or `nan` nodes in your knowledge graph."
+        logger.debug(f"Instantiate a `SkipValidator`, some output validation will be skipped. This could result in some empty or `nan` nodes in your knowledge graph."
                     f" To enable output validation set validate_output to True.")
 
+    def __call__(self, val):
         return True
 
