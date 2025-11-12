@@ -1,8 +1,8 @@
 Usage
 -----
 
-OntoWeaver actually automatically provides a working adapter for
-BioCypher, without you having to do it.
+What OntoWeaver actually does is to automatically provides a working "adapter"
+for BioCypher, without you having to implement it.
 
 The output of the execution of the adapter is thus what BioCypher is
 providing (see `BioCypher’s documentation <https://biocypher.org>`__).
@@ -13,7 +13,7 @@ timestamp from when the adapter has been executed.
 
 To configure your data mapping, you will have to first define the
 mapping that you want to apply on your data. Then, you will need a
-BioCypher configuration file (which mainly indiciate your ontologoy and
+BioCypher configuration file (which mainly indicate your ontologoy and
 backend), and a schema configuration file (indicating which node and
 edge types you want).
 

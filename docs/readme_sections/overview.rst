@@ -1,8 +1,8 @@
-OntoWeaver is a tool for importing table data in Semantic Knowledge
+OntoWeaver is a tool for importing iterable data in Semantic Knowledge
 Graphs (SKG) databases.
 
-OntoWeaver allows writing a simple declarative mapping to express how
-columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
+For instance, OntoWeaver allows writing a simple declarative mapping to express
+how columns from a `Pandas <https://pandas.pydata.org/>`__ table are to be
 converted as typed nodes or edges in an SKG.
 
 It provides a simple layer of abstraction on top of
@@ -35,5 +35,3 @@ looking like:
        - source: "My OntoWeaver adapter"
        - version: "v1.2.3"
 
-
-.. |OntoWeaver logo| image:: docs/OntoWeaver_logo__big.svg

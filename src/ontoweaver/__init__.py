@@ -195,7 +195,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
                     with open(mapping_file) as fd:
                         config = yaml.full_load(fd)
                         parser = tabular.YamlParser(
-                            config, 
+                            config,
                             validate_output=validate_output,
                             raise_errors = raise_errors,
                         )
@@ -225,7 +225,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     logger.debug(f"{len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
     logger.info("Load BioCypher")
-    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
+    bc = biocypher.BioCypher(    # FIXME change constructor to take contents of paths instead of reading path.
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
     )

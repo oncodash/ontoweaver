@@ -24,8 +24,9 @@ an existing node, use the ``to_property`` predicate, for example:
 
 This will add a “patient_age” property to nodes of type “case”.
 
-Note that you can add the same property value to several property fields
-of several node types:
+.. note::
+   Note that you can add the same property value to several property fields
+   of several node types:
 
 .. code:: yaml
 
@@ -38,9 +39,10 @@ of several node types:
                - case
                - phenotype
 
-Note that the properties declared in the BioCypher ``schema_config.yaml`` must match the properties declared in the mapping configuration file.
-Furthermore, when declaring the properties in the schema configuration file, take care that the property must always be a
-string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
+.. note::
+   Note that the properties declared in the BioCypher ``schema_config.yaml`` must match the properties declared in the mapping configuration file.
+   Furthermore, when declaring the properties in the schema configuration file, take care that the property must always be a
+   string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
 
 How to Extract Additional Edges
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,8 +121,11 @@ How to add the column of origin as a property to all nodes
 In addition to the user-defined metadata, a property field
 ``add_source_column_names_as`` is also available. It allows to indicate
 the column name in which the data was found, as a property to each
-*node*. Note that this is not added to *edges*, because they are not
-mapped from a column *per se*.
+*node*.
+
+.. note::
+   Note that this is not added to *edges*, because they are not
+   mapped from a column *per se*.
 
 For example, if the label of a node is extracted from the “indication”
 column, and you indicate ``add_source_column_name_as: source_column``,
@@ -258,20 +263,22 @@ For example:
            to_property: uniprot_id
            for_object: protein_target # Temporary node type to which the property will be linked.
 
-Notice how in this way, we avoid mapping the ``source`` properties to
-the ``target`` node types, and instead map then to the ``source`` node type.
-We also avoid mapping the ``target`` properties to the ``source`` node
-types, and instead map them to the ``target`` node type.
+.. note::
+   Notice how in this way, we avoid mapping the ``source`` properties to
+   the ``target`` node types, and instead map then to the ``source`` node type.
+   We also avoid mapping the ``target`` properties to the ``source`` node
+   types, and instead map them to the ``target`` node type.
 
- The mapping thus results in the creation of three nodes: ``A``,
+The mapping thus results in the creation of three nodes: ``A``,
 ``B``, and ``C``, all having the type ``protein``, and the property ``uniprot_id``.
 
-Note that node ``A`` have now been instantiated twice, with different
-properties attached to each instance. However, the expected result would
-be to have a single instance, with all the properties combined. To solve
-this kind of issue, OntoWeaver provides a “reconciliation” feature, that
-can be called after the mapping, onto the list of nodes. For more
-information see the ``Information Fusion`` section.
+.. note::
+   Note that node ``A`` have now been instantiated twice, with different
+   properties attached to each instance. However, the expected result would
+   be to have a single instance, with all the properties combined. To solve
+   this kind of issue, OntoWeaver provides a “reconciliation” feature, that
+   can be called after the mapping, onto the list of nodes. For more
+   information see the ``Information Fusion`` section.
 
 An edge of type ``protein_protein_interaction``, will be created from
 node ``A`` to node ``B``, as well as from node ``C`` to node ``A``.

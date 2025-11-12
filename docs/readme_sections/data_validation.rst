@@ -95,10 +95,13 @@ return an error if the data does not meet the expectations.
 
    ontoweave my_data.csv:my_mapping.yaml --validate-only
 
-If you want to know more about the rules you can use to validate your
-data, you can check the `Pandera
-documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
-
+.. note::
+.. note::
+      If you want to know more about the rules you can use to validate your
+   .. note::
+      data, you can check the `Pandera
+      documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
+   
 Output Data Validation
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -197,6 +200,7 @@ You can find a test based on this example in the
 test there is configured to fail, due to the presence of a forbidden
 ``E`` character in the input data.
 
-If you want to know more about the rules you can use to validate your
-data, you can check the `Pandera
-documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
+.. note::
+   If you want to know more about the rules you can use to validate your
+   data, you can check the `Pandera
+   documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.

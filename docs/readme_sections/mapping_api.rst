@@ -14,6 +14,9 @@ file indicates:
 Simplest possible full example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Introduction
+^^^^^^^^^^^^
+
 To build up a SKG from scratch, you will need at least five files:
 
 1. some data, for instance in a table: ``data.csv``,
@@ -26,8 +29,11 @@ To build up a SKG from scratch, you will need at least five files:
 5. a mapping, indicating what column of the table to map on which type of the
    ontology: ``mapping.yaml``.
 
-.. image:: OntoWeaver_simple-example.svg
+.. image:: ../OntoWeaver__simple-example.svg
    :alt: A diagram showcasing the various files needed to configure an OntoWeaver run.
+
+Files
+^^^^^
 
 Let' say we want to extract a graph of 4 nodes and 3 edges from a table
 with 3 rows and 2 columns, those files would look like the following.
@@ -122,6 +128,8 @@ with 3 rows and 2 columns, those files would look like the following.
        # ... or just the same than the type.
        label_in_input: myedge
 
+Result
+^^^^^^
 
 Now, you have to run OntoWeaver, using all those files::
    
@@ -182,6 +190,30 @@ The output file should look like a populated OWL file:
        rdfs:label "GO" ;
        biocypher:id "GO" ;
        biocypher:preferred_id "id" .
+
+
+How are config files related?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It may be difficult to understand how the type tags indicated in OntoWeaver's
+*mapping* are related to the types indicated in BioCypher's *schema*.
+
+In the schema, the header of a block is the RDFS label that lies in the
+taxonomy of the ontology file, while the ``label_in_input`` is a kind of tag
+that is written in the mapping, after a keyword (e.g. ``to_object``).
+
+As shown in the figure below, the column headers in the *input data*
+are linked to the type tag in the *mapping*, which are linked to the ontology
+classes in the *schema*.
+
+.. image:: ../simplest_example_visual_summary.svg
+   :alt: Four files represented as blocks with links between equivalent keywords.
+
+.. note::
+   While not strictly necessary, it is often the case that people use
+   the very same name for both the taxonomy classes in the schema
+   and the type tags in the mapping; to ease the reading of config files.
+
 
 
 Common Mapping
@@ -262,8 +294,8 @@ Available Transformers
 If you want to transform a data cell before exporting it as one or
 several nodes, you will use other *transformers* than the “map” one.
 
-``map``
-^^^^^^^
+map
+^^^
 
 The *map* transformer simply extracts the value of the cell defined, and
 is the most common way of mapping cell values.
@@ -290,8 +322,8 @@ and edges. For example:
                - variant
                - patient_has_variant # Edge type.
 
-``split``
-^^^^^^^^^
+split
+^^^^^
 
 The *split* transformer separates a string on a separator, into several
 items, and then inserts a node for each element of the list.
@@ -336,8 +368,8 @@ you may write:
           │         ╚═════╪═══╪═╩══════════════╪═════╝
           ╰───────────────╯   ╰────────────────╯
 
-``cat``
-^^^^^^^
+cat
+^^^
 
 The *cat* transformer concatenates the values cells of the defined
 columns and then inserts a single node. For example, the mapping below
@@ -354,8 +386,8 @@ values are concatenated in the order written in the ``columns`` section.
            - disease
          to_subject: variant # The ontology type to map to
 
-``cat_format``
-^^^^^^^^^^^^^^
+cat_format
+^^^^^^^^^^
 
 The user can also define the order and format of concatenation by
 creating a ``format_string`` field, which defines the format of the
@@ -372,8 +404,8 @@ concatenation. For example:
          # Enclose column names in brackets where you want their content to be:
          format_string: "{disease}_____{variant_id}"
 
-``string``
-^^^^^^^^^^
+string
+^^^^^^
 
 The *string* transformer allows mapping the same pre-defined static
 string to properties of *some* nodes or edge types.
@@ -389,8 +421,8 @@ It only needs the string *value*, and then a regular property mapping:
                - patient
                - variant
 
-``translate``
-^^^^^^^^^^^^^
+translate
+^^^^^^^^^
 
 The *translate* transformer changes the targeted cell value from the one
 contained in the input table to another one, as configured through
@@ -465,9 +497,9 @@ example:
            translations_file: <myfile.csv.zip>
            translate_from: Ensembl
            translate_to: HGCN
-           sep: ;
+           sep: ";"
            compression: zip
-           decimal: ,
+           decimal: ","
            encoding: latin-1
 
 replace

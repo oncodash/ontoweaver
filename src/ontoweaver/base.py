@@ -431,8 +431,9 @@ class Transformer(errormanager.ErrorManager):
         :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
         :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
         :param raise_errors: whether to raise errors or not. Default is True.
-        each transformer is instantiated with a default OutputValidator object, and additional user-defined rules if needed in
-        the tabular module.
+            each transformer is instantiated with a default OutputValidator object, and additional user-defined rules if needed in
+            the tabular module.
+
 
         """
         super().__init__(raise_errors)
