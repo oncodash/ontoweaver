@@ -1608,7 +1608,7 @@ class YamlParser(Declare):
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         self.k_row = ["row", "entry", "line", "subject", "source"]
         self.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column"]
-        self.k_columns = ["columns", "fields", "column", "match_column", "id_from_column"]
+        self.k_columns = ["columns", "fields", "column", "field", "match_column", "id_from_column"]
         self.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
         self.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
         self.k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -1619,7 +1619,7 @@ class YamlParser(Declare):
         self.k_metadata_column = ["add_source_column_names_as"]
         self.k_validate_output = ["validate_output"]
         self.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
-        self.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate"]
+        self.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
 
         #TODO create make node class for nested final_type instantiation
 
