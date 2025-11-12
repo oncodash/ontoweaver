@@ -87,19 +87,6 @@ class split(base.Transformer):
                          raise_errors=raise_errors, **kwargs)
 
 
-    def __call__(self, row, i):
-        """
-        Process a row and yield split items as node IDs.
-
-        Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
-
-        Yields:
-            str: Each split item from the cell value.
-        """
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
 
 
 class cat(base.Transformer):
@@ -151,8 +138,8 @@ class cat(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="cat.call", exception = exceptions.TransformerInputError)
 
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
+        for item in super().__call__(row, i):
+            yield item
 
 
 
@@ -196,23 +183,6 @@ class cat_format(base.Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator, multi_type_dict,
                          raise_errors=raise_errors, **kwargs)
 
-    def __call__(self, row, i):
-        """
-        Process a row and yield a formatted string as node ID.
-
-        Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
-
-        Yields:
-            str: The formatted string from the cell values.
-
-        Raises:
-            Exception: If the format string is not defined or if invalid content is encountered.
-        """
-
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
 
 class rowIndex(base.Transformer):
     """Transformer subclass used for the simple mapping of nodes with row index values as id."""
@@ -244,22 +214,7 @@ class rowIndex(base.Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
-    def __call__(self, row, i, result_object=None):
-        """
-        Process a row and yield the row index as node ID.
 
-        Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
-
-        Returns:
-            int: The row index if valid.
-
-        Raises:
-            Warning: If the row index is invalid.
-        """
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
 
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
@@ -313,8 +268,8 @@ class map(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
+        for item in super().__call__(row, i):
+            yield item
 
 
 class translate(base.Transformer):
@@ -499,8 +454,8 @@ class string(base.Transformer):
         if not self.value:
             self.error(f"No value passed to the {type(self).__name__} transformer, did you forgot to add a `value` keyword?", section="string.call", exception = exceptions.TransformerInterfaceError)
 
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
+        for item in super().__call__(row, i):
+            yield item
 
 class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
@@ -550,19 +505,3 @@ class replace(base.Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
-    def __call__(self, row, i):
-        """
-        Process a row and yield cell values with forbidden characters removed or replaced.
-
-        Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
-
-        Yields:
-            str: The processed cell value with forbidden characters removed or replaced.
-
-        Raises:
-            Warning: If the processed cell value is invalid.
-        """
-        for value in self.value_maker(self.columns, row, i):
-            yield self.create(value, row)
