@@ -5,6 +5,8 @@ import logging
 import threading
 import biocypher
 
+from alive_progress import alive_bar
+
 import types as pytypes
 import pandas as pd
 import pandera as pa
@@ -195,7 +197,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
                 if property:
                     properties[property_name] = str(property).replace("'", "`")
-                    logger.info(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
+                    logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
                 else:
                     self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
                     continue
@@ -388,8 +390,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                     nb_nodes += local_nb_nodes
 
         elif self.parallel_mapping == 0:
-            logger.info(f"Processing dataframe sequentially...")
-            for i, row in self.iterate():
+            logger.debug(f"Processing dataframe sequentially...")
+            for i, row in self.df.iterrows():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 self.nodes_append(local_nodes)
                 self.edges_append(local_edges)
@@ -397,6 +399,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 nb_rows += local_rows
                 nb_transformations += local_transformations
                 nb_nodes += local_nb_nodes
+                yield (local_nodes, local_edges)
 
         else:
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
@@ -1299,6 +1302,11 @@ class YamlParser(Declare):
 
         logger.debug(f"Declare subject type...")
         subject_transformer_dict = self.get(self.k_row)
+        if not subject_transformer_dict:
+            msg = f"There is no `{'`, `'.join(self.k_row)}` key in your mapping file."
+            logging.error(msg)
+            raise RuntimeError(msg)
+
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
         subject_kwargs = self.get_not(self.k_subject_type + self.k_columns, subject_transformer_dict[
             subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
@@ -1600,7 +1608,7 @@ class YamlParser(Declare):
         Returns:
             tuple: The subject transformer and a list of transformers.
         """
-        logger.debug(f"Parse mapping:")
+        logger.debug(f"Parse mapping...")
 
         properties_of = {}
         metadata = {}
@@ -1635,12 +1643,26 @@ class YamlParser(Declare):
 
         validator = self._get_input_validation_rules()
 
+        if not validator or type(validator) == validate.SkipValidator:
+                logger.warning(f"Input validation will be skipped.")
+
+        skipped_columns = []
+        for t in transformers:
+            if type(t.output_validator) == validate.SkipValidator:
+                skipped_columns += t.columns
+
+        if skipped_columns:
+            logger.warning(f"Skip output validation for columns: `{'`, `'.join(skipped_columns)}`. This could result in some empty or `nan` nodes."
+                           f" To enable output validation set `validate_output` to `True`.")
+
         if source_t:
             logger.debug(f"source class: {source_t}")
         elif possible_edge_types:
             logger.debug(f"possible_source_types: {possible_subject_types}")
+
         logger.debug(f"properties_of: {properties_of}")
         logger.debug(f"transformers: {transformers}")
         logger.debug(f"metadata: {metadata}")
+
         return subject_transformer, transformers, metadata, validator
 

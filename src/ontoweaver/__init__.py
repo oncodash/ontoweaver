@@ -1,14 +1,17 @@
+from typing import Tuple
+from pathlib import Path
+from alive_progress import alive_bar
+from abc import ABCMeta as ABSTRACT, abstractmethod
+
 import yaml
 import rdflib
+import logging
 import logging
 import pathlib
 import biocypher
 
 import pandas as pd
 import pandera as pa
-
-from typing import Tuple
-from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import base
 Node = base.Node
@@ -65,6 +68,24 @@ class LoadPandasDataframe(Loader):
         return PandasAdapter
 
 class LoadPandasFile(Loader):
+    """Read a file with Pandas, using its extension to guess its format.
+
+    If no additional arguments are passed, it will call the
+    Pandas `read_*` function with `filter_na = False`, which makes empty cell
+    values to be loaded as empty strings instead of NaN values.
+
+    Args:
+        filename: The name of the data file the user wants to map.
+        separator (str, optional): The separator used in the data file. Defaults to None.
+        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
+
+    Raises:
+        exception.FeatureError: if the extension is unknown.
+
+    Returns:
+        A Pandas DataFrame.
+    """
+
     def __init__(self):
         self.read_funcs = {
         '.csv'    : pd.read_csv,
@@ -98,14 +119,25 @@ class LoadPandasFile(Loader):
             if ext in self.read_funcs:
                 return True
 
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.read_funcs.keys())})"
-        logger.warning(msg)
         return False
 
 
     def load(self, filename, **kwargs):
         ext = pathlib.Path(filename).suffix
-        return self.read_funcs[ext](filename)
+        if not self.allows(filename):
+            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.read_funcs.keys())})"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
+
+        if not kwargs:
+            # We probably don't want NaN as a default,
+            # since they tend to end up in a label.
+            kwargs.update({'na_filter': True,
+                        'engine': 'python'}) #'c' engine does not support regex separators (separators > 1 char and different
+                                          # from '\s+' are interpreted as regex) which results in an error.
+
+        return self.read_funcs[ext](filename, **kwargs)
+
 
     def adapter(self):
         return tabular.PandasAdapter
@@ -127,7 +159,7 @@ class LoadRDFFile(Loader):
         self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
     def allows(self, filename):
-        ext = pathlib.Path(filename).suffix 
+        ext = pathlib.Path(filename).suffix
 
         if type(filename) == str or type(filename) == pathlib.Path:
             if ext in self.allowed:
@@ -137,16 +169,23 @@ class LoadRDFFile(Loader):
         logger.warning(msg)
         return False
 
+
     def load(self, filename, **kwargs):
+        ext = pathlib.Path(filename).suffix
+        if not self.allows(filename):
+            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
+
         g = rdflib.Graph()
 
-        ext = pathlib.Path(filename).suffix 
         if ext == ".owl":
             g.parse(filename, format = "xml")
         else:
             g.parse(filename) # Guess the format based on extension.
 
         return g
+
 
     def adapter(self):
         return tabular.OWLAutoAdapter
@@ -231,7 +270,6 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     )
     #bc.summary() # FIXME: AttributeError: 'NoneType' object has no attribute 'get_duplicate_nodes'
 
-
     logger.info("Run BioCypher")
     if fnodes:
         bc.write_nodes(fnodes)
@@ -261,46 +299,9 @@ def read_table_file(filename, **kwargs):
         A Pandas DataFrame.
     """
 
-    # We probably don't want NaN as a default,
-    # since they tend to end up in a label.
-    kwargs.update({'na_filter': True,
-                'engine': 'python'}) #'c' engine does not support regex separators (separators > 1 char and different
-                                  # from '\s+' are interpreted as regex) which results in an error.
-
-    read_funcs = {
-        '.csv'    : pd.read_csv,
-        '.tsv'    : pd.read_csv,
-        '.txt'    : pd.read_csv,
-
-        '.xls'    : pd.read_excel,
-        '.xlsx'   : pd.read_excel,
-        '.xlsm'   : pd.read_excel,
-        '.xlsb'   : pd.read_excel,
-        '.odf'    : pd.read_excel,
-        '.ods'    : pd.read_excel,
-        '.odt'    : pd.read_excel,
-
-        '.json'   : pd.read_json,
-        '.html'   : pd.read_html,
-        '.xml'    : pd.read_xml,
-        '.hdf'    : pd.read_hdf,
-        '.feather': pd.read_feather,
-        '.parquet': pd.read_parquet,
-        '.pickle' : pd.read_pickle,
-        '.orc'    : pd.read_orc,
-        '.sas'    : pd.read_sas,
-        '.spss'   : pd.read_spss,
-        '.stata'  : pd.read_stata,
-    }
-    filepath = pathlib.Path(filename)
-    ext = filepath.suffix
-
-    if ext not in read_funcs:
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(read_funcs.keys())})"
-        logger.error(msg)
-        raise exceptions.FeatureError(msg)
-
-    return read_funcs[ext](filename, **kwargs)
+    lpf = LoadPandasFile()
+    data = lpf.load(filename, **kwargs)
+    return data
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", validate_output = False, raise_errors = True, **kwargs):
@@ -333,23 +334,45 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
         assert(type(filename_to_mapping) == dict) # data_file => mapping_file
 
         for data_file, mapping_file in filename_to_mapping.items():
+            logging.info("Load input data... ", end="")
             table = read_table_file(data_file, **kwargs)
+            logging.info("OK")
 
+            logging.info("Load mapping...")
             with open(mapping_file) as fd:
                 mapping = yaml.full_load(fd)
 
-            adapter = tabular.extract_table(
+            # adapter = tabular.extract_table(
+            #         table,
+            #         mapping,
+            #         parallel_mapping=parallel_mapping,
+            #         affix=affix,
+            #         separator=affix_separator,
+            #         validate_output=validate_output,
+            #         raise_errors = raise_errors,
+            #     )
+            parser = tabular.YamlParser(mapping, module = types, validate_output = validate_output, raise_errors = raise_errors)
+            mapping = parser()
+
+            adapter = tabular.PandasAdapter(
                 table,
-                mapping,
+                *mapping,
+                type_affix=affix,
+                type_affix_sep=affix_separator,
                 parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                validate_output=validate_output,
                 raise_errors = raise_errors,
             )
+            logging.info("OK")
+
+            logging.info("Map data into nodes and edges...")
+            with alive_bar(len(table)) as progress:
+                for n,e in adapter.run():
+                    progress()
 
             nodes += adapter.nodes
             edges += adapter.edges
+            logging.info("OK")
+
 
     if dataframe_to_mapping:
 
@@ -367,8 +390,11 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
             nodes += adapter.nodes
             edges += adapter.edges
 
+    logging.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+    logging.info("OK")
 
+    logging.info("Export the graph...")
     bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
@@ -379,6 +405,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_m
     if fedges:
         bc.write_edges(fedges)
     import_file = bc.write_import_call()
+    logging.info("OK")
 
     return import_file
 

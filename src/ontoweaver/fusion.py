@@ -44,7 +44,7 @@ class Reduce(Fusioner):
         self.fuser = fuser
 
     def __call__(self, congregater: congregate.Congregater) -> set[base.Element]:
-        fusioned = set()
+        # fusioned = set()
         for key, elem_list in congregater.duplicates.items():
             self.fuser.reset()
             logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
@@ -67,9 +67,10 @@ class Reduce(Fusioner):
             f = self.fuser.get()
             logger.debug(f"  Fused: {repr(f)}")
             assert(issubclass(type(f), base.Element))
-            fusioned.add(f)
-        logger.debug(f"Fusioned {len(fusioned)} elements.")
-        return fusioned
+            # fusioned.add(f)
+            yield f
+
+        logger.debug(f"Fusioned {len(congregater)} elements.")
 
 
 def remap_edges(edges, ID_mapping):
@@ -88,7 +89,6 @@ def remap_edges(edges, ID_mapping):
         the list of remaped edges tuples
     """
 
-    remaped_edges = []
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
 
@@ -100,9 +100,7 @@ def remap_edges(edges, ID_mapping):
         if t:
             edge.id_target = t
 
-        remaped_edges.append(edge.as_tuple())
-
-    return remaped_edges
+        yield edge.as_tuple()
 
 
 def reconciliate_nodes(nodes, separator = None):
@@ -131,7 +129,9 @@ def reconciliate_nodes(nodes, separator = None):
     # Find duplicates
     on_ID = serialize.ID()
     nodes_congregater = congregate.Nodes(on_ID)
-    nodes_congregater(nodes)
+
+    for n in nodes_congregater(nodes):
+        pass
 
     # Fuse them
     use_key    = merge.string.UseKey()
@@ -144,7 +144,10 @@ def reconciliate_nodes(nodes, separator = None):
         )
 
     nodes_fusioner = Reduce(node_fuser)
-    fusioned_nodes = nodes_fusioner(nodes_congregater)
+    fusioned_nodes = set()
+    for n in nodes_fusioner(nodes_congregater):
+        fusioned_nodes.add(n)
+
     # logger.debug("Fusioned nodes:")
     # for n in fusioned_nodes:
     #     logger.debug("\t"+repr(n))
@@ -177,7 +180,9 @@ def reconciliate_edges(edges, separator = None):
     # Find duplicates
     on_STL = serialize.edge.SourceTargetLabel()
     edges_congregater = congregate.Edges(on_STL)
-    edges_congregater(edges)
+
+    for e in edges_congregater(edges):
+        pass
 
     # Fuse them
     set_of_ID       = merge.string.OrderedSet(separator)
@@ -194,7 +199,10 @@ def reconciliate_edges(edges, separator = None):
         )
 
     edges_fusioner = Reduce(edge_fuser)
-    fusioned_edges = edges_fusioner(edges_congregater)
+    fusioned_edges = set()
+    for e in edges_fusioner(edges_congregater):
+        fusioned_edges.add(e)
+
     # logger.debug("Fusioned edges:")
     # for n in fusioned_edges:
     #     logger.debug("\t"+repr(n))
@@ -227,7 +235,9 @@ def reconciliate(nodes, edges, separator = None):
     assert(len(ID_mapping) == 0)
     # If one change this, you may want to remap like this:
     if len(ID_mapping) > 0:
-        remaped_edges = remap_edges(edges, ID_mapping)
+        remaped_edges = []
+        for e in remap_edges(edges, ID_mapping):
+            remaped_edges.append(e)
         # logger.debug("Remaped edges:")
         # for n in remaped_edges:
         #     logger.debug("\t"+repr(n))

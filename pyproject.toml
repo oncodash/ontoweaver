@@ -15,6 +15,7 @@ owlready2 = "^0.48"
 jsonargparse = "^4.39"
 xdg-base-dirs = "^6.0.2"
 pandera = { version = "^0.25.0", extras = ["io"] }
+alive-progress = "^3.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
