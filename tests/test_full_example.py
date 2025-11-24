@@ -11,7 +11,7 @@ def test_full_example():
 
     data_mapping = {f"tests/{dir}/data.csv": f"tests/{dir}/mapping.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="none")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="none")
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 

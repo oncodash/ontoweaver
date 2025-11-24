@@ -13,7 +13,8 @@ def test_fuse():
 
     on_ID = ontoweaver.serialize.ID()
     congregater = ontoweaver.congregate.Nodes(on_ID)
-    congregater(nodes)
+    for n in congregater(nodes):
+        pass
 
     as_keys  = ontoweaver.merge.string.UseKey()
     as_first = ontoweaver.merge.string.UseFirst()
@@ -28,11 +29,13 @@ def test_fuse():
     fusioned = fusioner(congregater)
 
     logging.debug("Fusioned items:")
+    fused = []
     for f in fusioned:
         logging.debug("  "+repr(f))
+        fused.append(f)
 
-    assert(len(fusioned) == 2)
-    for e in fusioned:
+    assert(len(fused) == 2)
+    for e in fused:
         assert("p1" in e.properties)
         assert("p2" in e.properties)
         assert("y" in e.properties["p2"])
@@ -51,11 +54,13 @@ def test_fuse():
     fusioned2 = fusioner2(congregater)
 
     logging.debug("Fusioned items:")
+    fused2 = []
     for f in fusioned2:
         logging.debug("  "+repr(f))
+        fused2.append(f)
 
-    assert(len(fusioned2) == 2)
-    for e in fusioned2:
+    assert(len(fused2) == 2)
+    for e in fused2:
         assert("p1" in e.properties)
         assert("p2" in e.properties)
         assert("y" in e.properties["p2"])

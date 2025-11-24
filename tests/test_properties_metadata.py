@@ -29,7 +29,7 @@ def test_properties_metadata():
 
     data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="suffix")
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 

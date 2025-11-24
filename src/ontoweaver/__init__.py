@@ -212,70 +212,10 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
        Returns:
            The path to the import file.
    """
-    nodes = []
-    edges = []
 
-    lpf = LoadPandasFile()
-    lpd = LoadPandasDataframe()
-    lrf = LoadRDFFile()
-    lrg = LoadRDFGraph()
+    nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
-    for data_file, mapping_file in filename_to_mapping.items():
-        found_loader = False
-        for loader in [lpf, lpd, lrf, lrg]:
-            if loader.allows(data_file):
-                found_loader = True
-                logger.info(f"Use loader `{loader.__class__.__name__}` to load `{data_file}`")
-                data = loader(data_file, **kwargs)
-
-                if mapping_file == "automap":
-                    mapping = {}
-                else:
-                    with open(mapping_file) as fd:
-                        config = yaml.full_load(fd)
-                        parser = tabular.YamlParser(
-                            config,
-                            validate_output=validate_output,
-                            raise_errors = raise_errors,
-                        )
-                        mapping = parser()
-
-                adapter = loader.adapter()(
-                    data,
-                    *mapping,
-                    type_affix=affix,
-                    type_affix_sep=type_affix_sep,
-                    parallel_mapping=parallel_mapping,
-                    raise_errors = raise_errors,
-                )
-                adapter.run()
-                break
-
-        if not found_loader:
-            msg = f"I found no loader able to load `{data_file}`"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
-
-        nodes += adapter.nodes
-        edges += adapter.edges
-        logger.debug(f"Currently {len(nodes)} nodes and {len(edges)} edges")
-
-    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
-    logger.debug(f"{len(fnodes)} nodes and {len(fedges)} edges after fusion")
-
-    logger.info("Load BioCypher")
-    bc = biocypher.BioCypher(    # FIXME change constructor to take contents of paths instead of reading path.
-        biocypher_config_path = biocypher_config_path,
-        schema_config_path = schema_path
-    )
-    #bc.summary() # FIXME: AttributeError: 'NoneType' object has no attribute 'get_duplicate_nodes'
-
-    logger.info("Run BioCypher")
-    if fnodes:
-        bc.write_nodes(fnodes)
-    if fedges:
-        bc.write_edges(fedges)
-    import_file = bc.write_import_call()
+    import_file = reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separator, raise_errors)
 
     return import_file
 
@@ -304,113 +244,12 @@ def read_table_file(filename, **kwargs):
     return data
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", validate_output = False, raise_errors = True, **kwargs):
-    """Calls several mappings, each on the related Pandas-readable tabular data file,
-       then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
-       then export everything with BioCypher.
-       Returns the path to the resulting import file.
-
-       Args:
-           biocypher_config_path: the BioCypher configuration file.
-           schema_path: the assembling schema file.
-           filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-           dataframe_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
-           parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-           separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
-           affix (str, optional): The affix to use for type inclusion. Defaults to "none".
-           affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
-           validate_output: Whether to validate the output of the transformers. Defaults to False.
-           raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
-           kwargs: A dictionary of arguments to pass to pandas.read_* functions.
-
-       Returns:
-           The path to the import file.
-   """
-    nodes = []
-    edges = []
-
-    if filename_to_mapping:
-
-        assert(type(filename_to_mapping) == dict) # data_file => mapping_file
-
-        for data_file, mapping_file in filename_to_mapping.items():
-            logging.info("Load input data... ", end="")
-            table = read_table_file(data_file, **kwargs)
-            logging.info("OK")
-
-            logging.info("Load mapping...")
-            with open(mapping_file) as fd:
-                mapping = yaml.full_load(fd)
-
-            # adapter = tabular.extract_table(
-            #         table,
-            #         mapping,
-            #         parallel_mapping=parallel_mapping,
-            #         affix=affix,
-            #         separator=affix_separator,
-            #         validate_output=validate_output,
-            #         raise_errors = raise_errors,
-            #     )
-            parser = tabular.YamlParser(mapping, module = types, validate_output = validate_output, raise_errors = raise_errors)
-            mapping = parser()
-
-            adapter = tabular.PandasAdapter(
-                table,
-                *mapping,
-                type_affix=affix,
-                type_affix_sep=affix_separator,
-                parallel_mapping=parallel_mapping,
-                raise_errors = raise_errors,
-            )
-            logging.info("OK")
-
-            logging.info("Map data into nodes and edges...")
-            with alive_bar(len(table)) as progress:
-                for n,e in adapter.run():
-                    progress()
-
-            nodes += adapter.nodes
-            edges += adapter.edges
-            logging.info("OK")
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, separator = None, affix = "none", affix_separator = ":", validate_output = False, raise_errors = True, **kwargs):
+    logger.warning("The `extract_reconciliate_write` function is deprecated and will be removed in the next version, use `weave` instead.")
+    return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, separator, affix, affix_separator, validate_output, raise_errors, **kwargs)
 
 
-    if dataframe_to_mapping:
-
-        for dataframe, loaded_mapping in dataframe_to_mapping:
-            adapter = tabular.extract_table(
-                dataframe,
-                loaded_mapping,
-                parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                validate_output=validate_output,
-                raise_errors=raise_errors,
-            )
-
-            nodes += adapter.nodes
-            edges += adapter.edges
-
-    logging.info("Fuse duplicated nodes and edges...")
-    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
-    logging.info("OK")
-
-    logging.info("Export the graph...")
-    bc = biocypher.BioCypher(    # fixme change constructor to take contents of paths instead of reading path.
-        biocypher_config_path = biocypher_config_path,
-        schema_config_path = schema_path
-    )
-
-    if fnodes:
-        bc.write_nodes(fnodes)
-    if fedges:
-        bc.write_edges(fedges)
-    import_file = bc.write_import_call()
-    logging.info("OK")
-
-    return import_file
-
-
-def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_mapping = 0, affix="none", affix_separator=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -419,7 +258,7 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
         dataframe_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
-        affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
+        affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
         validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
@@ -431,45 +270,59 @@ def extract(filename_to_mapping = None, dataframe_to_mapping = None, parallel_ma
     nodes = []
     edges = []
 
-    if filename_to_mapping:
+    lpf = LoadPandasFile()
+    lpd = LoadPandasDataframe()
+    lrf = LoadRDFFile()
+    lrg = LoadRDFGraph()
 
-        assert(type(filename_to_mapping) == dict) # data_file => mapping_file
+    for data, mapping in data_to_mapping.items():
+        found_loader = False
+        for loader in [lpf, lpd, lrf, lrg]:
+            if loader.allows(data):
+                found_loader = True
+                logger.info(f"Use loader `{loader.__class__.__name__}` to load `{data}`")
+                data = loader(data, **kwargs)
 
-        for data_file, mapping_file in filename_to_mapping.items():
-            table = read_table_file(data_file, **kwargs)
+                if mapping == "automap":
+                    logger.debug("\twith auto mapping")
+                    mapping = {}
+                else:
+                    logger.debug(f"\twith user mapping: `{mapping}`")
+                    with open(mapping) as fd:
+                        config = yaml.full_load(fd)
+                        parser = tabular.YamlParser(
+                            config,
+                            validate_output=validate_output,
+                            raise_errors = raise_errors,
+                        )
+                        mapping = parser()
 
-            with open(mapping_file) as fd:
-                mapping = yaml.full_load(fd)
+                logger.debug(f"Run the adapter...")
+                adapter = loader.adapter()(
+                    data,
+                    *mapping,
+                    type_affix=affix,
+                    type_affix_sep=type_affix_sep,
+                    parallel_mapping=parallel_mapping,
+                    raise_errors = raise_errors,
+                )
+                if parallel_mapping > 0:
+                    adapter()
+                    nodes += list(adapter.nodes)
+                    edges += list(adapter.edges)
+                else:
+                    for n,e in adapter():
+                        nodes.append(n)
+                        edges.append(e)
+                logger.debug(f"OK — adapter ran.")
+                break
 
-            adapter = tabular.extract_table(
-                table,
-                mapping,
-                parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                validate_output=validate_output,
-                raise_errors = raise_errors,
-            )
+        if not found_loader:
+            msg = f"I found no loader able to load `{data_file}`"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
 
-            nodes += adapter.nodes
-            edges += adapter.edges
-
-    if dataframe_to_mapping:
-
-        for dataframe, loaded_mapping in dataframe_to_mapping:
-
-            adapter = tabular.extract_table(
-                dataframe,
-                loaded_mapping,
-                parallel_mapping=parallel_mapping,
-                affix=affix,
-                separator=affix_separator,
-                validate_output=validate_output,
-                raise_errors=raise_errors,
-            )
-
-            nodes += adapter.nodes
-            edges += adapter.edges
+        logger.debug(f"Currently {len(nodes)} nodes and {len(edges)} edges")
 
     return nodes, edges
 
@@ -492,8 +345,11 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         str: The path to the import file.
     """
 
+    logging.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+    logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
+    logging.info("Export the graph...")
     bc = biocypher.BioCypher(
         biocypher_config_path = biocypher_config_path,
         schema_config_path = schema_path
@@ -505,6 +361,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         bc.write_edges(fedges)
     #bc.summary()
     import_file = bc.write_import_call()
+    logging.info("OK")
 
     return import_file
 

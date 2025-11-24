@@ -28,7 +28,7 @@ def test_affix_separator():
 
     data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="prefix", affix_separator="___")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="prefix", type_affix_sep="___")
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 

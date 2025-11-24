@@ -85,7 +85,8 @@ def main():
     appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
     logging.basicConfig()
-    logger = logging.getLogger(appname)
+    # logger = logging.getLogger(appname)
+    logger = logging.getLogger("ontoweaver")
 
     config_files = list(config_paths(appname))
 

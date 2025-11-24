@@ -22,7 +22,7 @@ def test_simplest():
 
     data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="none")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="none")
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
 

@@ -391,7 +391,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         elif self.parallel_mapping == 0:
             logger.debug(f"Processing dataframe sequentially...")
-            for i, row in self.df.iterrows():
+            for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 self.nodes_append(local_nodes)
                 self.edges_append(local_edges)
@@ -512,7 +512,21 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         nb_transformations = 0
         nb_nodes = 0
 
-        self._run_all(process_row, nb_rows, nb_transformations, nb_nodes)
+        if self.parallel_mapping > 0:
+            self._run_all(process_row, nb_rows, nb_transformations, nb_nodes)
+        else:
+            for n,e in self._run_all(process_row, nb_rows, nb_transformations, nb_nodes):
+                yield n,e
+
+
+    def __call__(self):
+        if self.parallel_mapping > 0:
+            # for _ in range(1):
+            self.run()
+            return
+        else:
+            for n,e in self.run():
+                yield n,e
 
 
     @abstractmethod
@@ -603,6 +617,7 @@ class OWLAutoAdapter(base.Adapter):
             self.nodes_append(n)
 
 
+# TODO
 #class OWLAdapter(IterativeAdapter):
 #    def __init__(self,
 #                 graph: rdflib.Graph,
@@ -704,6 +719,7 @@ class PandasAdapter(IterativeAdapter):
 
     def iterate(self):
         return self.df.iterrows()
+
 
 def extract(data, adapter_class: IterativeAdapter, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
 

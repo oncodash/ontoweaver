@@ -55,14 +55,14 @@ def test_multiple_databases():
 
     data_mapping = {f"tests/{directory_name}/data_cgi_article.csv": f"tests/{directory_name}/cgi.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", raise_errors=False)
+    nodes, edges = ontoweaver.extract(data_mapping, affix="suffix", raise_errors=False)
 
     list_nodes += nodes
     list_edges += edges
 
     data_mapping = {f"tests/{directory_name}/data_oncokb_article.csv": f"tests/{directory_name}/oncokb.yaml"}
 
-    nodes, edges = ontoweaver.extract(filename_to_mapping=data_mapping, affix="suffix", raise_errors=False)
+    nodes, edges = ontoweaver.extract(data_mapping, affix="suffix", raise_errors=False)
 
     list_nodes += nodes
     list_edges += edges
