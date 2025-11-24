@@ -736,18 +736,17 @@ def test_2_databases():
                     f"tests/{directory_name1}/data.csv": f"tests/{directory_name1}/mapping.yaml"}
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="suffix", validate_output=True, raise_errors=False)
-
     assert nodes, "There is no node"
     assert edges, "There is no edge"
 
+    bc_nodes = [n.as_tuple() for n in nodes]
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
-    f_node_set = testing_functions.convert_to_set(nodes)
-
+    f_node_set = testing_functions.convert_to_set(bc_nodes)
     assert assert_node_set == f_node_set, "Nodes are not equal."
 
+    bc_edges = [e.as_tuple() for e in edges]
     assert_edge_set = testing_functions.convert_to_set(assert_edges)
-    f_edge_set = testing_functions.convert_to_set(edges)
-
+    f_edge_set = testing_functions.convert_to_set(bc_edges)
     assert assert_edge_set == f_edge_set, "Edges are not equal."
 
 
