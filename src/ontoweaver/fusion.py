@@ -124,6 +124,9 @@ def reconciliate_nodes(nodes, separator = None):
     Returns:
         the list of fused nodes and the ID mapping dictionary
     """
+    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
+
 
     # NODES FUSION
     # Find duplicates
@@ -175,6 +178,8 @@ def reconciliate_edges(edges, separator = None):
     Returns:
         the list of fused edges
     """
+    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     # EDGES FUSION
     # Find duplicates
@@ -226,6 +231,11 @@ def reconciliate(nodes, edges, separator = None):
 
     See reconciliate_nodes and reconciliate_edges for details.
     """
+    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
+
+    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, separator = separator)
 

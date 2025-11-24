@@ -215,7 +215,11 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
 
     nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
-    import_file = reconciliate_write(nodes, edges, biocypher_config_path, schema_path, separator, raise_errors)
+    # The fusion module is independant from OntoWeaver,
+    # and thus operates on BioCypher's tuples.
+    bc_nodes = [n.as_tuple() for n in nodes]
+    bc_edges = [e.as_tuple() for e in edges]
+    import_file = reconciliate_write(bc_nodes, bc_edges, biocypher_config_path, schema_path, separator, raise_errors)
 
     return import_file
 
@@ -311,9 +315,9 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
                     nodes += list(adapter.nodes)
                     edges += list(adapter.edges)
                 else:
-                    for n,e in adapter():
-                        nodes.append(n)
-                        edges.append(e)
+                    for ln,le in adapter():
+                        nodes += ln
+                        edges += le
                 logger.debug(f"OK — adapter ran.")
                 break
 
@@ -344,6 +348,11 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     Returns:
         str: The path to the import file.
     """
+    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
+
+    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(len(e) == 4 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logging.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)

@@ -24,7 +24,17 @@ def test_simplest():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="none")
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    logging.debug(f"NODES: {nodes}")
+    logging.debug(f"EDGES: {edges}")
+    bc_nodes = [n.as_tuple() for n in nodes]
+    bc_edges = [e.as_tuple() for e in edges]
+    fnodes, fedges = ontoweaver.fusion.reconciliate(
+        bc_nodes,
+        bc_edges,
+        separator=","
+    )
+    logging.debug(f"FNODES: {fnodes}")
+    logging.debug(f"FEDGES: {fedges}")
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
     f_node_set = testing_functions.convert_to_set(fnodes)
