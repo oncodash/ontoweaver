@@ -23,7 +23,7 @@ def test_output_validation():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="suffix", validate_output=True, raise_errors=False)
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), separator=",")
 
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)

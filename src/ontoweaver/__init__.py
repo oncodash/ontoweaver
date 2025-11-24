@@ -217,8 +217,8 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
 
     # The fusion module is independant from OntoWeaver,
     # and thus operates on BioCypher's tuples.
-    bc_nodes = [n.as_tuple() for n in nodes]
-    bc_edges = [e.as_tuple() for e in edges]
+    bc_nodes = ow2bc(nodes)
+    bc_edges = ow2bc(edges)
     import_file = reconciliate_write(bc_nodes, bc_edges, biocypher_config_path, schema_path, separator, raise_errors)
 
     return import_file
@@ -352,7 +352,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
     assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
-    assert all(len(e) == 4 for e in edges), "This does not seem to be BioCypher's tuples"
+    assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logging.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
@@ -433,4 +433,8 @@ def validate_input_data_loaded(dataframe, loaded_mapping, raise_errors = True) -
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return False
+
+
+def ow2bc(ow_elements):
+    return [e.as_tuple() for e in ow_elements]
 

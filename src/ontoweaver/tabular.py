@@ -521,7 +521,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
     def __call__(self):
         if self.parallel_mapping > 0:
-            # for _ in range(1):
             self.run()
             return
         else:

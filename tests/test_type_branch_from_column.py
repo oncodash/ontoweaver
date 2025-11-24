@@ -24,7 +24,7 @@ def test_match_type_from_column():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="suffix")
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), separator=",")
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
     f_node_set = testing_functions.convert_to_set(fnodes)

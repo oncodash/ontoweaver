@@ -31,7 +31,7 @@ def test_properties_metadata():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="suffix")
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), separator=",")
 
     for node in fnodes:
         print(f"{node},")

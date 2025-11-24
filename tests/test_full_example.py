@@ -13,7 +13,7 @@ def test_full_example():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="none")
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), separator=",")
 
     bc = biocypher.BioCypher(
         biocypher_config_path = f"tests/{dir}/config.yaml",
