@@ -281,7 +281,7 @@ def load_extract(data, mapping, loader, parallel_mapping = 0, affix="none", type
         )
         mapper = parser()
 
-    logger.debug(f"Run the adapter...")
+    logger.debug(f"Instantiate the adapter...")
     adapter = loader.adapter()(
         data,
         *mapper,
@@ -290,11 +290,14 @@ def load_extract(data, mapping, loader, parallel_mapping = 0, affix="none", type
         parallel_mapping=parallel_mapping,
         raise_errors = raise_errors,
     )
+    logger.info(f"Run {type(adapter).__name__}...")
     if parallel_mapping > 0:
-        adapter()
+        logger.debug(f"\tin parallel over {parallel_mapping} cores")
+        adapter.__call__()
         nodes += list(adapter.nodes)
         edges += list(adapter.edges)
     else:
+        logger.debug("\tsequentially")
         for ln,le in adapter():
             nodes += ln
             edges += le

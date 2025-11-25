@@ -543,7 +543,12 @@ class Transformer(errormanager.ErrorManager):
 
                 if self.properties_of:
                     # The transformer is not a branching transformer, and has only one set of properties.
-                    props = self.properties_of
+                    props = "{"
+                    trans = []
+                    for kind in self.properties_of:
+                        trans.append(f"{kind} {self.properties_of[kind]}>")
+                    props += ", ".join(trans)
+                    props+="}"
                 elif self.branching_properties and self.branching_properties.get(value['to_object'], None):
                     # The transformer is a branching transformer, and has multiple sets of properties. We extract the ones for the current type.
                     props = self.branching_properties.get(value['to_object'])
@@ -570,7 +575,7 @@ class Transformer(errormanager.ErrorManager):
 
                 else:
                     # This is a regular transformer.
-                    link = f" => ({from_subject})--[{edge_name}]->({target_name}/{props})"
+                    link = f" => ({from_subject})--[{edge_name.__name__}]->({target_name.__name__}/{props})"
 
                 if self.columns:
                     columns = self.columns
@@ -581,11 +586,11 @@ class Transformer(errormanager.ErrorManager):
                     if type(c) != str:
                         self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
 
-                representation += (f"<Transformer:{type(self).__name__}({params}) {','.join(columns)}{link}>")
+                representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")
 
         else:
             #The transformer is a property transformer. We add the property name and value in the tabular.properties() function.
-            representation += (f"<Transformer:{type(self).__name__}() {','.join(self.columns) if self.columns else ''} =>")
+            representation += (f"<{type(self).__name__}() {','.join(self.columns) if self.columns else ''} =>")
 
         return representation
 

@@ -389,6 +389,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 with self._local_nb_nodes_lock:
                     nb_nodes += local_nb_nodes
 
+            assert len(self.nodes) > 0
+
         elif self.parallel_mapping == 0:
             logger.debug(f"Processing dataframe sequentially...")
             for i, row in self.iterate():
@@ -520,12 +522,15 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
 
     def __call__(self):
-        if self.parallel_mapping > 0:
-            self.run()
-            return
-        else:
-            for n,e in self.run():
-                yield n,e
+        # FIXME If the run functions contains a generator nested under an `if`, the call function is note even called by the derivated class instance..."
+        # if self.parallel_mapping > 0:
+        #     logger.debug("Parallel mapping")
+        #     self.run()
+        #     return
+        # else:
+        #     logger.debug("Sequential mapping")
+        for n,e in self.run():
+            yield n,e
 
 
     @abstractmethod
@@ -682,16 +687,16 @@ class PandasAdapter(IterativeAdapter):
     """
 
     def __init__(self,
-                 df: pd.DataFrame,
-                 subject_transformer: base.Transformer,
-                 transformers: Iterable[base.Transformer],
-                 metadata: Optional[dict] = None,
-                 validator: Optional[validate.InputValidator] = None,
-                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
-                 type_affix_sep: Optional[str] = ":",
-                 parallel_mapping: int = 0,
-                 raise_errors = True,
-                 ):
+            df: pd.DataFrame,
+            subject_transformer: base.Transformer,
+            transformers: Iterable[base.Transformer],
+            metadata: Optional[dict] = None,
+            validator: Optional[validate.InputValidator] = None,
+            type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+            type_affix_sep: Optional[str] = ":",
+            parallel_mapping: int = 0,
+            raise_errors = True,
+        ):
 
         super().__init__(
             subject_transformer,
@@ -704,21 +709,20 @@ class PandasAdapter(IterativeAdapter):
             raise_errors
         )
 
-        logger.info("DataFrame info:")
+        # logger.info("DataFrame info:")
         # logger.info(df.info())
         logger.debug("Columns:")
         for c in df.columns:
             logger.debug(f"\t`{c}`")
-        pd.set_option('display.max_rows', 30)
-        pd.set_option('display.max_columns', 30)
-        pd.set_option('display.width', 150)
-        logger.info("\n" + str(df))
+        # pd.set_option('display.max_rows', 30)
+        # pd.set_option('display.max_columns', 30)
+        # pd.set_option('display.width', 150)
+        # logger.info("\n" + str(df))
         self.df = df
 
 
     def iterate(self):
         return self.df.iterrows()
-
 
 
 class Declare(errormanager.ErrorManager):
@@ -1602,9 +1606,21 @@ class YamlParser(Declare):
         elif possible_edge_types:
             logger.debug(f"possible_source_types: {possible_subject_types}")
 
-        logger.debug(f"properties_of: {properties_of}")
-        logger.debug(f"transformers: {transformers}")
-        logger.debug(f"metadata: {metadata}")
+        logger.debug(f"properties_of:")
+        for kind in properties_of:
+            for k in properties_of[kind]:
+                logger.debug(f"\t{kind}: {k} {properties_of[kind][k]}>")
+
+        logger.debug(f"transformers:")
+        for t in transformers:
+            logger.debug(f"\t{t}")
+
+        if len(metadata) > 0:
+            logger.debug(f"metadata:")
+            for k in metadata:
+                logger.debug(f"\t{metadata[k]}")
+        else:
+            logging.debug("No metadata")
 
         return subject_transformer, transformers, metadata, validator
 
