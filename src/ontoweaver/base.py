@@ -469,9 +469,9 @@ class Transformer(errormanager.ErrorManager):
             str: The concatenated string from the cell values.
        """
         for value in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type = self.create(value, row)
+            value, edge_type, node_type, reverse_edge = self.create(value, row)
             if self.is_not_null(value):
-                yield value, edge_type, node_type
+                yield value, edge_type, node_type, reverse_edge
 
 
     def is_not_null(self, val):

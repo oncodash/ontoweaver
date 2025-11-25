@@ -42,18 +42,12 @@ transformers:
         via_relation: is_child_of
     """
 
-    map = yaml.safe_load(mapping)
+    ymap = yaml.full_load(mapping)
+
+    logging.debug(ymap)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_table(table, map, affix="none")
-
-    nodes = list(adapter.nodes)
-    edges = list(adapter.edges)
-
-    print("***nodes:")
-    print(nodes)
-    print("---edges:")
-    print(edges)
+    nodes, edges = ontoweaver.extract_table(table, ymap, affix="none")
 
     assert(len(nodes)==13)
     assert(len(edges)==5)

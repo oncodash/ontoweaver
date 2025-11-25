@@ -720,83 +720,6 @@ class PandasAdapter(IterativeAdapter):
         return self.df.iterrows()
 
 
-def extract(data, adapter_class: IterativeAdapter, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
-
-    parser = YamlParser(config, module, validate_output = validate_output, raise_errors = raise_errors)
-    mapping = parser()
-
-    adapter = adapter_class(
-        data,
-        *mapping,
-        type_affix=affix,
-        type_affix_sep=separator,
-        parallel_mapping=parallel_mapping,
-        raise_errors = raise_errors,
-    )
-
-    adapter.run()
-
-    return adapter
-
-
-def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
-    """
-    Proxy function for extracting from a table all nodes, edges and properties
-    that are defined in a PandasAdapter configuration.
-
-    Args:
-        df (pd.DataFrame): The DataFrame containing the input data.
-        config (dict): The configuration dictionary.
-        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-        module: The module in which to insert the types declared by the configuration.
-        affix (str): The type affix to use (default is "suffix").
-        separator (str): The separator to use between labels and type annotations (default is ":").
-        validate_output: Whether to validate the output of the transformers. Defaults to False.
-        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
-
-    Returns:
-        PandasAdapter: The configured adapter.
-    """
-    return extract(
-        df, PandasAdapter,
-        config,
-        parallel_mapping,
-        module,
-        affix,
-        separator,
-        validate_output,
-        raise_errors
-    )
-
-
-def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, module = types, affix = "suffix", separator = ":", validate_output = False, raise_errors = True):
-    """
-    Proxy function for extracting from a table all nodes, edges and properties
-    that are defined in a PandasAdapter configuration.
-
-    Args:
-        graph (rdflib.Graph): The RDF graph containing the input data.
-        config (dict): The configuration dictionary.
-        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-        module: The module in which to insert the types declared by the configuration.
-        affix (str): The type affix to use (default is "suffix").
-        separator (str): The separator to use between labels and type annotations (default is ":").
-        validate_output: Whether to validate the output of the transformers. Defaults to False.
-        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
-
-    Returns:
-        OWLAdapter: The configured adapter.
-    """
-    return extract(
-        graph, OWLAdapter,
-        config,
-        parallel_mapping,
-        module,
-        affix,
-        separator,
-        validate_output,
-        raise_errors
-    )
 
 class Declare(errormanager.ErrorManager):
     """
@@ -981,7 +904,7 @@ class YamlParser(Declare):
     :return tuple: subject_transformer, transformers, metadata as needed by the Adapter.
     """
 
-    def __init__(self, config: dict, module=types, validate_output = False, raise_errors = True):
+    def __init__(self, config: dict, module = None, validate_output = False, raise_errors = True):
         """
         Initialize the YamlParser.
 
@@ -993,11 +916,15 @@ class YamlParser(Declare):
         super().__init__(module, raise_errors = raise_errors)
         self.config = config
         self.validate_output = validate_output
+        if not module:
+            self.module = types
+        else:
+            self.module = module
+
         if not self.validate_output:
             logger.info(
                 f"Transformer output validation will be skipped. This could result in some empty or `nan` nodes in your knowledge graph."
                 f" To enable output validation set `validate_output` to `True`.")
-
 
         logger.debug(f"Classes will be created in module '{self.module}'")
 
@@ -1318,7 +1245,7 @@ class YamlParser(Declare):
         logger.debug(f"Declare subject type...")
         subject_transformer_dict = self.get(self.k_row)
         if not subject_transformer_dict:
-            msg = f"There is no `{'`, `'.join(self.k_row)}` key in your mapping file."
+            msg = f"There is no `{'`, `'.join(self.k_row)}` key in your mapping."
             logging.error(msg)
             raise RuntimeError(msg)
 

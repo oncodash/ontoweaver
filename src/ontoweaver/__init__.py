@@ -65,7 +65,7 @@ class LoadPandasDataframe(Loader):
         return df
 
     def adapter(self):
-        return PandasAdapter
+        return tabular.PandasAdapter
 
 class LoadPandasFile(Loader):
     """Read a file with Pandas, using its extension to guess its format.
@@ -114,8 +114,8 @@ class LoadPandasFile(Loader):
     }
 
     def allows(self, filename):
-        ext = pathlib.Path(filename).suffix 
         if type(filename) == str or type(filename) == pathlib.Path:
+            ext = pathlib.Path(filename).suffix 
             if ext in self.read_funcs:
                 return True
 
@@ -159,9 +159,8 @@ class LoadRDFFile(Loader):
         self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
     def allows(self, filename):
-        ext = pathlib.Path(filename).suffix
-
         if type(filename) == str or type(filename) == pathlib.Path:
+            ext = pathlib.Path(filename).suffix
             if ext in self.allowed:
                 return True
 
@@ -253,13 +252,64 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, separator, affix, affix_separator, validate_output, raise_errors, **kwargs)
 
 
+def load_extract(data, mapping, loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+    logger.info(f"Use loader `{loader.__class__.__name__}` to load `{data}`")
+
+    assert loader.allows(data), "This loader cannot handle this data"
+    nodes = []
+    edges = []
+
+    data = loader(data, **kwargs)
+
+    if mapping == "automap":
+        logger.debug("\twith auto mapping")
+        mapping = {}
+    else:
+        if type(mapping) == dict:
+            logger.debug(f"\twith explicit user mapping: `{mapping}`")
+            config = mapping
+        else:
+            assert type(mapping) == str, "I was expecting a file name as value for the data in the data_to_mapping dictionary"
+            logger.debug(f"\twith user file mapping: `{mapping}`")
+            with open(mapping) as fd:
+                config = yaml.full_load(fd)
+
+        parser = tabular.YamlParser(
+            config,
+            validate_output=validate_output,
+            raise_errors = raise_errors,
+        )
+        mapper = parser()
+
+    logger.debug(f"Run the adapter...")
+    adapter = loader.adapter()(
+        data,
+        *mapper,
+        type_affix=affix,
+        type_affix_sep=type_affix_sep,
+        parallel_mapping=parallel_mapping,
+        raise_errors = raise_errors,
+    )
+    if parallel_mapping > 0:
+        adapter()
+        nodes += list(adapter.nodes)
+        edges += list(adapter.edges)
+    else:
+        for ln,le in adapter():
+            nodes += ln
+            edges += le
+    logger.debug(f"OK — adapter ran.")
+
+    return nodes, edges
+
+
 def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
         filename_to_mapping (dict): A dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
-        dataframe_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
+        data_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
         affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
@@ -279,46 +329,21 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lrf = LoadRDFFile()
     lrg = LoadRDFGraph()
 
-    for data, mapping in data_to_mapping.items():
+    def pairs(iterable):
+        if type(iterable) == dict:
+            return iterable.items()
+        else:
+            return iterable
+
+    for d2m in pairs(data_to_mapping):
+        data, mapping = d2m
         found_loader = False
         for loader in [lpf, lpd, lrf, lrg]:
             if loader.allows(data):
                 found_loader = True
-                logger.info(f"Use loader `{loader.__class__.__name__}` to load `{data}`")
-                data = loader(data, **kwargs)
-
-                if mapping == "automap":
-                    logger.debug("\twith auto mapping")
-                    mapping = {}
-                else:
-                    logger.debug(f"\twith user mapping: `{mapping}`")
-                    with open(mapping) as fd:
-                        config = yaml.full_load(fd)
-                        parser = tabular.YamlParser(
-                            config,
-                            validate_output=validate_output,
-                            raise_errors = raise_errors,
-                        )
-                        mapping = parser()
-
-                logger.debug(f"Run the adapter...")
-                adapter = loader.adapter()(
-                    data,
-                    *mapping,
-                    type_affix=affix,
-                    type_affix_sep=type_affix_sep,
-                    parallel_mapping=parallel_mapping,
-                    raise_errors = raise_errors,
-                )
-                if parallel_mapping > 0:
-                    adapter()
-                    nodes += list(adapter.nodes)
-                    edges += list(adapter.edges)
-                else:
-                    for ln,le in adapter():
-                        nodes += ln
-                        edges += le
-                logger.debug(f"OK — adapter ran.")
+                ln,le = load_extract(data, mapping, loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+                nodes += ln
+                edges += le
                 break
 
         if not found_loader:
@@ -331,6 +356,62 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     return nodes, edges
 
 
+def extract_table(df: pd.DataFrame, config: dict, parallel_mapping = 0, affix = "suffix", type_affix_sep = ":", validate_output = False, raise_errors = True):
+    """
+    Proxy function for extracting from a table all nodes, edges and properties
+    that are defined in a PandasAdapter configuration.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the input data.
+        config (dict): The configuration dictionary.
+        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
+        module: The module in which to insert the types declared by the configuration.
+        affix (str): The type affix to use (default is "suffix").
+        type_affix_sep (str): The type_affix_sep to use between labels and type annotations (default is ":").
+        validate_output: Whether to validate the output of the transformers. Defaults to False.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+
+    Returns:
+        PandasAdapter: The configured adapter.
+    """
+    return extract(
+        [(df,config)],
+        parallel_mapping,
+        affix,
+        type_affix_sep,
+        validate_output,
+        raise_errors
+    )
+
+
+def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, affix = "suffix", type_affix_sep = ":", validate_output = False, raise_errors = True):
+    """
+    Proxy function for extracting from a table all nodes, edges and properties
+    that are defined in a PandasAdapter configuration.
+
+    Args:
+        graph (rdflib.Graph): The RDF graph containing the input data.
+        config (dict): The configuration dictionary.
+        parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
+        module: The module in which to insert the types declared by the configuration.
+        affix (str): The type affix to use (default is "suffix").
+        type_affix_sep (str): The type_affix_sep to use between labels and type annotations (default is ":").
+        validate_output: Whether to validate the output of the transformers. Defaults to False.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+
+    Returns:
+        OWLAdapter: The configured adapter.
+    """
+    return extract(
+        [(graph,config)],
+        parallel_mapping,
+        affix,
+        type_affix_sep,
+        validate_output,
+        raise_errors
+    )
+
+    
 def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
