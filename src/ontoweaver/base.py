@@ -457,9 +457,41 @@ class Transformer(errormanager.ErrorManager):
     def get_transformer(self):
         return self
 
-    @abstract
     def __call__(self, row, i):
-        raise NotImplementedError
+        """
+        Process a row. If not empty/null, yields concatenated items as node IDs.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The concatenated string from the cell values.
+       """
+        for value in self.value_maker(self.columns, row, i):
+            value, edge_type, node_type = self.create(value, row)
+            if self.is_not_null(value):
+                yield value, edge_type, node_type
+
+
+    def is_not_null(self, val):
+        """
+        Checks if cell value is not empty nor 'null', 'nan'...
+
+        Args:
+            val: The value to check.
+
+        Returns:
+            bool: True if the value is valid, False otherwise.
+        """
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if (math.isnan(val) or val == float("nan")):
+                return False
+        elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
+            return False
+        elif str(val) == "":
+            return False
+        return True
 
     #FIXME: The functions below are never implemented.
     @abstract
