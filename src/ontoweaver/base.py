@@ -198,7 +198,7 @@ class Node(Element):
         return self.serializer(self)
 
     def __repr__(self):
-        return f"<['{self.label}':'{self.id}'/{self.properties}]>"
+        return f"({self.label}:{self.id}/{self.properties})"
 
     def __hash__(self):
         return hash(self.__str__())
@@ -282,6 +282,7 @@ class Edge(Element):
                    serializer: Optional[serialize.Serializer] = serialize.edge.All()
                    ):
         assert(len(biocypher_tuple) == 5)
+        logging.debug(biocypher_tuple)
         return cls(
             id         = biocypher_tuple[0],
             id_source  = biocypher_tuple[1],
@@ -294,13 +295,13 @@ class Edge(Element):
         if self.source_type() == Node:
             st = "."
         else:
-            st = f"’{self.source_type()}’"
+            st = f"{self.source_type()}"
         if self.target_type() == Node:
             tt = "."
         else:
-            tt = f"’{self.target_type()}’"
+            tt = f"{self.target_type()}"
 
-        return f"<[{st}:'{self.id_source}']--('{self.label}':'{self.id}'/{self.properties})-->[{tt}:'{self.id_target}']>"
+        return f"<({st}:{self.id_source})--[{self.label}:{self.id}/{self.properties}]-->({tt}:{self.id_target})>"
 
     def fields(self) -> list[str]:
         """List of property fields provided by the (sub)class."""
@@ -346,6 +347,8 @@ class GenericEdge(Edge):
         :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
         """
         super().__init__(id = id, id_source = id_source, id_target = id_target, properties = properties, label = label, serializer = serializer)
+
+        logging.debug(f"GenericEdge ID: {id}")
 
     @staticmethod
     def source_type():
@@ -563,11 +566,11 @@ class Transformer(errormanager.ErrorManager):
 
                 elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
                     # This a subject transformer.
-                    link = f" => [{target_name}/{props}]"
+                    link = f" => ({target_name}/{props})"
 
                 else:
                     # This is a regular transformer.
-                    link = f" => [{from_subject}]--({edge_name})->[{target_name}/{props}]"
+                    link = f" => ({from_subject})--[{edge_name}]->({target_name}/{props})"
 
                 if self.columns:
                     columns = self.columns

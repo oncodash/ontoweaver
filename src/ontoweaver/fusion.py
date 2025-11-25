@@ -54,9 +54,12 @@ class Reduce(Fusioner):
             # Manual functools.reduce without initial state.
             it = iter(elem_list)
             lhs = next(it)
-            logger.debug(f"  Fuse element with key `{lhs}`...")
+            logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
             logger.debug(f"    with itself: {repr(lhs)}")
             self.fuser(key, lhs, lhs)
+            logger.debug(f"lhs: {lhs}")
+            logger.debug(f"fuser.get: {self.fuser.get()}")
+            logger.debug(f"repr: {repr(self.fuser.get())}")
             logger.debug(f"      = {repr(self.fuser.get())}")
             for rhs in it:
                 logger.debug(f"    with `{rhs}`: {repr(rhs)}")
@@ -158,7 +161,7 @@ def reconciliate_nodes(nodes, separator = None):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, separator = None):
+def reconciliate_edges(edges, separator = ","):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -215,7 +218,7 @@ def reconciliate_edges(edges, separator = None):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, separator = None):
+def reconciliate(nodes, edges, separator = ","):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs

@@ -52,7 +52,7 @@ def test_transformer_user():
     table = pd.read_csv(csv_file)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="none")
+    nodes, edges = ontoweaver.extract_table(table, mapping, affix="none")
 
 
 if __name__ == "__main__":

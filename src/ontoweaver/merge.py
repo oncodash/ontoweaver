@@ -128,13 +128,11 @@ class dictry:
         """Merge dictionaries by removing duplicated values
         and aggregating values that are different in a list.
 
-        If a separator is given at instantiation,
         returns a string, where all values are joined.
-        Else, returns a string formated as a Python list.
         """
 
-        def __init__(self, sep = None):
-            self.sep = sep
+        def __init__(self, separator = ","):
+            self.separator = separator
             self.merged = {}
 
         def reset(self):
@@ -159,17 +157,7 @@ class dictry:
             for k,v in self.merged.items():
                 assert(type(v) == set)
                 # Convert sets as str.
-                if self.sep:
-                    merged[k] = self.sep.join(v)
-                else:
-                    if len(v) == 0:
-                        merged[k] = ''
-                    elif len(v) == 1:
-                        # We don't want to alter v by reference.
-                        e = copy.copy(v).pop()
-                        merged[k] = str(e)
-                    else:
-                        merged[k] = str(list(v))
+                merged[k] = self.separator.join(v)
             return merged
 
 
@@ -230,12 +218,10 @@ class string:
     class OrderedSet(StringMerger):
         """Aggregate all seen values, ordered lexicographically.
 
-        If a separator is given at instantiation,
         returns a string, where all values are joined.
-        Else, returns a string formated as a Python list.
         """
-        def __init__(self, sep = None):
-            self.sep = sep
+        def __init__(self, separator = ","):
+            self.separator = separator
 
         def reset(self):
             self.merged = OrderedDict()
@@ -252,8 +238,5 @@ class string:
             self.set(rhs)
 
         def get(self) -> str:
-            if self.sep:
-                return self.sep.join(self.merged.keys())
-            else:
-                return str(list(self.merged.keys()))
+            return self.separator.join(self.merged.keys())
 

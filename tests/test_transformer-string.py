@@ -53,10 +53,10 @@ P2,V2-2,S3"""
     map = yaml.safe_load(mapping)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_table(table, map, affix="none")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
 
-    for node in adapter.nodes:
-        assert(node[2]["something"] == "Whatever it is")
+    for node in nodes:
+        assert(node.as_tuple()[2]["something"] == "Whatever it is")
 
 if __name__ == "__main__":
     test_transformer_string()
