@@ -1188,11 +1188,13 @@ class YamlParser(Declare):
         """
         logger.debug(f"Parse properties...")
         for n_transformer, transformer_types in enumerate(transformers_list):
+            if not hasattr(transformer_types, "items"):
+                transformer_types = {transformer_types: []}
+
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
-                    self.error(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
-                               f" did you forget an indentation?", "transformers",
-                               n_transformer, exception=exceptions.MissingFieldError)
+                    logger.warning(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
+                               f" did you forget an indentation?")
 
                 if any(field in field_dict for field in self.k_properties):
                     object_types = self.get(self.k_prop_to_object, pconfig=field_dict)
@@ -1369,9 +1371,8 @@ class YamlParser(Declare):
         """
 
         if not transformer_keyword_dict:
-            self.error(f"No keywords declared for target transformer `{transformer_type}` at index"
-                       f" `{transformer_index}`.", section="transformers",
-                       exception=exceptions.ParsingDeclarationsError)
+            logger.warning(f"No keywords declared for target transformer `{transformer_type}` at index"
+                       f" `{transformer_index}`.")
 
         elif any(field in transformer_keyword_dict for field in self.k_properties):
             if any(field in transformer_keyword_dict for field in self.k_target):
@@ -1471,6 +1472,9 @@ class YamlParser(Declare):
         # Iterate through the list of target transformers and extract the information needed to create the
         # corresponding classes.
         for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
+            if not hasattr(target_transformer_yaml_dict, "items"):
+                target_transformer_yaml_dict = {target_transformer_yaml_dict: []}
+                
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
