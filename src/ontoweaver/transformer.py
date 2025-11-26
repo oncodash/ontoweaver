@@ -519,17 +519,32 @@ class OmniPath(base.Transformer, tabular.Declare):
 
         a = tabular.Declare()
 
-        print(F"I AM A CUSTOM TRANSFORMER {getattr(types, "protein")}")
+        print(f"BRANCHING PROPERTIES {self.branching_properties.get("target_protein", {})}")
 
         target_protein = a.make_node_class("target_protein")
         target_complex = a.make_node_class("target_complex")
-        transcriptional = a.make_node_class("transcriptional")
-        post_translational = a.make_node_class("post_translational")
-        post_transcriptional = a.make_node_class("post_transcriptional")
-        drug_has_target_protein = a.make_node_class("drug_has_target_protein")
-        drug_has_target_complex = a.make_node_class("drug_has_target_complex")
-        lncrna_post_transcriptional = a.make_node_class("lncrna_post_transcriptional")
-        mirna_transcriptional = a.make_node_class("mirna_transcriptional")
+
+        possible_sources = ["protein", "source_protein", "mirna", "lncrna", "drug", "macromolecular_complex"]
+
+        for possible_source in possible_sources:
+            a.make_edge_class("transcriptional", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("transcriptional", {}))
+            a.make_edge_class("transcriptional", getattr(types, possible_source), getattr(types, "macromolecular_complex"), self.branching_properties.get("transcriptional", {}))
+            a.make_edge_class("transcriptional", getattr(types, possible_source), getattr(types, "mirna"), self.branching_properties.get("transcriptional", {}))
+            a.make_edge_class("post_translational", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("post_translational", {}))
+            a.make_edge_class("post_translational", getattr(types, possible_source), getattr(types, "macromolecular_complex"), self.branching_properties.get("post_translational", {}))
+            a.make_edge_class("post_transcriptional", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("post_transcriptional", {}))
+            a.make_edge_class("drug_has_target_protein", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("drug_has_target_protein", {}))
+            a.make_edge_class("drug_has_target_complex", getattr(types, possible_source), getattr(types, "macromolecular_complex"), self.branching_properties.get("drug_has_target_complex", {}))
+            a.make_edge_class("mirna_transcriptional", getattr(types, possible_source), getattr(types, "mirna"), self.branching_properties.get("mirna_transcriptional", {}))
+            a.make_edge_class("lncrna_post_transcriptional", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("lncrna_post_transcriptional", {}))
+
+        # transcriptional = a.make_edge_class("transcriptional", getattr(types, "protein"), getattr(types, "protein"), self.branching_properties.get("transcriptional", {}))
+        # post_translational = a.make_edge_class("post_translational")
+        # post_transcriptional = a.make_edge_class("post_transcriptional")
+        # drug_has_target_protein = a.make_edge_class("drug_has_target_protein")
+        # drug_has_target_complex = a.make_edge_class("drug_has_target_complex")
+        # lncrna_post_transcriptional = a.make_edge_class("lncrna_post_transcriptional")
+        # mirna_transcriptional = a.make_edge_class("mirna_transcriptional")
 
         node_id = row["target"]
         type = row["type"]
@@ -538,44 +553,45 @@ class OmniPath(base.Transformer, tabular.Declare):
         if type == "transcriptional":
             if entity == "protein":
                 self.final_type = getattr(types, "protein")
-                yield node_id, transcriptional, target_protein, None
+                self.properties_of = self.branching_properties.get("target_protein", {})
+                yield node_id, getattr(types, "transcriptional"), target_protein, None
 
             elif entity == "complex":
                 self.final_type = getattr(types, "macromolecular_complex")
-                yield node_id, transcriptional, target_complex, None
+                yield node_id,  getattr(types, "transcriptional"), target_complex, None
 
             elif entity == "mirna":
                 self.final_type = getattr(types, "macromolecular_complex")
-                yield node_id,  transcriptional, getattr(types, "mirna"), None
+                yield node_id,   getattr(types, "transcriptional"), getattr(types, "mirna"), None
 
 
         elif type == "post_translational":
             if entity == "protein":
                 self.final_type = getattr(types, "protein")
-                yield node_id, post_translational, target_protein, None
+                yield node_id, getattr(types, "post_translational"), target_protein, None
 
             elif entity == "complex":
                 self.final_type = getattr(types, "macromolecular_complex")
-                yield node_id, post_translational, target_complex, None
+                yield node_id, getattr(types, "post_translational"), target_complex, None
 
 
         elif type == "post_transcriptional":
             self.final_type = getattr(types, "protein")
-            yield node_id, post_transcriptional, target_protein, None
+            yield node_id, getattr(types, "post_transcriptional"), target_protein, None
 
         elif type == "small_molecule_protein":
             # Note: your YAML uses keys "protein" and "complex" without comparison
             if entity == "protein":
                 self.final_type = getattr(types, "protein")
-                yield node_id, drug_has_target_protein, target_protein, None
+                yield node_id, getattr(types, "drug_has_target_protein"), target_protein, None
 
             elif entity == "complex":
                 self.final_type = getattr(types, "macromolecular_complex")
-                yield node_id, drug_has_target_complex, target_complex, None
+                yield node_id, getattr(types, "drug_has_target_complex"), target_complex, None
 
         elif type == "mirna_transcriptional":
-            yield node_id, mirna_transcriptional, getattr(types, "mirna"), None
+            yield node_id, getattr(types, "mirna_transcriptional"), getattr(types, "mirna"), None
 
         elif type == "lncrna_post_transcriptional":
             self.final_type = getattr(types, "protein")
-            yield node_id, lncrna_post_transcriptional, target_protein, None
+            yield node_id, getattr(types, "lncrna_post_transcriptional"), target_protein, None
