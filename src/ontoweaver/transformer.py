@@ -505,3 +505,69 @@ class replace(base.Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
+class OmniPath(base.Transformer):
+    """Custom end-user transformer, used to create elements for OmniPath KG database."""
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, row, i):
+
+        target_protein = self.transformer_declare.make_node_class("target_protein")
+        target_complex = self.transformer_declare.make_node_class("target_complex")
+        transcriptional = self.transformer_declare.make_edge_class("transcriptional")
+        post_translational = self.transformer_declare.make_edge_class("post_translational")
+        post_transcriptional = self.transformer_declare.make_edge_class("post_transcriptional")
+        drug_has_target_protein = self.transformer_declare.make_edge_class("drug_has_target_protein")
+        drug_has_target_complex = self.transformer_declare.make_edge_class("drug_has_target_complex")
+        lncrna_post_transcriptional = self.transformer_declare.make_edge_class("lncrna_post_transcriptional")
+        mirna_transcriptional = self.transformer_declare.make_edge_class("mirna_transcriptional")
+
+        node_id = row["target"]
+        type = row["type"]
+        entity = row["entity_type_target"]
+
+        if type == "transcriptional":
+            if entity == "protein":
+                self.final_type = getattr(self.__module__, "protein")
+                yield node_id, transcriptional, target_protein
+
+            elif entity == "complex":
+                self.final_type = getattr(self.__module__, "macromolecular_complex")
+                yield node_id, transcriptional, target_complex
+
+            elif entity == "mirna":
+                self.final_type = getattr(self.__module__, "macromolecular_complex")
+                yield node_id,  transcriptional, getattr(self.__module__, "mirna")
+
+
+        elif type == "post_translational":
+            if entity == "protein":
+                self.final_type = getattr(self.__module__, "protein")
+                yield node_id, post_translational, target_protein
+
+            elif entity == "complex":
+                self.final_type = getattr(self.__module__, "macromolecular_complex")
+                yield node_id, post_translational, target_complex
+
+
+        elif type == "post_transcriptional":
+            self.final_type = getattr(self.__module__, "protein")
+            yield node_id, post_transcriptional, target_protein
+
+        elif type == "small_molecule_protein":
+            # Note: your YAML uses keys "protein" and "complex" without comparison
+            if entity == "protein":
+                self.final_type = getattr(self.__module__, "protein")
+                yield node_id, drug_has_target_protein, target_protein
+
+            elif entity == "complex":
+                self.final_type = getattr(self.__module__, "macromolecular_complex")
+                yield node_id, drug_has_target_complex, target_complex
+
+        elif type == "mirna_transcriptional":
+            yield node_id, mirna_transcriptional, getattr(self.__module__, "mirna")
+
+        elif type == "lncrna_post_transcriptional":
+            self.final_type = getattr(self.__module__, "protein")
+            yield node_id, lncrna_post_transcriptional, target_protein
