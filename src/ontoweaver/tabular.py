@@ -66,6 +66,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                  transformers: Iterable[base.Transformer],
                  metadata: Optional[dict] = None,
                  validator: Optional[validate.InputValidator] = None,
+                 properties_of: Optional[dict] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  parallel_mapping: int = 0,
@@ -96,6 +97,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         self.subject_transformer = subject_transformer
         self.transformers = transformers
+        self.properties_of = properties_of
         self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
         # logger.debug(self.target_element_properties)
@@ -308,7 +310,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
                                               # FIXME: Should we use the meta-way of accessing node properties as well?
                                               # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                                              properties=self.properties(transformer.properties_of, row,
+                                              properties=self.properties(#transformer.properties_of,
+                                                                        self.properties_of.get(target_node.__name__), row,
                                                                          i, target_edge, target_node, node=True)))
 
         else:
@@ -692,6 +695,7 @@ class PandasAdapter(IterativeAdapter):
             transformers: Iterable[base.Transformer],
             metadata: Optional[dict] = None,
             validator: Optional[validate.InputValidator] = None,
+            properties_of: Optional[dict] = None,
             type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
             type_affix_sep: Optional[str] = ":",
             parallel_mapping: int = 0,
@@ -703,6 +707,7 @@ class PandasAdapter(IterativeAdapter):
             transformers,
             metadata,
             validator,
+            properties_of,
             type_affix,
             type_affix_sep,
             parallel_mapping,
@@ -851,7 +856,7 @@ class Declare(errormanager.ErrorManager):
             kwargs.setdefault("subclass", parent_t)
             if not issubclass(parent_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
-                logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+            logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
             return parent_t(properties_of=properties,
                             columns=columns,
                             output_validator=output_validator,
@@ -1196,6 +1201,8 @@ class YamlParser(Declare):
                     logger.warning(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
                                f" did you forget an indentation?")
 
+                    continue
+
                 if any(field in field_dict for field in self.k_properties):
                     object_types = self.get(self.k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(self.k_properties, pconfig=field_dict)
@@ -1478,9 +1485,11 @@ class YamlParser(Declare):
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
-
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
                 if elements is None:
+                    #FIXME ADD LOGGING OR SMTH
+                    target_transformer = self.make_transformer_class(transformer_type=transformer_type)
+                    transformers.append(target_transformer)
                     continue
                 else:
                     columns, target, edge, subject, reverse_relation = elements
@@ -1512,6 +1521,7 @@ class YamlParser(Declare):
 
                 #The target transformer is a branching transformer if it has a `match` clause. We create a branching dictionary.
                 #The keys of the dictionary are the regex patterns to be matched against the extracted value of the column.
+
                 if "match" in gen_data:
 
                     target_branching = True
@@ -1626,5 +1636,5 @@ class YamlParser(Declare):
         else:
             logging.debug("No metadata")
 
-        return subject_transformer, transformers, metadata, validator
+        return subject_transformer, transformers, metadata, validator, properties_of
 
