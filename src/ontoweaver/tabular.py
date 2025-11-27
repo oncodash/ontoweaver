@@ -66,7 +66,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                  transformers: Iterable[base.Transformer],
                  metadata: Optional[dict] = None,
                  validator: Optional[validate.InputValidator] = None,
-                 properties_of: Optional[dict] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
                  type_affix_sep: Optional[str] = ":",
                  parallel_mapping: int = 0,
@@ -97,7 +96,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         self.subject_transformer = subject_transformer
         self.transformers = transformers
-        self.properties_of = properties_of
         self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
         # logger.debug(self.target_element_properties)
@@ -195,14 +193,16 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         """
         properties = {}
 
-        for prop_transformer, property_name in property_dict.items():
-            for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
-                if property:
-                    properties[property_name] = str(property).replace("'", "`")
-                    logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
-                else:
-                    self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
-                    continue
+        if property_dict:
+
+            for prop_transformer, property_name in property_dict.items():
+                for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
+                    if property:
+                        properties[property_name] = str(property).replace("'", "`")
+                        logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
+                    else:
+                        self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                        continue
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
@@ -310,8 +310,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             local_nodes.append(self.make_node(node_t=target_node, id=target_node_id,
                                               # FIXME: Should we use the meta-way of accessing node properties as well?
                                               # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                                              properties=self.properties(#transformer.properties_of,
-                                                                        self.properties_of.get(target_node.__name__), row,
+                                              properties=self.properties(transformer.properties_of, row,
                                                                          i, target_edge, target_node, node=True)))
 
         else:
@@ -695,7 +694,6 @@ class PandasAdapter(IterativeAdapter):
             transformers: Iterable[base.Transformer],
             metadata: Optional[dict] = None,
             validator: Optional[validate.InputValidator] = None,
-            properties_of: Optional[dict] = None,
             type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
             type_affix_sep: Optional[str] = ":",
             parallel_mapping: int = 0,
@@ -707,7 +705,6 @@ class PandasAdapter(IterativeAdapter):
             transformers,
             metadata,
             validator,
-            properties_of,
             type_affix,
             type_affix_sep,
             parallel_mapping,
@@ -1486,9 +1483,13 @@ class YamlParser(Declare):
 
                 target_branching = False
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
-                if elements is None:
-                    #FIXME ADD LOGGING OR SMTH
-                    target_transformer = self.make_transformer_class(transformer_type=transformer_type)
+                # FIXME: Temporary fix for OmniPath transformer. Fix before PR.
+                if elements is None and transformer_type != "OmniPath":
+                    # target_transformer = self.make_transformer_class(transformer_type=transformer_type, branching_properties=properties_of)
+                    # transformers.append(target_transformer)
+                    continue
+                if elements is None and transformer_type == "OmniPath":
+                    target_transformer = self.make_transformer_class(transformer_type=transformer_type, branching_properties=properties_of)
                     transformers.append(target_transformer)
                     continue
                 else:
@@ -1636,5 +1637,5 @@ class YamlParser(Declare):
         else:
             logging.debug("No metadata")
 
-        return subject_transformer, transformers, metadata, validator, properties_of
+        return subject_transformer, transformers, metadata, validator
 
