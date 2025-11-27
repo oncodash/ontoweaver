@@ -1,4 +1,5 @@
 from typing import Tuple
+from pathlib import Path
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import yaml

@@ -4,6 +4,7 @@ import rdflib
 import logging
 import threading
 
+import types as pytypes
 import pandas as pd
 import pandera.pandas as pa
 
