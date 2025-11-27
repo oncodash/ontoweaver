@@ -5,7 +5,7 @@ import logging
 import threading
 import biocypher
 
-from alive_progress import alive_bar
+#from alive_progress import alive_bar
 
 import types as pytypes
 import pandas as pd

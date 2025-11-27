@@ -1,6 +1,6 @@
 from typing import Tuple
 from pathlib import Path
-from alive_progress import alive_bar
+#from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import yaml
