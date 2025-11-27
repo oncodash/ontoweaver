@@ -1187,6 +1187,7 @@ class YamlParser(Declare):
         Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
         """
         logger.debug(f"Parse properties...")
+            
         for n_transformer, transformer_types in enumerate(transformers_list):
             if not hasattr(transformer_types, "items"):
                 transformer_types = {transformer_types: []}
@@ -1583,6 +1584,11 @@ class YamlParser(Declare):
 
         # Extract transformer list and metadata list from the config.
         transformers_list = self.get(self.k_transformer)
+        if not transformers_list:
+            self.error(f"I cannot find the `transformers' section or it is empty,"
+            f"check syntax for a typo (forgotten `s'?) or declare at leaset one transformer.`",
+            exception = exceptions.ParsingDeclarationsError)
+        
         metadata_list = self.get(self.k_metadata)
 
         # Parse subject type, metadata for subject, and properties for both subject and target types (parse_subject calls parse_properties).
