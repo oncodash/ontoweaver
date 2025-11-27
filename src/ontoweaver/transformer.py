@@ -517,12 +517,11 @@ class OmniPath(base.Transformer, tabular.Declare):
 
     def __call__(self, row, i):
 
+        # FIXME: Should be in base.Transformer.
         a = tabular.Declare()
 
-        print(f"BRANCHING PROPERTIES {self.branching_properties.get("target_protein", {})}")
-
-        target_protein = a.make_node_class("target_protein")
-        target_complex = a.make_node_class("target_complex")
+        target_protein = a.make_node_class("target_protein", self.branching_properties.get("target_protein", {}))
+        target_complex = a.make_node_class("target_complex", self.branching_properties.get("target_complex", {}))
 
         possible_sources = ["protein", "source_protein", "mirna", "lncrna", "drug", "macromolecular_complex"]
 
@@ -537,14 +536,6 @@ class OmniPath(base.Transformer, tabular.Declare):
             a.make_edge_class("drug_has_target_complex", getattr(types, possible_source), getattr(types, "macromolecular_complex"), self.branching_properties.get("drug_has_target_complex", {}))
             a.make_edge_class("mirna_transcriptional", getattr(types, possible_source), getattr(types, "mirna"), self.branching_properties.get("mirna_transcriptional", {}))
             a.make_edge_class("lncrna_post_transcriptional", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("lncrna_post_transcriptional", {}))
-
-        # transcriptional = a.make_edge_class("transcriptional", getattr(types, "protein"), getattr(types, "protein"), self.branching_properties.get("transcriptional", {}))
-        # post_translational = a.make_edge_class("post_translational")
-        # post_transcriptional = a.make_edge_class("post_transcriptional")
-        # drug_has_target_protein = a.make_edge_class("drug_has_target_protein")
-        # drug_has_target_complex = a.make_edge_class("drug_has_target_complex")
-        # lncrna_post_transcriptional = a.make_edge_class("lncrna_post_transcriptional")
-        # mirna_transcriptional = a.make_edge_class("mirna_transcriptional")
 
         node_id = row["target"]
         type = row["type"]
