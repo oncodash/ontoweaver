@@ -1484,13 +1484,11 @@ class YamlParser(Declare):
                 target_branching = False
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
                 # FIXME: Temporary fix for OmniPath transformer. Fix before PR.
-                if elements is None and transformer_type != "OmniPath":
-                    # target_transformer = self.make_transformer_class(transformer_type=transformer_type, branching_properties=properties_of)
-                    # transformers.append(target_transformer)
-                    continue
-                if elements is None and transformer_type == "OmniPath":
-                    target_transformer = self.make_transformer_class(transformer_type=transformer_type, branching_properties=properties_of)
+                if elements is None and transformer_type == "custom_trasformer":
+                    target_transformer = self.make_transformer_class(transformer_type=transformer_keyword_dict, branching_properties=properties_of)
                     transformers.append(target_transformer)
+                    continue
+                elif elements is None and transformer_type != "custom_trasformer":
                     continue
                 else:
                     columns, target, edge, subject, reverse_relation = elements
