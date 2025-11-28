@@ -3,6 +3,10 @@ import logging
 import copy
 from collections import OrderedDict
 
+import networkx as nx;
+import rdflib
+from rdflib.extras.external_graph_libs import rdflib_to_networkx_digraph
+
 from . import base
 
 logger = logging.getLogger("ontoweaver")
@@ -214,6 +218,46 @@ class string:
                     raise ValueError(f"Merged value `{lhs}`/`{rhs}` not identical.`")
             self.set(lhs) # Should be equal to rhs.
 
+
+    class CommonSubType(StringMerger):
+        """If the merged values are not all identical, sets the most generic common subtype
+        in the ontology hierarchy as the value."""
+
+        def __init__(self, ontology):
+            self.ontology = ontology
+
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            logger.debug(f"Merge of `{lhs}` and` `{rhs}`")
+
+            graph_hierarchy = copy.copy(self.ontology._head_ontology.get_nx_graph())
+            if self.ontology._tail_ontologies:
+                for onto in self.ontology._tail_ontologies.values():
+                    tail_graph = copy.copy(onto.get_nx_graph())
+                    graph_hierarchy = nx.compose(tail_graph, graph_hierarchy)
+            
+            if self.merged:
+                merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, lhs)
+                if merge is None:
+                    raise ValueError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+                
+                merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, rhs)
+                if merge is None:
+                    raise ValueError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+
+            else :
+                merge = nx.lowest_common_ancestor(graph_hierarchy, lhs, rhs)
+                if merge is None:
+                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
+                self.merged = merge
+                self.set(merge)
+                logger.debug(f"`{merge}`")
+                
 
     class OrderedSet(StringMerger):
         """Aggregate all seen values, ordered lexicographically.

@@ -1,0 +1,63 @@
+@prefix : <> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <> .
+
+<> rdf:type owl:Ontology .
+
+
+
+:Biocypherroot rdf:type owl:Class ;
+        rdfs:label "Biocypherroot".
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+owl:topObjectProperty rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf :Biocypherroot ;
+          rdfs:label "objectproperty" .
+
+owl:parentof rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf owl:topObjectProperty ;
+          rdfs:label "parentof" .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+
+:Intersex rdf:type owl:Class ;
+        rdfs:subClassOf :Male ;
+		rdfs:subClassOf :Female ;
+        rdfs:label "intersex" .
+
+:Female rdf:type owl:Class ;
+        rdfs:subClassOf :Person ;
+        owl:disjointWith :Male ;
+        rdfs:label "female" .
+
+
+:Male rdf:type owl:Class ;
+      rdfs:subClassOf :Person ;
+      rdfs:label "male" .
+
+
+:Person rdf:type owl:Class ;
+        rdfs:subClassOf owl:Thing ;
+        rdfs:label "person" .
+
+
+owl:Thing rdf:type owl:Class ;
+          rdfs:subClassOf :Biocypherroot ;
+          rdfs:label "thing" .
+
+
+#################################################################
+#    Annotations
+#################################################################
