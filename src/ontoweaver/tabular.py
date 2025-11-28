@@ -193,14 +193,16 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         """
         properties = {}
 
-        for prop_transformer, property_name in property_dict.items():
-            for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
-                if property:
-                    properties[property_name] = str(property).replace("'", "`")
-                    logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
-                else:
-                    self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
-                    continue
+        if property_dict:
+
+            for prop_transformer, property_name in property_dict.items():
+                for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
+                    if property:
+                        properties[property_name] = str(property).replace("'", "`")
+                        logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
+                    else:
+                        self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                        continue
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
@@ -851,7 +853,7 @@ class Declare(errormanager.ErrorManager):
             kwargs.setdefault("subclass", parent_t)
             if not issubclass(parent_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
-                logger.debug(f"\t\tDeclare Transformer class '{transformer_type}' for node type '{nt}'")
+            logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
             return parent_t(properties_of=properties,
                             columns=columns,
                             output_validator=output_validator,
@@ -1196,6 +1198,8 @@ class YamlParser(Declare):
                     logger.warning(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
                                f" did you forget an indentation?")
 
+                    continue
+
                 if any(field in field_dict for field in self.k_properties):
                     object_types = self.get(self.k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(self.k_properties, pconfig=field_dict)
@@ -1478,10 +1482,17 @@ class YamlParser(Declare):
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
-
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
-                if elements is None:
+
+                # Special case for custom user-created transformers.
+                if elements is None and transformer_type == "custom_transformer":
+                    target_transformer = self.make_transformer_class(transformer_type=transformer_keyword_dict, branching_properties=properties_of)
+                    transformers.append(target_transformer)
                     continue
+                # If transformer is not user-made and the sanity check failed, skip to next transformer.
+                elif elements is None and transformer_type != "custom_transformer":
+                    continue
+                # Transformer passed sanity check, unpack the returned elements.
                 else:
                     columns, target, edge, subject, reverse_relation = elements
 
@@ -1512,6 +1523,7 @@ class YamlParser(Declare):
 
                 #The target transformer is a branching transformer if it has a `match` clause. We create a branching dictionary.
                 #The keys of the dictionary are the regex patterns to be matched against the extracted value of the column.
+
                 if "match" in gen_data:
 
                     target_branching = True
