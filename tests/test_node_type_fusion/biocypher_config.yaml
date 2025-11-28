@@ -1,0 +1,13 @@
+biocypher:
+    debug: true
+    offline: true
+    dbms: owl
+
+    # Ontology configuration
+    head_ontology:
+        url: tests/test_node_type_fusion/ontology.ttl
+        root_node: Biocypherroot
+
+owl:
+    edge_model: ObjectProperty
+    file_format: turtle

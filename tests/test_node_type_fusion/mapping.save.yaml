@@ -1,0 +1,19 @@
+row:
+    map:
+        id_from_column: id
+        match_type_from_column: genre
+        match:
+          - male:
+              to_subject: male
+          - female:
+              to_subject: female
+transformers:
+    - split:
+        column: children
+        separator: ";"
+        to_object: person
+        via_relation: parent_of
+    - map:
+        column: partner
+        to_object: person
+        via_relation: has_partner
