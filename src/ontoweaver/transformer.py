@@ -507,7 +507,7 @@ class replace(base.Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
-class OmniPath(base.Transformer, tabular.Declare):
+class OmniPath(base.Transformer):
     """Custom end-user transformer, used to create elements for OmniPath KG database."""
 
     def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
