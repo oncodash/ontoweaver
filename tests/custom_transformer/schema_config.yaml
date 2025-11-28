@@ -1,0 +1,384 @@
+# add your desired knowledge graph components here
+# Authors:  Matthieu Najm - Edwin Carreño
+
+#--- Ontology: BioLink
+
+
+#--------------------  Information about Nodes
+
+# Drug
+
+drug:
+    represented_as: node
+    input_label: drug # final_type node type
+    properties:
+        name: str
+        ncbi_tax_id: str
+
+# Long non Coding - RNA
+
+lncrna:
+    is_a: noncoding RNA product
+    represented_as: node
+    input_label: lncrna
+    properties:
+        name: str
+        ncbi_tax_id: str
+
+# Macromolecular complex
+
+source complex:
+    is_a: macromolecular_complex
+    represented_as: node
+    input_label: source_complex
+    properties:
+        genesymbol: str
+        ncbi_tax_id: str
+
+target complex:
+    is_a: macromolecular_complex
+    represented_as: node
+    input_label: target_complex
+    properties:
+        genesymbol: str
+        ncbi_tax_id: str
+
+macromolecular complex:
+    represented_as: node
+    input_label: macromolecular_complex 
+    properties:
+        genesymbol: str
+        ncbi_tax_id: str
+
+# Micro-RNA
+
+mirna:
+    is_a: microRNA
+    represented_as: node
+    input_label: mirna
+    properties:
+        name: str
+        ncbi_tax_id: str
+
+# Protein
+
+source protein:
+    is_a: protein
+    represented_as: node
+    input_label: source_protein
+    properties:
+        genesymbol: str
+        ncbi_tax_id: str
+
+target protein:
+    is_a: protein
+    represented_as: node
+    input_label: target_protein
+    properties:
+        genesymbol: str
+        ncbi_tax_id: str
+
+protein:
+    represented_as: node
+    input_label: protein
+    properties:
+        genesymbol: str d
+        ncbi_tax_id: str
+
+#--------------------  Information about Edges
+post translational:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: post_translational
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: str
+        extra_attrs: str
+        evidences: str
+
+transcriptional:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: transcriptional
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: int
+        extra_attrs: str
+        evidences: str
+
+post transcriptional:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: post_transcriptional
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: int
+        extra_attrs: str
+        evidences: str
+
+mirna transcriptional:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: mirna_transcriptional
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: int
+        extra_attrs: str
+        evidences: str
+
+lncrna post transcriptional:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: lncrna_post_transcriptional
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: int
+        extra_attrs: str
+        evidences: str
+
+small molecule protein:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: small_molecule_protein
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: int
+        extra_attrs: str
+        evidences: str
+
+drug has target:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: drug_has_target
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: str
+        extra_attrs: str
+        evidences: str
+
+drug has target complex:
+    is_a: drug has target
+    represented_as: edge
+    input_label: drug_has_target_complex
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: str
+        extra_attrs: str
+        evidences: str
+
+drug has target protein:
+    is_a: drug has target
+    represented_as: edge
+    input_label: drug_has_target_protein
+    properties:
+        is_directed: bool
+        is_stimulation: bool
+        is_inhibition: bool
+        consensus_direction: bool
+        consensus_stimulation: bool
+        consensus_inhibition: bool
+        sources: str
+        references: str
+        omnipath: bool
+        kinaseextra: bool
+        ligrecextra: bool
+        pathwayextra: bool
+        dorothea: bool
+        collectri: bool
+        tf_target: bool
+        lncrna_mrna: bool
+        tf_mirna: bool
+        small_molecule: bool
+        dorothea_curated: bool
+        dorothea_chipseq: bool
+        dorothea_tfbs: bool
+        dorothea_coexp: bool
+        dorothea_level: str
+        type: str
+        curation_effort: str
+        extra_attrs: str
+        evidences: str
