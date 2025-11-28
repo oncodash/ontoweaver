@@ -517,8 +517,10 @@ class OmniPath(base.Transformer, tabular.Declare):
 
     def __call__(self, row, i):
 
-        # FIXME: Should be in base.Transformer.
+        # FIXME: Should be in base.Transformer. Here due to circular inheritance issues.
         a = tabular.Declare()
+
+        # First declare all nodes and edges used in the branching logic.
 
         target_protein = a.make_node_class("target_protein", self.branching_properties.get("target_protein", {}))
         target_complex = a.make_node_class("target_complex", self.branching_properties.get("target_complex", {}))
@@ -537,9 +539,13 @@ class OmniPath(base.Transformer, tabular.Declare):
             a.make_edge_class("mirna_transcriptional", getattr(types, possible_source), getattr(types, "mirna"), self.branching_properties.get("mirna_transcriptional", {}))
             a.make_edge_class("lncrna_post_transcriptional", getattr(types, possible_source), getattr(types, "protein"), self.branching_properties.get("lncrna_post_transcriptional", {}))
 
+        # Extract branching information from the current row, as well as node ID.
+
         node_id = row["target"]
         type = row["type"]
         entity = row["entity_type_target"]
+
+        # Create branching logic and return correct elements.
 
         if type == "transcriptional":
             if entity == "protein":
