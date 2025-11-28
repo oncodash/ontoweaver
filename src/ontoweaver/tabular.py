@@ -1485,12 +1485,12 @@ class YamlParser(Declare):
                 elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
 
                 # Special case for custom user-created transformers.
-                if elements is None and transformer_type == "custom_trasformer":
+                if elements is None and transformer_type == "custom_transformer":
                     target_transformer = self.make_transformer_class(transformer_type=transformer_keyword_dict, branching_properties=properties_of)
                     transformers.append(target_transformer)
                     continue
                 # If transformer is not user-made and the sanity check failed, skip to next transformer.
-                elif elements is None and transformer_type != "custom_trasformer":
+                elif elements is None and transformer_type != "custom_transformer":
                     continue
                 # Transformer passed sanity check, unpack the returned elements.
                 else:
