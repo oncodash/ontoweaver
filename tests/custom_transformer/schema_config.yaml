@@ -353,7 +353,7 @@ drug has target complex:
 drug has target protein:
     is_a: drug has target
     represented_as: edge
-    input_label: drug_has_target_protein
+    input_label: small_molecule_protein
     properties:
         is_directed: bool
         is_stimulation: bool
