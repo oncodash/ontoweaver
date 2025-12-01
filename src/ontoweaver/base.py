@@ -412,6 +412,10 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
     def run(self):
         raise NotImplementedError()
 
+    def __call__(self):
+        for local_nodes, local_edges in self.run():
+            yield local_nodes, local_edges
+
 
 class Declare(errormanager.ErrorManager):
     """

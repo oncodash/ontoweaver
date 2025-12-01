@@ -547,7 +547,7 @@ class OWLAutoAdapter(base.Adapter):
             raise_errors
         )
         self.graph = graph
-        logger.debug(f"OWLAutoAdapter on {len(self.graph)} input elements.")
+        logger.debug(f"OWLAutoAdapter on {len(self.graph)} input RDF triples.")
 
         if kwargs:
             logger.warning(f"OWLAutoAdapter does not support mappings, but you passed: {kwargs}, I'll ignore those arguments.")
@@ -555,7 +555,8 @@ class OWLAutoAdapter(base.Adapter):
 
     def run(self):
         def iri(URI):
-            return str(URI).split('#')[-1]
+            return str(URI).split('#')[-1] # FIXME strong assumption
+
         def label_of(subj):
             # First, get the label, if any; else use the IRI end tag.
             triples = list(self.graph.triples((subj, RDFS.label, None)))
@@ -574,6 +575,9 @@ class OWLAutoAdapter(base.Adapter):
 
         # Iterate over individuals.
         for i,indi_triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
+            local_nodes = []
+            local_edges = []
+            
             subj = indi_triple[0]
             logger.debug(f"{i}:({iri(subj)})")
             subj_label = label_of(subj)
@@ -583,7 +587,8 @@ class OWLAutoAdapter(base.Adapter):
                 logger.debug(f"({iri(s)})-[{iri(p)}]->({iri(o)})")
                 logger.debug(f"Individual type: {node_type}")
                 if node_type:
-                    raise RuntimeError(f"Instantiating from multiple classes is not supported, fix individual `{subj}`, instantiating both `{node_type}` and `{o}`")
+                    raise RuntimeError(f"Instantiating from multiple classes is not supported,"
+                                       f" fix individual `{subj}`, it should not instantiate both `{node_type}` and `{o}`")
 
                 if rdflib.URIRef(o) != OWL.NamedIndividual:
                     node_type = o
@@ -597,18 +602,22 @@ class OWLAutoAdapter(base.Adapter):
             # Gather everything about the subject individual.
             for _,rel,obj in self.graph.triples((subj, None, None)):
                 logger.debug(f"\t-[{iri(rel)}]->({iri(obj)})")
+
                 if obj == OWL.NamedIndividual:
                     logger.debug("\t\t= pass")
                     pass
+
                 elif rel == RDF.type:
                     #e = base.GenericEdge(None, str(subj), str(obj), {}, str(rel))
                     e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
                     logger.debug(f"\t\t= {e}")
-                    self.edges_append(e)
+                    local_edges.append(e)
+
                 elif type(obj) == rdflib.URIRef:
                     e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
                     logger.debug(f"\t\t= {e}")
-                    self.edges_append(e)
+                    local_edges.append(e)
+
                 else:
                     logger.debug(f"\t\t= prop[{iri(rel)}] = {iri(obj)}")
                     properties[str(rel)] = str(obj)
@@ -616,7 +625,12 @@ class OWLAutoAdapter(base.Adapter):
             assert(node_type)
             n = base.Node(iri(subj), properties, label_of(node_type))
             logger.debug(f"\tnode: {n}")
-            self.nodes_append(n)
+            local_nodes.append(n)
+
+            self.edges_append(local_edges)
+            self.nodes_append(local_nodes)
+            
+            yield local_nodes, local_edges
 
 
 # TODO
