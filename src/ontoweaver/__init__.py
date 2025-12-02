@@ -1,6 +1,6 @@
 from typing import Tuple
 from pathlib import Path
-from alive_progress import alive_bar
+#from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import yaml
@@ -263,7 +263,7 @@ def load_extract(data, mapping, loader, parallel_mapping = 0, affix="none", type
 
     if mapping == "automap":
         logger.debug("\twith auto mapping")
-        mapping = {}
+        mapper = {}
     else:
         if type(mapping) == dict:
             logger.debug(f"\twith explicit user mapping: `{mapping}`")
