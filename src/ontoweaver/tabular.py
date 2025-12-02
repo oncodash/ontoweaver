@@ -554,17 +554,26 @@ class OWLAutoAdapter(base.Adapter):
 
 
     def run(self):
-        def iri(URI):
-            return str(URI).split('#')[-1] # FIXME strong assumption
+        def iri(subj):
+            if "#" in str(subj):
+                obj = str(subj).split('#')[-1] 
+                logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
+                return obj
+                
+            elif "/" in str(subj):
+                obj = str(subj).split('/')[-1] # FIXME strong assumption
+                logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
+                return obj
+
+            else:
+                return subj
 
         def label_of(subj):
             # First, get the label, if any; else use the IRI end tag.
             triples = list(self.graph.triples((subj, RDFS.label, None)))
             # logger.debug(f"\tLabel triples: {triples}")
             if len(triples) == 0:
-                assert('#' in str(subj))
                 obj = iri(subj)
-                logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
             else:
                 assert(len(triples[0]) == 3)
                 obj = str(triples[0][2])
