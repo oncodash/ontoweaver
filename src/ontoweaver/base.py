@@ -6,7 +6,7 @@ from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from jinja2.compiler import has_safe_repr
 
 from . import errormanager

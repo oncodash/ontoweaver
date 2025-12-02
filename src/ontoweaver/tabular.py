@@ -9,7 +9,7 @@ from alive_progress import alive_bar
 
 import types as pytypes
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 
 from rdflib import RDF, RDFS, OWL
 from itertools import chain

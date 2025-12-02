@@ -11,7 +11,7 @@ import pathlib
 import biocypher
 
 import pandas as pd
-import pandera as pa
+from pandera.pandas import errors
 
 from . import base
 Node = base.Node
@@ -485,7 +485,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         try:
             validator(table)
             return True
-        except pa.errors.SchemaErrors as exc:
+        except errors.SchemaErrors as exc:
             logger.error(f"Validation failed for {exc.failure_cases}.")
             return False
         except Exception as e:
@@ -511,7 +511,7 @@ def validate_input_data_loaded(dataframe, loaded_mapping, raise_errors = True) -
     try:
         validator(dataframe)
         return True
-    except pa.errors.SchemaErrors as exc:
+    except errors.SchemaErrors as exc:
         logger.error(f"Validation failed for {exc.failure_cases}.")
         return False
     except Exception as e:
