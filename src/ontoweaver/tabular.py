@@ -726,7 +726,7 @@ class PandasAdapter(IterativeAdapter):
     def iterate(self):
         return self.df.iterrows()
 
-
+# TODO move the Declare class into the base module.
 class Declare(errormanager.ErrorManager):
     """
     Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
@@ -1368,7 +1368,7 @@ class YamlParser(Declare):
 
         return label_maker
 
-    def _check_target_sanity(self, transformer_keyword_dict, transformer_type, transformer_index):
+    def _check_target_sanity(self, transformer_keyword_dict, transformer_type, transformer_index, transformers, properties_of):
         """
         Preforms sanity checks on target transformer before assigning the target, edge and subject variables, and connected
         columns.
@@ -1376,7 +1376,10 @@ class YamlParser(Declare):
 
         if not transformer_keyword_dict:
             logger.warning(f"No keywords declared for target transformer `{transformer_type}` at index"
-                       f" `{transformer_index}`.")
+                       f" `{transformer_index}`. Creating transformer with no parameters.")
+            target_transformer = self.make_transformer_class(transformer_type=transformer_type,
+                                                             branching_properties=properties_of)
+            transformers.append(target_transformer)
 
         elif any(field in transformer_keyword_dict for field in self.k_properties):
             if any(field in transformer_keyword_dict for field in self.k_target):
@@ -1482,15 +1485,8 @@ class YamlParser(Declare):
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
-                elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index)
-
-                # Special case for custom user-created transformers.
-                if elements is None and transformer_type == "custom_transformer":
-                    target_transformer = self.make_transformer_class(transformer_type=transformer_keyword_dict, branching_properties=properties_of)
-                    transformers.append(target_transformer)
-                    continue
-                # If transformer is not user-made and the sanity check failed, skip to next transformer.
-                elif elements is None and transformer_type != "custom_transformer":
+                elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index, transformers, properties_of)
+                if elements is None:
                     continue
                 # Transformer passed sanity check, unpack the returned elements.
                 else:
