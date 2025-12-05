@@ -3,11 +3,7 @@ import yaml
 import rdflib
 import logging
 import threading
-import biocypher
 
-from alive_progress import alive_bar
-
-import types as pytypes
 import pandas as pd
 import pandera.pandas as pa
 
@@ -17,9 +13,8 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from collections.abc import Iterable
 from enum import Enum, EnumMeta
-from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
+from abc import ABCMeta as ABSTRACT, abstractmethod
 
-from . import errormanager
 from . import base
 from . import types
 from . import transformer
@@ -62,8 +57,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
     """Base class for implementing a Biocypher adapter that consumes iterative data."""
 
     def __init__(self,
-                 subject_transformer: base.Transformer,
-                 transformers: Iterable[base.Transformer],
+                 subject_transformer: transformer.Transformer,
+                 transformers: Iterable[transformer.Transformer],
                  metadata: Optional[dict] = None,
                  validator: Optional[validate.InputValidator] = None,
                  type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
@@ -75,8 +70,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Instantiate the adapter.
 
         Args:
-            subject_transformer (base.Transformer): The transformer that maps the subject node.
-            transformers (Iterable[base.Transformer]): List of transformer instances that map the data frame to nodes and edges.
+            subject_transformer (transformer.Transformer): The transformer that maps the subject node.
+            transformers (Iterable[transformer.Transformer]): List of transformer instances that map the data frame to nodes and edges.
             metadata (Optional[dict]): Metadata to be added to all the nodes and edges.
             type_affix (Optional[TypeAffixes]): Where to add a type annotation to the labels (either TypeAffixes.prefix, TypeAffixes.suffix or TypeAffixes.none).
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
@@ -627,8 +622,8 @@ class OWLAutoAdapter(base.Adapter):
 #class OWLAdapter(IterativeAdapter):
 #    def __init__(self,
 #                 graph: rdflib.Graph,
-#                 subject_transformer: base.Transformer,
-#                 transformers: Iterable[base.Transformer],
+#                 subject_transformer: transformer.Transformer,
+#                 transformers: Iterable[transformer.Transformer],
 #                 metadata: Optional[dict] = None,
 #                 validator: Optional[validate.InputValidator] = None,
 #                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
@@ -690,8 +685,8 @@ class PandasAdapter(IterativeAdapter):
 
     def __init__(self,
             df: pd.DataFrame,
-            subject_transformer: base.Transformer,
-            transformers: Iterable[base.Transformer],
+            subject_transformer: transformer.Transformer,
+            transformers: Iterable[transformer.Transformer],
             metadata: Optional[dict] = None,
             validator: Optional[validate.InputValidator] = None,
             type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
@@ -726,147 +721,7 @@ class PandasAdapter(IterativeAdapter):
     def iterate(self):
         return self.df.iterrows()
 
-# TODO move the Declare class into the base module.
-class Declare(errormanager.ErrorManager):
-    """
-    Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
-    of the data frame.
-
-    Args:
-        module: The module in which to insert the types declared by the configuration.
-    """
-
-    def __init__(self,
-                 module=types,
-                 raise_errors = True,
-                 ):
-        super().__init__(raise_errors)
-        self.module = module
-
-
-
-    def make_node_class(self, name, properties={}, base=base.Node):
-        """
-        LabelMaker a node class with the given name and properties.
-
-        Args:
-            name: The name of the node class.
-            properties (dict): The properties of the node class.
-            base: The base class for the node class.
-
-        Returns:
-            The created node class.
-        """
-        # If type already exists, return it.
-        if hasattr(self.module, name):
-            cls = getattr(self.module, name)
-            logger.debug(
-                f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-            for p in properties.values():
-                if p not in cls.fields():
-                    logger.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
-            return cls
-
-        def fields():
-            return list(properties.values())
-
-        attrs = {
-            "__module__": self.module.__name__,
-            "fields": staticmethod(fields),
-        }
-        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
-        setattr(self.module, t.__name__, t)
-        return t
-
-    def make_edge_class(self, name, source_t, target_t, properties={}, base=base.Edge):
-        """
-        LabelMaker an edge class with the given name, source type, target type, and properties.
-
-        Args:
-            name: The name of the edge class.
-            source_t: The source type of the edge.
-            target_t: The target type of the edge.
-            properties (dict): The properties of the edge class.
-            base: The base class for the edge class.
-
-        Returns:
-            The created edge class.
-        """
-        # If type already exists, check if the fields are the same.
-        if hasattr(self.module, name):
-            cls = getattr(self.module, name)
-            cls_fields = cls.fields()
-
-            # Compare the properties with the existing class fields
-            if properties == cls_fields:
-                logger.info(
-                    f"\t\tEdge class `{name}` (prop: `{cls_fields}`) already exists with the same properties, I will not create another one.")
-                return cls
-
-            logger.warning(f"\t\tEdge class `{name}` already exists, but properties do not match.")
-            # If properties do not match, we proceed to create a new class with the new properties.
-            # FIXME: Would make much more sense to just append(?) new properties to existing class instead of creating new class.
-
-        def fields():
-            return properties
-
-        def st():
-            return source_t
-
-        def tt():
-            return [target_t]
-
-        attrs = {
-            "__module__": self.module.__name__,
-            "fields": staticmethod(fields),
-            "source_type": staticmethod(st),
-            "target_type": staticmethod(tt),
-        }
-        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
-        setattr(self.module, t.__name__, t)
-        return t
-
-    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
-                               properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):
-        """
-        LabelMaker a transformer class with the given parameters.
-
-        Args:
-            multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
-            transformer_type: The class of the transformer.
-            properties: The properties of the transformer.
-            columns: The columns to be processed by the transformer.
-            output_validator: validate.OutputValidator instance for transformer output validation.
-            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            The created transformer class.
-
-        Raises:
-            TypeError: If the transformer type is not an existing transformer.
-        """
-        if hasattr(transformer, transformer_type):
-            parent_t = getattr(transformer, transformer_type)
-            kwargs.setdefault("subclass", parent_t)
-            if not issubclass(parent_t, base.Transformer):
-                self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
-            logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
-            return parent_t(properties_of=properties,
-                            columns=columns,
-                            output_validator=output_validator,
-                            multi_type_dict = multi_type_dictionary,
-                            branching_properties = branching_properties,
-                            label_maker = label_maker,
-                            raise_errors = raise_errors,
-                            **kwargs)
-        else:
-            # logger.debug(dir(generators))
-            self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
-
-class YamlParser(Declare):
+class YamlParser(base.Declare):
     """
     Parse a table extraction configuration and return the three objects needed to configure an Adapter.
 

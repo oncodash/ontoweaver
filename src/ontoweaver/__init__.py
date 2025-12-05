@@ -1,11 +1,8 @@
 from typing import Tuple
-from pathlib import Path
-from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import yaml
 import rdflib
-import logging
 import logging
 import pathlib
 import biocypher
@@ -14,14 +11,14 @@ import pandas as pd
 from pandera.pandas import errors
 
 from . import base
+from . import transformer
 Node = base.Node
 Edge = base.Edge
-Transformer = base.Transformer
+Transformer = transformer.Transformer
 Adapter = base.Adapter
 All = base.All
 
 from . import types
-from . import transformer
 from . import tabular
 from . import serialize
 from . import congregate

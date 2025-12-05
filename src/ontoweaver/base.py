@@ -1,20 +1,15 @@
 import logging
-import re
-from collections.abc import Iterable, Generator
-from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
+from collections.abc import Iterable
+from abc import ABCMeta as ABSTRACT, abstractmethod
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
-import pandas as pd
-import pandera.pandas as pa
-from jinja2.compiler import has_safe_repr
 
 from . import errormanager
-from . import validate
 from . import serialize
 from . import exceptions
-from . import make_value
-from .validate import SkipValidator
+from . import transformer
+import types
 
 logger = logging.getLogger("ontoweaver")
 
@@ -418,219 +413,144 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
         raise NotImplementedError()
 
 
-class Transformer(errormanager.ErrorManager):
-    """"Class used to manipulate cell values and return them in the correct format."""""
+class Declare(errormanager.ErrorManager):
+    """
+    Declarations of functions used to declare and instantiate object classes used by the Adapter for the mapping
+    of the data frame.
 
-    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None,
-                 output_validator: validate.OutputValidator() = None, multi_type_dict = None, raise_errors = True, **kwargs):
-        """
-        Instantiate transformers.
+    Args:
+        module: The module in which to insert the types declared by the configuration.
+    """
 
-        :param properties_of: the properties of each node type.
-        :param value_maker: the ValueMaker object used for the logic of cell value selection for each transformer. Default is None.
-        :param label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
-        :param branching_properties: in case of branching on cell values, the dictionary holds the properties for each branch.
-        :param columns: the columns to use in the mapping.
-        :param output_validator: the OutputValidator object used for validating transformer output. Default is None.
-        :param multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
-        :param raise_errors: whether to raise errors or not. Default is True.
-            each transformer is instantiated with a default OutputValidator object, and additional user-defined rules if needed in
-            the tabular module.
-
-
-        """
+    def __init__(self,
+                 module=types,
+                 raise_errors = True,
+                 ):
         super().__init__(raise_errors)
+        self.module = module
 
-        self.properties_of = properties_of
-        self.value_maker = value_maker
-        self.label_maker = label_maker
-        self.branching_properties = branching_properties
-        self.columns = columns
-        self.output_validator = output_validator
-        if not self.output_validator:
-            self.output_validator = validate.OutputValidator(validate.default_validation_rules, raise_errors = raise_errors)
-        self.parameters = kwargs
-        self.multi_type_dict = multi_type_dict
-        self.final_type = None # The final type is to be passed by the label maker class based on the YAML mapping. That
-                               # is why here it is None by default
-        self.kwargs = kwargs
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
-    def get_transformer(self):
-        return self
 
-    def __call__(self, row, i):
+    def make_node_class(self, name, properties={}, base=Node):
         """
-        Process a row. If not empty/null, yields concatenated items as node IDs.
+        LabelMaker a node class with the given name and properties.
 
         Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
+            name: The name of the node class.
+            properties (dict): The properties of the node class.
+            base: The base class for the node class.
 
-        Yields:
-            str: The concatenated string from the cell values.
-       """
-        for value in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type, reverse_edge = self.create(value, row)
-            if self.is_not_null(value):
-                yield value, edge_type, node_type, reverse_edge
-
-
-    def is_not_null(self, val):
+        Returns:
+            The created node class.
         """
-        Checks if cell value is not empty nor 'null', 'nan'...
+        # If type already exists, return it.
+        if hasattr(self.module, name):
+            cls = getattr(self.module, name)
+            logger.debug(
+                f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+            for p in properties.values():
+                if p not in cls.fields():
+                    logger.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
+            return cls
+
+        def fields():
+            return list(properties.values())
+
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields": staticmethod(fields),
+        }
+        t = types.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
+        setattr(self.module, t.__name__, t)
+        return t
+
+    def make_edge_class(self, name, source_t, target_t, properties={}, base=Edge):
+        """
+        LabelMaker an edge class with the given name, source type, target type, and properties.
 
         Args:
-            val: The value to check.
+            name: The name of the edge class.
+            source_t: The source type of the edge.
+            target_t: The target type of the edge.
+            properties (dict): The properties of the edge class.
+            base: The base class for the edge class.
 
         Returns:
-            bool: True if the value is valid, False otherwise.
+            The created edge class.
         """
-        if pd.api.types.is_numeric_dtype(type(val)):
-            if (math.isnan(val) or val == float("nan")):
-                return False
-        elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
-            return False
-        elif str(val) == "":
-            return False
-        return True
+        # If type already exists, check if the fields are the same.
+        if hasattr(self.module, name):
+            cls = getattr(self.module, name)
+            cls_fields = cls.fields()
 
-    #FIXME: The functions below are never implemented.
-    @abstract
-    def nodes(self):
-        raise NotImplementedError
+            # Compare the properties with the existing class fields
+            if properties == cls_fields:
+                logger.info(
+                    f"\t\tEdge class `{name}` (prop: `{cls_fields}`) already exists with the same properties, I will not create another one.")
+                return cls
 
-    @abstract
-    def edges(self):
-        raise NotImplementedError
+            logger.warning(f"\t\tEdge class `{name}` already exists, but properties do not match.")
+            # If properties do not match, we proceed to create a new class with the new properties.
+            # FIXME: Would make much more sense to just append(?) new properties to existing class instead of creating new class.
 
-    @staticmethod
-    @abstract
-    def edge_type():
-        raise NotImplementedError
+        def fields():
+            return properties
 
-    @staticmethod
-    @abstract
-    def target_type():
-       raise NotImplementedError
+        def st():
+            return source_t
 
-    @classmethod
-    def source_type(cls):
-       return cls.edge_type().source_type()
+        def tt():
+            return [target_t]
 
-    def __repr__(self):
+        attrs = {
+            "__module__": self.module.__name__,
+            "fields": staticmethod(fields),
+            "source_type": staticmethod(st),
+            "target_type": staticmethod(tt),
+        }
+        t = types.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
+        setattr(self.module, t.__name__, t)
+        return t
 
-        representation = ""
-
-        if hasattr(self, "from_subject"):
-            from_subject = self.from_subject
-        else:
-            from_subject = "."
-
-        target_name = ""
-        edge_name = ""
-
-        if hasattr(self, "multi_type_dict") and self.multi_type_dict is not None:
-            for key, value in self.multi_type_dict.items():
-                if value['to_object'] and value['via_relation']:
-                    target_name = value['to_object']
-                    edge_name = value['via_relation']
-                elif value['to_object'] and not value['via_relation']:
-                    target_name = value['to_object']
-                    edge_name = "."
-
-
-                if self.properties_of:
-                    # The transformer is not a branching transformer, and has only one set of properties.
-                    props = "{"
-                    trans = []
-                    for kind in self.properties_of:
-                        trans.append(f"{kind} {self.properties_of[kind]}>")
-                    props += ", ".join(trans)
-                    props+="}"
-                elif self.branching_properties and self.branching_properties.get(value['to_object'], None):
-                    # The transformer is a branching transformer, and has multiple sets of properties. We extract the ones for the current type.
-                    props = self.branching_properties.get(value['to_object'])
-                else:
-                    # The transformer has no properties for the type.
-                    props = "{}"
-
-
-                params = ""
-                parameters = {k:v for k,v in self.parameters.items() if k not in ['subclass', 'from_subject', "match"]}
-                if parameters:
-                    p = []
-                    for k,v in parameters.items():
-                        p.append(f"{k}={v}")
-                    params = ','.join(p)
-
-                if from_subject == "." and edge_name == "." and target_name == "." and props == "{}":
-                    # If this is a property transformer
-                    link = ""
-
-                elif from_subject == "." and edge_name == "." and (target_name != "." or props != "{}"):
-                    # This a subject transformer.
-                    link = f" => ({target_name}/{props})"
-
-                else:
-                    # This is a regular transformer.
-                    link = f" => ({from_subject})--[{edge_name.__name__}]->({target_name.__name__}/{props})"
-
-                if self.columns:
-                    columns = self.columns
-                else:
-                    columns = []
-
-                for c in columns:
-                    if type(c) != str:
-                        self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
-
-                representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")
-
-        else:
-            #The transformer is a property transformer. We add the property name and value in the tabular.properties() function.
-            representation += (f"<{type(self).__name__}() {','.join(self.columns) if self.columns else ''} =>")
-
-        return representation
-
-    def validate(self, res):
+    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
+                               properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):
         """
-        Validate the output of the transformer, using the output_validator. of the transformer instance.
-        """
-        try:
-            if isinstance(self.output_validator, validate.SimpleOutputValidator) or isinstance(self.output_validator, SkipValidator):
-                # The SimpleOutputValidator and SkipValidator do not use the Pandera package, and the value is therefore not
-                # required to be in a DataFrame format. Voiding the creation of a DataFrame here saves computational time for
-                # large datasets.
-                if self.output_validator(res):
-                    return True
-                else:
-                    return False
-            else:
-                if self.output_validator(pd.DataFrame([res], columns=["cell_value"])):
-                    return True
-                else:
-                    return False
-        except pa.errors.SchemaErrors as error:
-            msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
-            self.error(msg, exception = exceptions.DataValidationError)
+        LabelMaker a transformer class with the given parameters.
 
-    def create(self, returned_value, row):
-        """
-        Create the output of the transformer, using the label_maker of the transformer instance.
+        Args:
+            multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
+            transformer_type: The class of the transformer.
+            properties: The properties of the transformer.
+            columns: The columns to be processed by the transformer.
+            output_validator: validate.OutputValidator instance for transformer output validation.
+            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+            **kwargs: Additional keyword arguments.
 
         Returns:
-            Extracted cell value (can be node ID, property value, edge ID), edge type, target node type, and
-            reverse relation in case declared in the mapping.
+            The created transformer class.
+
+        Raises:
+            TypeError: If the transformer type is not an existing transformer.
         """
-        result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
-        if result_object.target_node_type:
-            self.target_type = result_object.target_node_type.__name__
-        if result_object.target_element_properties is not None:
-            self.properties_of = result_object.target_element_properties
-        self.final_type = result_object.final_type
-        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
+        if hasattr(transformer, transformer_type):
+            parent_t = getattr(transformer, transformer_type)
+            kwargs.setdefault("subclass", parent_t)
+            if not issubclass(parent_t, transformer.Transformer):
+                self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
+            logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
+            return parent_t(properties_of=properties,
+                            columns=columns,
+                            output_validator=output_validator,
+                            multi_type_dict = multi_type_dictionary,
+                            branching_properties = branching_properties,
+                            label_maker = label_maker,
+                            raise_errors = raise_errors,
+                            **kwargs)
+        else:
+            # logger.debug(dir(generators))
+            self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
 
 
 class All:
