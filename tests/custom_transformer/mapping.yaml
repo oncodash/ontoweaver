@@ -17,7 +17,7 @@ row:
                 to_subject: lncrna
 
 transformers:
-    - OmniPath:
+    - OmniPath
     # Properties of for the node type 'source'
     - map:
         column: source_genesymbol
