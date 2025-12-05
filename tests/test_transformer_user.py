@@ -4,7 +4,7 @@ import pandas as pd
 import ontoweaver
 from ontoweaver import exceptions
 
-class user_transformer(ontoweaver.base.Transformer):
+class user_transformer(ontoweaver.transformer.Transformer):
 
     class ValueMaker(ontoweaver.make_value.ValueMaker):
         def __init__(self, raise_errors: bool = True):

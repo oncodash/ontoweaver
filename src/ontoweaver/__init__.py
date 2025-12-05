@@ -1,27 +1,24 @@
 from typing import Tuple
-from pathlib import Path
-from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import yaml
 import rdflib
 import logging
-import logging
 import pathlib
 import biocypher
 
 import pandas as pd
-import pandera as pa
+from pandera.pandas import errors
 
 from . import base
+from . import transformer
 Node = base.Node
 Edge = base.Edge
-Transformer = base.Transformer
+Transformer = transformer.Transformer
 Adapter = base.Adapter
 All = base.All
 
 from . import types
-from . import transformer
 from . import tabular
 from . import serialize
 from . import congregate
@@ -485,7 +482,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         try:
             validator(table)
             return True
-        except pa.errors.SchemaErrors as exc:
+        except errors.SchemaErrors as exc:
             logger.error(f"Validation failed for {exc.failure_cases}.")
             return False
         except Exception as e:
@@ -511,7 +508,7 @@ def validate_input_data_loaded(dataframe, loaded_mapping, raise_errors = True) -
     try:
         validator(dataframe)
         return True
-    except pa.errors.SchemaErrors as exc:
+    except errors.SchemaErrors as exc:
         logger.error(f"Validation failed for {exc.failure_cases}.")
         return False
     except Exception as e:
