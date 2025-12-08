@@ -1178,6 +1178,7 @@ class YamlParser(base.Declare):
 
                 s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
 
+            # Append properties to subject type(s). In case other types are not declared.
             properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
 
             subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
@@ -1198,15 +1199,17 @@ class YamlParser(base.Declare):
 
         else:
 
+            # Still parse properties even if no subject transformer parameters are declared.
+            properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
+
             logger.warning(f"No keywords declared for subject transformer `{subject_transformer_class}`"
                        f" Creating transformer with no parameters.")
 
             subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
                                                              branching_properties=properties_of)
 
+            # Declare source type as None because no parameters were declared for the subject transformer.
             source_t = None
-
-
 
         extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, possible_subject_types, subject_columns)
         if extracted_metadata:
