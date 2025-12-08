@@ -39,3 +39,12 @@ def convert_to_set(tuple_output):
         tuple(sorted(node[4].items()))
     ]) for node in tuple_output
     ])
+
+
+def assert_edges(lhs, rhs):
+    assert_edge_set = set([e[1:2] for e in rhs])
+    f_edge_set = set([e[1:2] for e in lhs])
+    assert len(f_edge_set) == len(assert_edge_set)
+    for edge in assert_edge_set:
+        assert edge in f_edge_set, f"Edges {edge} should exists."
+

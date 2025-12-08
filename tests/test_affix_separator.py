@@ -38,11 +38,7 @@ def test_affix_separator():
 
     assert assert_node_set == f_node_set, "Nodes are not equal."
 
-    assert_edge_set = testing_functions.convert_to_set(assert_edges)
-    f_edge_set = testing_functions.convert_to_set(fedges)
-    logging.debug(f_edge_set)
-
-    assert assert_edge_set == f_edge_set, "Edges are not equal."
+    testing_functions.assert_edges(fedges, assert_edges)
 
 
 if __name__ == "__main__":
