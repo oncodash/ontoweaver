@@ -1,6 +1,6 @@
 
 from ontoweaver import transformer, validate
-from ontoweaver types as owtypes
+from ontoweaver import types as owtypes
 
 class OmniPath(transformer.Transformer):
     """Custom end-user transformer, used to create elements for OmniPath KG database."""
