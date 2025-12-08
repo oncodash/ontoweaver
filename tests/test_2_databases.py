@@ -745,10 +745,7 @@ def test_2_databases():
     assert assert_node_set == f_node_set, "Nodes are not equal."
 
     bc_edges = [e.as_tuple() for e in edges]
-    assert_edge_set = testing_functions.convert_to_set(assert_edges)
-    f_edge_set = testing_functions.convert_to_set(bc_edges)
-    assert assert_edge_set == f_edge_set, "Edges are not equal."
-
+    testing_functions.assert_edges(bc_edges, assert_edges)
 
 if __name__ == "__main__":
     test_2_databases()

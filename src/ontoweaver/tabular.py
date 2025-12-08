@@ -241,7 +241,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Returns:
             The created edge.
         """
-        return edge_t(id_source=id_source, id_target=id_target, properties=properties)
+        default_id = f"({id_source})--[{edge_t.__name__}]->({id_target})"
+        return edge_t(id = default_id, id_source=id_source, id_target=id_target, properties=properties)
 
     # ==========================
     # Helper functions for run
@@ -399,7 +400,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 nb_rows += local_rows
                 nb_transformations += local_transformations
                 nb_nodes += local_nb_nodes
-                yield (local_nodes, local_edges)
+                yield local_nodes, local_edges
 
         else:
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
@@ -504,7 +505,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                                                   id_source=target_node_id,
                                                                   properties=self.properties(reverse_relation.fields(),
                                                                                              row, i, reverse_relation, source_node_id.__class__)))
-
+            # assert hasattr(local_nodes, "__iter__")
+            # assert hasattr(local_edges, "__iter__")
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
         # End of process_row local function
 
@@ -515,9 +517,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         if self.parallel_mapping > 0:
             self._run_all(process_row, nb_rows, nb_transformations, nb_nodes)
         else:
-            for n,e in self._run_all(process_row, nb_rows, nb_transformations, nb_nodes):
-                yield n,e
-
+            for local_nodes,local_edges in self._run_all(process_row, nb_rows, nb_transformations, nb_nodes):
+                yield local_nodes, local_edges
 
     def __call__(self):
         # FIXME If the run functions contains a generator nested under an `if`, the call function is note even called by the derivated class instance..."
@@ -527,9 +528,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         #     return
         # else:
         #     logger.debug("Sequential mapping")
-        for n,e in self.run():
-            yield n,e
-
+        for local_nodes, local_edges in self.run():
+            yield local_nodes, local_edges
 
     @abstractmethod
     def iterate(self):
