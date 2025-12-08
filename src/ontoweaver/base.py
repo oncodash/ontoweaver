@@ -9,20 +9,10 @@ from . import errormanager
 from . import serialize
 from . import exceptions
 from . import transformer
-import types
+from . import types as owtypes
+import types as pytypes
 
 logger = logging.getLogger("ontoweaver")
-
-# TODO? Strategy using a user defined __eq__ method, enabling a more flexible comparison of objects, but in O(n2).
-# class Comparer(metaclass=ABCMeta):
-#     @abstractmethod
-#     def __call__(self, elem1, elem2):
-#         raise NotImplementedError
-#
-# class CompEq(Comparer):
-#     def __call__(self, elem1, elem2):
-#         return elem1 is elem2
-# FIXME use hash functions for comparison.
 
 class ErrorManager:
     def __init__(self, raise_errors = True):
@@ -427,12 +417,11 @@ class Declare(errormanager.ErrorManager):
     """
 
     def __init__(self,
-                 module=types,
+                 module=owtypes,
                  raise_errors = True,
                  ):
         super().__init__(raise_errors)
         self.module = module
-
 
 
     def make_node_class(self, name, properties={}, base=Node):
@@ -464,10 +453,11 @@ class Declare(errormanager.ErrorManager):
             "__module__": self.module.__name__,
             "fields": staticmethod(fields),
         }
-        t = types.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
+
 
     def make_edge_class(self, name, source_t, target_t, properties={}, base=Edge):
         """
@@ -513,10 +503,11 @@ class Declare(errormanager.ErrorManager):
             "source_type": staticmethod(st),
             "target_type": staticmethod(tt),
         }
-        t = types.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
+        t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
+
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
                                properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):

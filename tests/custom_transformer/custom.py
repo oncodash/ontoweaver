@@ -1,6 +1,6 @@
 
 from ontoweaver import transformer, validate
-import types
+from ontoweaver types as owtypes
 
 class OmniPath(transformer.Transformer):
     """Custom end-user transformer, used to create elements for OmniPath KG database."""
@@ -25,12 +25,12 @@ class OmniPath(transformer.Transformer):
 
         for possible_source in possible_sources:
             for possible_target in possible_targets:
-                self.declare_types.make_edge_class("transcriptional", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("transcriptional", {}))
-                self.declare_types.make_edge_class("post_translational", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("post_translational", {}))
-                self.declare_types.make_edge_class("post_transcriptional", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("post_transcriptional", {}))
-                self.declare_types.make_edge_class("drug_has_target", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("drug_has_target", {}))
-                self.declare_types.make_edge_class("mirna_transcriptional", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("mirna_transcriptional", {}))
-                self.declare_types.make_edge_class("lncrna_post_transcriptional", getattr(types, possible_source), getattr(types, possible_target), self.branching_properties.get("lncrna_post_transcriptional", {}))
+                self.declare_types.make_edge_class("transcriptional", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("transcriptional", {}))
+                self.declare_types.make_edge_class("post_translational", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("post_translational", {}))
+                self.declare_types.make_edge_class("post_transcriptional", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("post_transcriptional", {}))
+                self.declare_types.make_edge_class("drug_has_target", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("drug_has_target", {}))
+                self.declare_types.make_edge_class("mirna_transcriptional", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("mirna_transcriptional", {}))
+                self.declare_types.make_edge_class("lncrna_post_transcriptional", getattr(owtypes, possible_source), getattr(owtypes, possible_target), self.branching_properties.get("lncrna_post_transcriptional", {}))
 
 
     def __call__(self, row, i):
@@ -48,53 +48,53 @@ class OmniPath(transformer.Transformer):
 
         if relationship_type == "transcriptional":
             if entity == "protein":
-                self.final_type = getattr(types, "protein")
+                self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
-                yield node_id, getattr(types, "transcriptional"), getattr(types, "target_protein"), None
+                yield node_id, getattr(owtypes, "transcriptional"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
-                self.final_type = getattr(types, "macromolecular_complex")
+                self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
-                yield node_id,  getattr(types, "transcriptional"), getattr(types, "target_complex"), None
+                yield node_id,  getattr(owtypes, "transcriptional"), getattr(owtypes, "target_complex"), None
 
             elif entity == "mirna":
                 self.properties_of = self.branching_properties.get("mirna", {})
-                yield node_id,   getattr(types, "transcriptional"), getattr(types, "mirna"), None
+                yield node_id,   getattr(owtypes, "transcriptional"), getattr(owtypes, "mirna"), None
 
 
         elif relationship_type == "post_translational":
             if entity == "protein":
-                self.final_type = getattr(types, "protein")
+                self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
-                yield node_id, getattr(types, "post_translational"), getattr(types, "target_protein"), None
+                yield node_id, getattr(owtypes, "post_translational"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
-                self.final_type = getattr(types, "macromolecular_complex")
+                self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
-                yield node_id, getattr(types, "post_translational"), getattr(types, "target_complex"), None
+                yield node_id, getattr(owtypes, "post_translational"), getattr(owtypes, "target_complex"), None
 
 
         elif relationship_type == "post_transcriptional":
-            self.final_type = getattr(types, "protein")
+            self.final_type = getattr(owtypes, "protein")
             self.properties_of = self.branching_properties.get("target_protein", {})
-            yield node_id, getattr(types, "post_transcriptional"), getattr(types, "target_protein"), None
+            yield node_id, getattr(owtypes, "post_transcriptional"), getattr(owtypes, "target_protein"), None
 
         elif relationship_type == "small_molecule_protein":
             if entity == "protein":
-                self.final_type = getattr(types, "protein")
+                self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
-                yield node_id, getattr(types, "drug_has_target"), getattr(types, "target_protein"), None
+                yield node_id, getattr(owtypes, "drug_has_target"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
-                self.final_type = getattr(types, "macromolecular_complex")
+                self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
-                yield node_id, getattr(types, "drug_has_target"), getattr(types, "target_complex"), None
+                yield node_id, getattr(owtypes, "drug_has_target"), getattr(owtypes, "target_complex"), None
 
         elif relationship_type == "mirna_transcriptional":
             self.properties_of = self.branching_properties.get("mirna", {})
-            yield node_id, getattr(types, "mirna_transcriptional"), getattr(types, "mirna"), None
+            yield node_id, getattr(owtypes, "mirna_transcriptional"), getattr(owtypes, "mirna"), None
 
         elif relationship_type == "lncrna_post_transcriptional":
-            self.final_type = getattr(types, "protein")
+            self.final_type = getattr(owtypes, "protein")
             self.properties_of = self.branching_properties.get("target_protein", {})
-            yield node_id, getattr(types, "lncrna_post_transcriptional"), getattr(types, "target_protein"), None
+            yield node_id, getattr(owtypes, "lncrna_post_transcriptional"), getattr(owtypes, "target_protein"), None
