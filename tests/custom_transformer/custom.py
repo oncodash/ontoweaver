@@ -80,7 +80,6 @@ class OmniPath(transformer.Transformer):
             yield node_id, getattr(types, "post_transcriptional"), getattr(types, "target_protein"), None
 
         elif relationship_type == "small_molecule_protein":
-            # Note: your YAML uses keys "protein" and "complex" without comparison
             if entity == "protein":
                 self.final_type = getattr(types, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})

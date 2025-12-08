@@ -1140,59 +1140,73 @@ class YamlParser(base.Declare):
         s_final_type_class = self._extract_final_type_class(subject_final_type, possible_subject_types, metadata,
                                                             metadata_list, subject_columns, properties_of)
 
-        if "match" in subject_transformer_params:
+        if subject_transformer_params:
 
-            subject_branching = True
+            if "match" in subject_transformer_params:
 
-            self._make_branching_dict(subject = True, match_parser = subject_transformer_params["match"],
-                                      properties_of = properties_of, metadata_list = metadata_list, metadata = metadata,
-                                      columns = subject_columns, final_type_class = s_final_type_class,
-                                      multi_type_dictionary = subject_multi_type_dict, possible_node_types = possible_subject_types,
-                                      possible_edge_types = set())
+                subject_branching = True
 
-            source_t = None # Subject_type declared None because the subject transformer is a branching transformer.
-            subject_type = None
-            logger.debug(f"Parse subject transformer...")
+                self._make_branching_dict(subject = True, match_parser = subject_transformer_params["match"],
+                                          properties_of = properties_of, metadata_list = metadata_list, metadata = metadata,
+                                          columns = subject_columns, final_type_class = s_final_type_class,
+                                          multi_type_dictionary = subject_multi_type_dict, possible_node_types = possible_subject_types,
+                                          possible_edge_types = set())
 
-            if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
-                s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
-                                                                        match_type_from_column=subject_kwargs['match_type_from_column'])
+                source_t = None # Subject_type declared None because the subject transformer is a branching transformer.
+                subject_type = None
+                logger.debug(f"Parse subject transformer...")
+
+                if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
+                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
+                                                                            match_type_from_column=subject_kwargs['match_type_from_column'])
+                else:
+                    s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+
+            # "None" key is used to return any type of string, in case no branching is needed.
             else:
-                s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+                subject_type = self.get(self.k_subject_type, subject_transformer_dict[subject_transformer_class])
+                source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
 
-        # "None" key is used to return any type of string, in case no branching is needed.
+                subject_multi_type_dict = {'None': {
+                    'to_object': source_t,
+                    'via_relation': None,
+                    'final_type': s_final_type_class,
+                    'reverse_relation': None
+                }}
+
+                possible_subject_types.add(source_t.__name__)
+
+                s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
+
+            properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
+
+            subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
+                                                              multi_type_dictionary=subject_multi_type_dict,
+                                                              branching_properties=properties_of if subject_branching else None,
+                                                              properties=properties_of.get(subject_type,
+                                                                                           {}) if not subject_branching else None,
+                                                              columns=subject_columns,
+                                                              output_validator=subject_output_validator,
+                                                              label_maker=s_label_maker, raise_errors=self.raise_errors,
+                                                              **subject_kwargs)
+
+            logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
+
+            logger.debug(
+                f"\tDeclare subject of possible types: '{possible_subject_types}', subject transformer: '{subject_transformer_class}', "
+                f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
+
         else:
-            subject_type = self.get(self.k_subject_type, subject_transformer_dict[subject_transformer_class])
-            source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
 
-            subject_multi_type_dict = {'None': {
-                'to_object': source_t,
-                'via_relation': None,
-                'final_type': s_final_type_class,
-                'reverse_relation': None
-            }}
+            logger.warning(f"No keywords declared for subject transformer `{subject_transformer_class}`"
+                       f" Creating transformer with no parameters.")
 
-            possible_subject_types.add(source_t.__name__)
+            subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
+                                                             branching_properties=properties_of)
 
-            s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
+            source_t = None
 
-        properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
 
-        subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
-                                                          multi_type_dictionary=subject_multi_type_dict,
-                                                          branching_properties=properties_of if subject_branching else None,
-                                                          properties=properties_of.get(subject_type,
-                                                                                       {}) if not subject_branching else None,
-                                                          columns=subject_columns,
-                                                          output_validator=subject_output_validator,
-                                                          label_maker=s_label_maker, raise_errors=self.raise_errors,
-                                                          **subject_kwargs)
-
-        logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
-
-        logger.debug(
-            f"\tDeclare subject of possible types: '{possible_subject_types}', subject transformer: '{subject_transformer_class}', "
-            f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
 
         extracted_metadata = self._extract_metadata(self.k_metadata_column, metadata_list, metadata, possible_subject_types, subject_columns)
         if extracted_metadata:
