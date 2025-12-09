@@ -692,7 +692,6 @@ This mapping would result in three nodes of type ``person``: ``Peter``, ``Paul``
 nodes of type ``person`` would be connected to the nodes of type ``kitchen_furniture`` via an edge of type
 ``will_not_sit``, and to the node of type ``rest_of_house_furniture`` via an edge of type ``will_sit``.
 
-
 User-defined Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -705,11 +704,11 @@ table, as it keeps it obvious for anyone able to read the mapping (while
 it may be difficult to read the pre-processing code itself).
 
 A user-defined transformer takes the form of a Python class inheriting
-from ``ontoweaver.base.Transformer``:
+from ``ontoweaver.transformer.Transformer``:
 
 .. code:: python
 
-   class my_transformer(ontoweaver.base.Transformer):
+   class my_transformer(ontoweaver.transformer.Transformer):
 
        # Each transformer class should have a ValueMaker nested - class, to define how the value is extracted from the cell.
        # The ValueMaker class should inherit from the ontoweaver.make_value.ValueMaker class.
@@ -767,6 +766,83 @@ to the ``ontoweaver`` module which will process the mapping:
 You can have a look at the transformers provided by OntoWeaver to get
 inspiration for your own implementation:
 `ontoweaver/src/ontoweaver/transformer.py <https://github.com/oncodash/ontoweaver/blob/main/src/ontoweaver/transformer.py>`__
+
+
+User-defined Transformer-Like Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases you might need transformers that perform operations not easily supported by the available
+``ValueMakers`` and ``LabelMakers`` in OntoWeaver. In such cases, you can create your own transformer-like functions to
+handle these specific operations.
+
+
+.. code:: python
+
+
+    from ontoweaver import transformer, validate
+    import types
+
+    class MyTransformer(transformer.Transformer):
+        """Custom end-user transformer."""
+
+        def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+
+            super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+                             multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+            # First declare all node and edge classes needed for your mapping. The declaration is done by using the
+            # `declare_types` member variable, which is an instance of the ``ontoweaver.base.Declare`` class. Node classes are
+            # declared by using the `` self.declare_types.make_node_class`` function. We first declare the name of the
+            # possible source and target node classes (``my_source_node_class``, ``my_target_node_class``, ``another_node_class"``).
+            # Then we extract the properties of those node classes from the `branching_properties` member variable, which is a dictionary
+            # containing all the properties defined in the mapping file for each node and edge class (``self.branching_properties.get("my_source_node_class", {})``).
+
+            self.declare_types.make_node_class("my_source_node_class", self.branching_properties.get("my_source_node_class", {}))
+            self.declare_types.make_node_class("my_target_node_class", self.branching_properties.get("my_target_node_class", {}))
+            self.declare_types.make_node_class("another_node_class", self.branching_properties.get("another_node_class", {}))
+
+            # Edge classes are declared by using the `` self.declare_types.make_edge_class`` function. Again, we declare the
+            # name of the edge class (``my_edge_class``) and the source and target node classes it connects. These are
+            # retrieved by using the ``getattr`` function on the ``types`` module, which contains all the declared types in the ontology, as
+            # well as the node classes we just declared above (``getattr(types, "my_source_node_class")``) .
+            # Finally, we extract the properties of the edge class from the ``branching_properties`` member variable
+            # (``self.branching_properties.get("my_edge_class", {})``)
+
+            self.declare_types.make_edge_class("my_edge_class", getattr(types, "my_source_node_class"), getattr(types, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
+
+
+        def __call__(self, row, i):
+
+            # Initialize final type and properties_of member variables to ``None`` for each row processed. This is beacuase
+            # the final type and properties may change depending on the values extracted from the current row.
+
+            self.final_type = None
+            self.properties_of = None
+
+            # Extract branching information from the current row, as well as node ID. We branch based on the values of the
+            # ``type`` and ``entity_type_target`` columns.
+
+            node_id = row["target"]
+            relationship_type = row["type"]
+            entity = row["entity_type_target"]
+
+            # Create branching logic and return correct elements. Elements are returned by using the ``yield`` statement,
+            # which yields a tuple containing the node ID, edge type, target node type, and reverse edge type (if any).
+            # At each step we can additionally set the ``final_type`` (See ``How to`` section for more details on ``final_type``) and
+            # ``properties_of`` member variables, which will be used to extract properties for the current node.
+
+            if relationship_type == "my_relationship_type":
+                if entity == "my_entity_type":
+                    self.final_type = # Possible to set final type if feature is needed.
+                    self.properties_of = self.branching_properties.get("my_target_node_class", {})
+                    yield node_id, getattr(types, "my_edge_class"), getattr(types, "my_target_node_class"), None
+
+                else:  ...
+
+            else: ...
+
+
+
 
 Keyword Synonyms
 ~~~~~~~~~~~~~~~~~
