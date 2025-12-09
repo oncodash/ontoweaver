@@ -841,7 +841,14 @@ handle these specific operations.
 
             else: ...
 
+An example of such a transformer-like function is provided in ``tests/custom_transformer/custom.py``.
 
+Once your transformer class is implemented, you should make it available
+to the ``ontoweaver`` module which will process the mapping:
+
+.. code:: python
+
+   ontoweaver.transformer.register(my_transformer)
 
 
 Keyword Synonyms
