@@ -1,6 +1,6 @@
 biocypher-log
 biocypher-out
-
 **/__pycache__/
-
-
+.DS_Store
+doc_built/
+*.pyc
