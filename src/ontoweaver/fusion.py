@@ -106,7 +106,7 @@ def remap_edges(edges, ID_mapping):
         yield edge.as_tuple()
 
 
-def reconciliate_nodes(nodes, separator = None):
+def reconciliate_nodes(nodes, separator = "|"):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -161,7 +161,7 @@ def reconciliate_nodes(nodes, separator = None):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, separator = ","):
+def reconciliate_edges(edges, separator = "|"):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -218,7 +218,7 @@ def reconciliate_edges(edges, separator = ","):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, separator = ","):
+def reconciliate(nodes, edges, separator = "|"):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
