@@ -107,7 +107,7 @@ class MultiTypeLabelMaker(LabelMaker):
                         return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
                                             types["final_type"], types["reverse_relation"])
                     else:
-                        logger.info(f"          Branching key `{key}` does not match extracted value `{res}`.")
+                        logger.warning(f"Branching key `{key}` does not match extracted value `{res}`.")
                         continue
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
@@ -139,7 +139,7 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                         return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
                                             types["final_type"], types["reverse_relation"])
                     else:
-                        logger.info(f"          Branching key `{key}` does not match extracted value `{row[self.match_type_from_column]}`.")
+                        logger.warning(f"Branching key `{key}` does not match extracted value `{row[self.match_type_from_column]}`.")
                         continue
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
