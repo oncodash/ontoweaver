@@ -54,6 +54,10 @@ after importing your results via the neo4j import sequence provided in
 the ``./biocypher-out/`` directory. Use ``neo4j-admin server stop`` to
 disconnect the local server.
 
+By default, Neo4j Community Edition (CE) and Neo4j Enterprise Edition
+(EE) report a small amount of usage data. If necessary, reporting can be
+turned off with the configuration setting ``dbms.usage_report.enabled=false``.
+
 Tests
 ~~~~~
 
