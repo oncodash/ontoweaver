@@ -6,6 +6,8 @@ import yaml
 import rdflib
 import logging
 import pathlib
+import warnings
+
 import biocypher
 
 import pandas as pd
@@ -31,6 +33,7 @@ from . import owl_to_biocypher
 from . import biocypher_to_owl
 from . import make_value
 from . import make_labels
+from . import errormanager
 
 logger = logging.getLogger("ontoweaver")
 
@@ -480,41 +483,35 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
 
         validator = tabular.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
 
-        try:
-            validator(table)
-            return True
-        except errors.SchemaErrors as exc:
-            logger.error(f"Validation failed for {exc.failure_cases}.")
-            return False
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            return False
+        return validate_input_data_loaded(table, validator)
 
 
-def validate_input_data_loaded(dataframe, loaded_mapping, raise_errors = True) -> bool:
+def validate_input_data_loaded(dataframe, validator, raise_errors = True) -> bool:
     """
     Validates the data files based on provided rules in configuration.
 
     Args:
          dataframe: The loaded pandas DataFrame to validate.
-         loaded_mapping: The mapping object to use for validation.
+         validator: The mapping object to use for validation.
          raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
         bool: True if the data is valid, False otherwise.
     """
 
-    validator = tabular.YamlParser(loaded_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
+    # try:
+    #     validator(dataframe)
+    #     return True
+    # except errors.SchemaErrors as exc:
+    #     logger.error(f"Validation failed for {exc.failure_cases}.")
+    #     return False
+    # except Exception as e:
+    #     logger.error(f"An unexpected error occurred: {e}")
+    #     return False
+    validator.make_raise_warnings()
+    mgr = errormanager.ErrorManager(raise_errors)
 
-    try:
-        validator(dataframe)
-        return True
-    except errors.SchemaErrors as exc:
-        logger.error(f"Validation failed for {exc.failure_cases}.")
-        return False
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return False
+    return validator(dataframe)
 
 
 def ow2bc(ow_elements):
