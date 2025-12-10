@@ -31,7 +31,7 @@ def test_simplest():
     fnodes, fedges = ontoweaver.fusion.reconciliate(
         bc_nodes,
         bc_edges,
-        separator=","
+        reconciliate_sep=","
     )
     logging.debug(f"FNODES: {fnodes}")
     logging.debug(f"FEDGES: {fedges}")
