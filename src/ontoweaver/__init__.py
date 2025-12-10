@@ -262,6 +262,7 @@ def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, affix =
         raise_errors
     )
 
+
 def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, reconciliate_sep: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
