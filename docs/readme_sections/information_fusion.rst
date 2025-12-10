@@ -39,7 +39,7 @@ edges:
    edges = adapter_A.edges + adapter_B.edges
 
    # Reconciliate:
-   fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, separator=";")
+   fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, reconciliate_sep=";")
 
    # Then you can pass those to biocypher.write_nodes and biocypher.write_edges...
 
@@ -68,7 +68,7 @@ Then, the result of the reconciliation step above would be:
 
 .. code:: python
 
-   # Note how "x" and "z" are separated by separator=";".
+   # Note how "x" and "z" are separated by reconciliate_sep=";".
    ("id_1", "type_A", {"prop_1": "x;z", "prop_2": "y"})
 
 
@@ -224,7 +224,7 @@ For example, to fuse “congregated” nodes, one can do:
        # How to merge two components:
        use_first  = merge.string.UseFirst() # Instantiation.
        identicals = merge.string.EnsureIdentical()
-       in_lists   = merge.dictry.Append(separator)
+       in_lists   = merge.dictry.Append(reconciliate_sep)
 
        # Assemble those function objects in an object that knows
        # how to apply them member by member:
@@ -293,9 +293,9 @@ of which are now duplicates, because they were remapped):
        edges_congregater(edges)
 
        # How to fuse them:
-       set_of_ID       = merge.string.OrderedSet(separator)
+       set_of_ID       = merge.string.OrderedSet(reconciliate_sep)
        identicals      = merge.string.EnsureIdentical()
-       in_lists        = merge.dictry.Append(separator)
+       in_lists        = merge.dictry.Append(reconciliate_sep)
        use_last_source = merge.string.UseLast()
        use_last_target = merge.string.UseLast()
        edge_fuser = fuse.Members(base.GenericEdge,

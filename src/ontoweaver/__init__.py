@@ -74,7 +74,6 @@ class LoadPandasFile(Loader):
 
     Args:
         filename: The name of the data file the user wants to map.
-        separator (str, optional): The separator used in the data file. Defaults to None.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
@@ -188,7 +187,7 @@ class LoadRDFFile(Loader):
         return tabular.OWLAutoAdapter
 
 
-def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, separator = ",", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -199,9 +198,9 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
            schema_path: the assembling schema file.
            filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-           separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+           reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str, optional): The affix to use for type inclusion. Defaults to "none".
-           affix_separator: The character(s) separating the label from its type affix. Defaults to ":".
+           type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
            validate_output: Whether to validate the output of the transformers. Defaults to False.
            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
            kwargs: A dictionary of arguments to pass to pandas.read_* functions.
@@ -216,7 +215,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     # and thus operates on BioCypher's tuples.
     bc_nodes = ow2bc(nodes)
     bc_edges = ow2bc(edges)
-    import_file = reconciliate_write(bc_nodes, bc_edges, biocypher_config_path, schema_path, separator, raise_errors)
+    import_file = reconciliate_write(bc_nodes, bc_edges, biocypher_config_path, schema_path, reconciliate_sep, raise_errors)
 
     return import_file
 
@@ -230,7 +229,6 @@ def read_table_file(filename, **kwargs):
 
     Args:
         filename: The name of the data file the user wants to map.
-        separator (str, optional): The separator used in the data file. Defaults to None.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
@@ -245,9 +243,9 @@ def read_table_file(filename, **kwargs):
     return data
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, separator = ",", affix = "none", affix_separator = ":", validate_output = False, raise_errors = True, **kwargs):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     logger.warning("The `extract_reconciliate_write` function is deprecated and will be removed in the next version, use `weave` instead.")
-    return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, separator, affix, affix_separator, validate_output, raise_errors, **kwargs)
+    return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
 
 def load_extract(data, mapping, loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
@@ -313,7 +311,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         data_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str, optional): The affix to use for type inclusion. Defaults to "none".
-        affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
+        type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
         validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
@@ -413,7 +411,7 @@ def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, affix =
     )
 
     
-def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
+def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, reconciliate_sep: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -422,7 +420,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         edges (list): A list of edges to be reconciliated and written.
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
-        separator (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
 
         FIXME: The raise_errors parameter is currently not used downstream because the fusion classes are to be refactored with error management.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
@@ -437,7 +435,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logging.info("Fuse duplicated nodes and edges...")
-    fnodes, fedges = fusion.reconciliate(nodes, edges, separator = separator)
+    fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep)
     logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
     logging.info("Export the graph...")

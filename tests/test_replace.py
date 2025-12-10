@@ -20,7 +20,7 @@ def test_replace():
 
     nodes, edges = ontoweaver.extract(data_mapping, affix="prefix", type_affix_sep='___', raise_errors=False)
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
