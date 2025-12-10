@@ -780,7 +780,7 @@ handle these specific operations.
 
 
     from ontoweaver import transformer, validate
-    import types
+    from ontoweaver import types as owtypes
 
     class MyTransformer(transformer.Transformer):
         """Custom end-user transformer."""
@@ -804,11 +804,11 @@ handle these specific operations.
             # Edge classes are declared by using the `` self.declare_types.make_edge_class`` function. Again, we declare the
             # name of the edge class (``my_edge_class``) and the source and target node classes it connects. These are
             # retrieved by using the ``getattr`` function on the ``types`` module, which contains all the declared types in the ontology, as
-            # well as the node classes we just declared above (``getattr(types, "my_source_node_class")``) .
+            # well as the node classes we just declared above (``getattr(owtypes, "my_source_node_class")``) .
             # Finally, we extract the properties of the edge class from the ``branching_properties`` member variable
             # (``self.branching_properties.get("my_edge_class", {})``)
 
-            self.declare_types.make_edge_class("my_edge_class", getattr(types, "my_source_node_class"), getattr(types, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
+            self.declare_types.make_edge_class("my_edge_class", getattr(owtypes, "my_source_node_class"), getattr(owtypes, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
 
 
         def __call__(self, row, i):
@@ -835,7 +835,7 @@ handle these specific operations.
                 if entity == "my_entity_type":
                     self.final_type = # Possible to set final type if feature is needed.
                     self.properties_of = self.branching_properties.get("my_target_node_class", {})
-                    yield node_id, getattr(types, "my_edge_class"), getattr(types, "my_target_node_class"), None
+                    yield node_id, getattr(owtypes, "my_edge_class"), getattr(owtypes, "my_target_node_class"), None
 
                 else:  ...
 
