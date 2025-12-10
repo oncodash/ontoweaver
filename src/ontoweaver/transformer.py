@@ -731,3 +731,113 @@ class replace(Transformer):
 
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+
+class boolean(Transformer):
+    """A transformer that can map any set of values onto a boolean pair.
+
+    It consider a set of truth values, along with a set of falsehood values,
+    and then set the node ID to the user's true or false value.
+
+    If no configuration is given for ``consider_true`` and ``consider_false``,
+    OntoWeaver will use Python's `bool(value)`` to assert the truth of the value
+    passed from the cell.
+
+    If ``output_true`` or ``output_false`` are omitted, they will default to "True"
+    and "False".
+
+    For instance:
+
+        - boolean:
+            column: my_column
+            via_relation: my_relation
+            consider_true:
+                - Y
+                - Yes
+                - yes
+            output_true: my_truth
+            consider_false:
+                - N
+                - No
+                - no
+            output_false: my_falsehood
+
+    Is equivalent to:
+        if value in ["Y", "Yes", "yes"]:
+            yield "my_truth"
+        if value in ["N", "No", no"]:
+            yield "my_falsehood"
+    """
+
+    class ValueMaker(make_value.ValueMaker):
+
+        def __init__(self, raise_errors: bool = True, output_true = "True", output_false = "False", consider_true = None, consider_false = None):
+            if (not consider_true and consider_false) or (consider_true and not consider_false):
+                msg = f"I can only handle both `consider_true` and `consider_false` being `None` at the same time. But here, one of them is `None` and the other is not."
+                logger.error(msg)
+                raise exceptions.TransformerConfigError(msg)
+
+            elif consider_true and consider_false:
+                if type(consider_true) != list or type(consider_false) != list:
+                    msg = "I can only consider both `consider_true` and `consider_false` being lists."
+                    logger.error(msg)
+                    raise excceptions.TransformerConfigError(msg)
+
+                if len(consider_true) == 0 or len(consider_false) == 0:
+                    msg = "I need both `consider_true` and `consider_false` to contain at least one value."
+                    logger.error(msg)
+                    raise TransformerConfigError(msg)
+
+                common = set(consider_true) & set(consider_false)
+                if common:
+                   msg = f"There are values that are common to both `consider_true` and `consider_false`: {common}, this makes no sense."
+                   logger.error(msg)
+                   raise exceptions.TransformerConfigError(msg)
+
+            if output_true == output_false:
+                msg = "Both `output_true` and `output_false` are the same value, this makes no sense."
+                logger.error(msg)
+                raise excceptions.TransformerConfigError(msg)
+
+            if not output_true or not output_false:
+                msg = "I need both `output_true` and `ooutput_false` to have some value."
+                logger.error(msg)
+                raise exceptions.TransformerConfigError(msg)
+
+            self.output_true = output_true
+            self.output_false = output_false
+            self.consider_false = consider_false
+            self.consider_true = consider_true
+
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            for key in columns:
+                value = row[key]
+                if not self.consider_true and not self.consider_false:
+                    # Let Python do it.
+                    boo = bool(value)
+                else:
+                    if value in self.consider_true:
+                        boo = True
+                    elif value in self.consider_false:
+                        boo = False
+                    else:
+                        logger.error(f"Value `{value}` is not found in either `consider_true` or `consider_false`. I will bypass columns {columns} at row {i}.")
+                        continue
+
+                if boo:
+                    out = self.output_true
+                else:
+                    out = self.output_false
+
+                logger.debug(f"Made a boolean from `{value}` to `{out}`.")
+                yield out
+
+    def __init__(self,  properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, output_true = "True", output_false = "False", consider_true = None, consider_false = None, **kwargs):
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors, output_true = output_true, output_false = output_false, consider_true = consider_true, consider_false = consider_false)
+
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
+                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+
