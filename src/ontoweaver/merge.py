@@ -135,7 +135,7 @@ class dictry:
         returns a string, where all values are joined.
         """
 
-        def __init__(self, reconciliate_sep = ","):
+        def __init__(self, reconciliate_sep = "|"):
             self.reconciliate_sep = reconciliate_sep
             self.merged = {}
 
@@ -303,7 +303,7 @@ class string:
 
         returns a string, where all values are joined.
         """
-        def __init__(self, reconciliate_sep = ","):
+        def __init__(self, reconciliate_sep = "|"):
             self.reconciliate_sep = reconciliate_sep
 
         def reset(self):
