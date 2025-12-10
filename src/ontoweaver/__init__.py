@@ -187,7 +187,7 @@ class LoadRDFFile(Loader):
         return tabular.OWLAutoAdapter
 
 
-def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = ",", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -243,7 +243,7 @@ def read_table_file(filename, **kwargs):
     return data
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = ",", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     logger.warning("The `extract_reconciliate_write` function is deprecated and will be removed in the next version, use `weave` instead.")
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
