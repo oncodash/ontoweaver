@@ -31,162 +31,12 @@ from . import owl_to_biocypher
 from . import biocypher_to_owl
 from . import make_value
 from . import make_labels
+from . import loader
 
 logger = logging.getLogger("ontoweaver")
 
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate',
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'owl_to_biocypher', 'biocypher_to_owl', 'make_value', "make_labels"]
-
-class Loader(metaclass = ABSTRACT):
-    def __call__(self, data, **kwargs):
-        if self.allows(data):
-            return self.load(data, **kwargs)
-
-    @abstractmethod
-    def allows(self, data):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def load(self, data, **kwargs):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def adapter(self):
-        return NotImplementedError()
-
-
-class LoadPandasDataframe(Loader):
-    def allows(self, data):
-        return type(data) == pd.DataFrame
-
-    def load(self, df, **kwargs):
-        return df
-
-    def adapter(self):
-        return tabular.PandasAdapter
-
-class LoadPandasFile(Loader):
-    """Read a file with Pandas, using its extension to guess its format.
-
-    If no additional arguments are passed, it will call the
-    Pandas `read_*` function with `filter_na = False`, which makes empty cell
-    values to be loaded as empty strings instead of NaN values.
-
-    Args:
-        filename: The name of the data file the user wants to map.
-        separator (str, optional): The separator used in the data file. Defaults to None.
-        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
-
-    Raises:
-        exception.FeatureError: if the extension is unknown.
-
-    Returns:
-        A Pandas DataFrame.
-    """
-
-    def __init__(self):
-        self.read_funcs = {
-        '.csv'    : pd.read_csv,
-        '.tsv'    : pd.read_csv,
-        '.txt'    : pd.read_csv,
-
-        '.xls'    : pd.read_excel,
-        '.xlsx'   : pd.read_excel,
-        '.xlsm'   : pd.read_excel,
-        '.xlsb'   : pd.read_excel,
-        '.odf'    : pd.read_excel,
-        '.ods'    : pd.read_excel,
-        '.odt'    : pd.read_excel,
-
-        '.json'   : pd.read_json,
-        '.html'   : pd.read_html,
-        '.xml'    : pd.read_xml,
-        '.hdf'    : pd.read_hdf,
-        '.feather': pd.read_feather,
-        '.parquet': pd.read_parquet,
-        '.pickle' : pd.read_pickle,
-        '.orc'    : pd.read_orc,
-        '.sas'    : pd.read_sas,
-        '.spss'   : pd.read_spss,
-        '.stata'  : pd.read_stata,
-    }
-
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
-            ext = pathlib.Path(filename).suffix 
-            if ext in self.read_funcs:
-                return True
-
-        return False
-
-
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.read_funcs.keys())})"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
-
-        if not kwargs:
-            # We probably don't want NaN as a default,
-            # since they tend to end up in a label.
-            kwargs.update({'na_filter': True,
-                        'engine': 'python'}) #'c' engine does not support regex separators (separators > 1 char and different
-                                          # from '\s+' are interpreted as regex) which results in an error.
-
-        return self.read_funcs[ext](filename, **kwargs)
-
-
-    def adapter(self):
-        return tabular.PandasAdapter
-
-
-class LoadRDFGraph(Loader):
-    def allows(self, data):
-        return type(data) == rdflib.Graph
-
-    def load(self, g, **kwargs):
-        return g
-
-    def adapter(self):
-        return tabular.RDFAutoAdapter
-
-
-class LoadRDFFile(Loader):
-    def __init__(self):
-        self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
-
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
-            ext = pathlib.Path(filename).suffix
-            if ext in self.allowed:
-                return True
-
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
-        logger.warning(msg)
-        return False
-
-
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
-
-        g = rdflib.Graph()
-
-        if ext == ".owl":
-            g.parse(filename, format = "xml")
-        else:
-            g.parse(filename) # Guess the format based on extension.
-
-        return g
-
-
-    def adapter(self):
-        return tabular.OWLAutoAdapter
-
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, separator = ",", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
@@ -240,7 +90,7 @@ def read_table_file(filename, **kwargs):
         A Pandas DataFrame.
     """
 
-    lpf = LoadPandasFile()
+    lpf = load.LoadPandasFile()
     data = lpf.load(filename, **kwargs)
     return data
 
@@ -325,10 +175,10 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     nodes = []
     edges = []
 
-    lpf = LoadPandasFile()
-    lpd = LoadPandasDataframe()
-    lrf = LoadRDFFile()
-    lrg = LoadRDFGraph()
+    lpf = loader.LoadPandasFile()
+    lpd = loader.LoadPandasDataframe()
+    lrf = loader.LoadRDFFile()
+    lrg = loader.LoadRDFGraph()
 
     def pairs(iterable):
         if type(iterable) == dict:
@@ -412,7 +262,7 @@ def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, affix =
         raise_errors
     )
 
-    
+
 def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, separator: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.

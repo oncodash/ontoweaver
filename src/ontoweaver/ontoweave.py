@@ -143,8 +143,8 @@ def main():
     do.add_argument("-V", "--validate-output", action="store_true",
                     help="Validate the output data against the mapping rules.")
 
-    do.add_argument("-Ds", "--database-sep", metavar="CHARACTER",
-        help="Character used to separate values in the database.")
+    do.add_argument("-e", "--pandas-sep", metavar="CHARACTER",
+        help="Character used by the Pandas module to separate values in the input file database. [default: guessed from the extension]")
 
     do.add_argument("-D", "--debug", action="store_true",
         help=f"Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
@@ -253,6 +253,10 @@ def main():
     else:
         validate_output = False
 
+    kw = {}
+    if asked.pandas_sep:
+        kw = {"sep": asked.pandas_sep}
+
     logger.info(f"Running OntoWeaver...")
     if asked.debug:
         import_file = ontoweaver.weave(
@@ -264,7 +268,8 @@ def main():
             affix=asked.type_affix,
             type_affix_sep = asked.type_affix_sep,
             validate_output = validate_output,
-            raise_errors = not asked.pass_errors)
+            raise_errors = not asked.pass_errors,
+            **kw)
     else:
         try:
             import_file = ontoweaver.weave(
@@ -276,7 +281,8 @@ def main():
                 affix=asked.type_affix,
                 type_affix_sep = asked.type_affix_sep,
                 validate_output = validate_output,
-                raise_errors = not asked.pass_errors)
+                raise_errors = not asked.pass_errors,
+                **kw)
         # Manage exceptions wih specific error codes:
         except ontoweaver.exceptions.ConfigError as e:
             logger.error(f"ERROR in configuration: "+str(e))
