@@ -408,3 +408,89 @@ method to concatenate the values of the desired columns before yielding the resu
                 else:  ...
 
             else: ...
+
+How to Declare Properties On-the-Fly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similarly as with the composition of transformers and their declaration on-the-fly within custom transformers, property
+transformers can also be declared on-the-fly within custom transformers.
+
+For example, let's use the same custom transformer `MyTransformer` from the previous sections
+(See the ``User-defined Transformers`` and ``User-defined Transformer-Like Functions`` sections) .
+
+Let's say you have two columns in your database called ``property_key`` and ``property_value``, and you want to map these
+columns as properties to the target node type.
+
+You can declare a property transformer on-the-fly within your custom transformer, in the ``properties_of`` member variable.
+
+.. code:: python
+
+    from ontoweaver import transformer, validate
+    from ontoweaver import types as owtypes
+
+    class MyTransformer(transformer.Transformer):
+        """Custom end-user transformer."""
+
+        def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+
+            super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+                             multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+            # First declare all node and edge classes needed for your mapping. The declaration is done by using the
+            # `declare_types` member variable, which is an instance of the ``ontoweaver.base.Declare`` class. Node classes are
+            # declared by using the `` self.declare_types.make_node_class`` function. We first declare the name of the
+            # possible source and target node classes (``my_source_node_class``, ``my_target_node_class``, ``another_node_class"``).
+            # Then we extract the properties of those node classes from the `branching_properties` member variable, which is a dictionary
+            # containing all the properties defined in the mapping file for each node and edge class (``self.branching_properties.get("my_source_node_class", {})``).
+
+            self.declare_types.make_node_class("my_source_node_class", self.branching_properties.get("my_source_node_class", {}))
+            self.declare_types.make_node_class("my_target_node_class", self.branching_properties.get("my_target_node_class", {}))
+            self.declare_types.make_node_class("another_node_class", self.branching_properties.get("another_node_class", {}))
+
+            # Edge classes are declared by using the `` self.declare_types.make_edge_class`` function. Again, we declare the
+            # name of the edge class (``my_edge_class``) and the source and target node classes it connects. These are
+            # retrieved by using the ``getattr`` function on the ``types`` module, which contains all the declared types in the ontology, as
+            # well as the node classes we just declared above (``getattr(owtypes, "my_source_node_class")``) .
+            # Finally, we extract the properties of the edge class from the ``branching_properties`` member variable
+            # (``self.branching_properties.get("my_edge_class", {})``)
+
+            self.declare_types.make_edge_class("my_edge_class", getattr(owtypes, "my_source_node_class"), getattr(owtypes, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
+
+
+        def __call__(self, row, i):
+
+            # Initialize final type and properties_of member variables to ``None`` for each row processed. This is beacuase
+            # the final type and properties may change depending on the values extracted from the current row.
+
+            self.final_type = None
+            self.properties_of = None
+
+            # Extract branching information from the current row, as well as node ID. We branch based on the values of the
+            # ``type`` and ``entity_type_target`` columns.
+
+            node_id = row["target"]
+            relationship_type = row["type"]
+            entity = row["entity_type_target"]
+
+            # Here we extract the value of the property key column.
+            property_key = row["property_key"]
+
+            # Create branching logic and return correct elements. Elements are returned by using the ``yield`` statement,
+            # which yields a tuple containing the node ID, edge type, target node type, and reverse edge type (if any).
+            # At each step we can additionally set the ``final_type`` (See ``How to`` section for more details on ``final_type``) and
+            # ``properties_of`` member variables, which will be used to extract properties for the current node.
+
+            if relationship_type == "my_relationship_type":
+                if entity == "my_entity_type":
+                    self.final_type = # Possible to set final type if feature is needed.
+                    # We then declare a property transformer on-the-fly within the ``properties_of`` member variable.
+                    # setting ``property_key`` as the property name, and the  ``property_value`` column as the property value
+                    # to be extracted.
+                    self.properties_of = {transformer.map(columns="property_value", properties_of=None, label_maker=make_labels.SimpleLabelMaker()): property_key}
+                    yield node_id, getattr(owtypes, "my_edge_class"), getattr(owtypes, "my_target_node_class"), None
+
+                else:  ...
+
+            else: ...
+
+In case of using this feature, remember to include all the dynamically created properties in the schema configuration file of BioCypher.
