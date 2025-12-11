@@ -305,3 +305,106 @@ may consult the ``Keyword Synonyms`` section for more synonyms.
            to_object: patient
            via_relation: disease_affects_patient
            reverse_relation: patient_has_disease
+
+How to Compose Multiple Transformers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Custom transformers (See the ``User-defined Transformers`` and ``User-defined Transformer-Like Functions`` sections) can
+be configured to compose multiple transformers together. This is useful when you want to apply a series of transformations
+to your data.
+
+For example, let's look again at the example provided in the ``User-defined Transformer-Like Functions`` section.
+
+Below we declare a custom transformer `MyTransformer`, which branches based on the values of the `type` and `entity_type_target` columns.
+
+What if, instead of simply returning the extracted ``node_id``, ``edge_type``, ``target_node_type``, and ``reverse_relation``, we wanted to apply
+a concatenation transformer (See ``cat``) to the ``node_id`` before yielding it?
+
+In this case we can instantiate a concatenation transformer inside our custom transformer, and apply it to the ``node_id`` with the
+desired columns which values are to be concatenated, and later yield the results of this concatenation.
+
+The example below follows the exact logic of the ``MyTransformer`` class we created in the ``User-defined Transformer-Like Functions`` section,
+but instantiates a concatenation transformer in the ``__init__`` method. This ``cat`` transformer is then called in the ``__call__``
+method to concatenate the values of the desired columns before yielding the results.
+
+.. code:: python
+
+
+    from ontoweaver import transformer, validate
+    from ontoweaver import types as owtypes
+
+    class MyTransformer(transformer.Transformer):
+        """Custom end-user transformer."""
+
+        def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+
+            super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, output_validator,
+                             multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+            # First declare all node and edge classes needed for your mapping. The declaration is done by using the
+            # `declare_types` member variable, which is an instance of the ``ontoweaver.base.Declare`` class. Node classes are
+            # declared by using the `` self.declare_types.make_node_class`` function. We first declare the name of the
+            # possible source and target node classes (``my_source_node_class``, ``my_target_node_class``, ``another_node_class"``).
+            # Then we extract the properties of those node classes from the `branching_properties` member variable, which is a dictionary
+            # containing all the properties defined in the mapping file for each node and edge class (``self.branching_properties.get("my_source_node_class", {})``).
+
+            self.declare_types.make_node_class("my_source_node_class", self.branching_properties.get("my_source_node_class", {}))
+            self.declare_types.make_node_class("my_target_node_class", self.branching_properties.get("my_target_node_class", {}))
+            self.declare_types.make_node_class("another_node_class", self.branching_properties.get("another_node_class", {}))
+
+            # Edge classes are declared by using the `` self.declare_types.make_edge_class`` function. Again, we declare the
+            # name of the edge class (``my_edge_class``) and the source and target node classes it connects. These are
+            # retrieved by using the ``getattr`` function on the ``types`` module, which contains all the declared types in the ontology, as
+            # well as the node classes we just declared above (``getattr(owtypes, "my_source_node_class")``) .
+            # Finally, we extract the properties of the edge class from the ``branching_properties`` member variable
+            # (``self.branching_properties.get("my_edge_class", {})``)
+
+            self.declare_types.make_edge_class("my_edge_class", getattr(owtypes, "my_source_node_class"), getattr(owtypes, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
+
+            # We instantiate a cat transformer to concatenate the columns ``column1`` and ``column2``. We pass the properties of the
+            # target node class ``my_target_node_class``. We also define a multi_type_dict to indicate the possible types of the target node class.
+            # We instantiate a ``multi_type_dict`` which holds the information about possible branching needed for the
+            # types created by the transformer. Since the branching logic is already handled by our custom made transformer, we only need to
+            # define a single entry in the ``multi_type_dict``. In this case we define a single entry for the key ``None``
+            # (indicating no branching is needed), along with the corresponding ``to_object``, ``via_relation``, ``final_type``, and ``reverse_relation``
+            # values. Finally, we use a ``SimpleLabelMaker`` to create labels for the concatenated nodes.
+
+            self.cat = transformer.cat(columns=["target", "entity_type_target"],
+                                        properties_of=self.branching_properties.get("my_target_node_class", {}),
+                                        multi_type_dict={"None" : {"to_object": getattr(owtypes, "my_target_node_class"),
+                                                                   "via_relation" : getattr(owtypes, "my_edge_class"),
+                                                                   "final_type": None,
+                                                                   "reverse_relation": None}},
+                                        label_maker=make_labels.SimpleLabelMaker())
+
+
+        def __call__(self, row, i):
+
+            # Initialize final type and properties_of member variables to ``None`` for each row processed. This is beacuase
+            # the final type and properties may change depending on the values extracted from the current row.
+
+            self.final_type = None
+            self.properties_of = None
+
+            # Extract branching information from the current row, as well as node ID. We branch based on the values of the
+            # ``type`` and ``entity_type_target`` columns.
+
+            node_id = row["target"]
+            relationship_type = row["type"]
+            entity = row["entity_type_target"]
+
+            # Create branching logic and return correct elements. Elements are returned by using the ``yield`` statement,
+            # which yields a tuple containing the node ID, edge type, target node type, and reverse edge type (if any).
+            # At each step we can additionally set the ``final_type`` (See ``How to`` section for more details on ``final_type``) and
+            # ``properties_of`` member variables, which will be used to extract properties for the current node.
+
+            if relationship_type == "my_relationship_type":
+                if entity == "my_entity_type":
+                    self.properties_of = self.branching_properties.get("my_target_node_class", {})
+                    # We call the ``cat`` transformer to concatenate the desired columns before yielding the results.
+                    for node_id, edge_type, target_type, reverse_relation in self.cat(row, i):
+                        yield node_id, edge_type, target_type, reverse_relation
+
+                else:  ...
+
+            else: ...
