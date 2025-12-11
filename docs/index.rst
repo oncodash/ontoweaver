@@ -14,6 +14,7 @@ Overview
    Usage <./readme_sections/usage.rst>
    Mapping API <./readme_sections/mapping_api.rst>
    Iterable input data <./readme_sections/iterable_data.rst>
+   User-Made Transformers <./readme_sections/user_made_transformers.rst>
    How to <./readme_sections/how_to.rst>
    Parallel Processing <./readme_sections/parallel_processing.rst>
    Information Fusion <./readme_sections/information_fusion.rst>
