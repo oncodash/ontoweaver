@@ -409,6 +409,7 @@ method to concatenate the values of the desired columns before yielding the resu
 
             else: ...
 
+
 How to Declare Properties On-the-Fly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -494,3 +495,4 @@ You can declare a property transformer on-the-fly within your custom transformer
             else: ...
 
 In case of using this feature, remember to include all the dynamically created properties in the schema configuration file of BioCypher.
+
