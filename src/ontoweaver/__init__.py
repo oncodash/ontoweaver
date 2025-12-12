@@ -148,7 +148,7 @@ class LoadRDFGraph(Loader):
         return g
 
     def adapter(self):
-        return tabular.RDFAutoAdapter
+        return tabular.OWLAdapter
 
 
 class LoadRDFFile(Loader):
@@ -184,7 +184,7 @@ class LoadRDFFile(Loader):
 
 
     def adapter(self):
-        return tabular.OWLAutoAdapter
+        return tabular.OWLAdapter
 
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
@@ -410,7 +410,6 @@ def extract_OWL(graph: rdflib.Graph, config: dict, parallel_mapping = 0, affix =
         raise_errors
     )
 
-    
 def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, reconciliate_sep: str = None, raise_errors = True) -> str:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.

@@ -391,7 +391,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             assert len(self.nodes) > 0
 
         elif self.parallel_mapping == 0:
-            logger.debug(f"Processing dataframe sequentially...")
+            logger.debug(f"Processing data sequentially...")
             for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 self.nodes_append(local_nodes)
@@ -536,7 +536,60 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         raise NotImplementedError
 
 
-class OWLAutoAdapter(base.Adapter):
+class BaseOWLAdapter:
+
+    def iri(self, subj):
+        if "#" in str(subj):
+            obj = str(subj).split('#')[-1]
+            logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
+            return obj
+
+        elif "/" in str(subj):
+            obj = str(subj).split('/')[-1] # FIXME strong assumption
+            logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
+            return obj
+
+        else:
+            return subj
+
+
+    def label_of(self, subj):
+        # First, get the label, if any; else use the IRI end tag.
+        triples = list(self.graph.triples((subj, RDFS.label, None)))
+        # logger.debug(f"\tLabel triples: {triples}")
+        if len(triples) == 0:
+            obj = self.iri(subj)
+        else:
+            assert(len(triples[0]) == 3)
+            obj = str(triples[0][2])
+            logger.debug(f"\t\tUse label: {obj}")
+        # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
+        return obj[0].lower() + obj[1:]
+        # return obj
+
+
+    def node_class(self, subj):
+        node_class = None
+        for s,p,o in self.graph.triples((subj, RDF.type, None)):
+            # logger.debug(f"({self.iri(s)})-[{self.iri(p)}]->({self.iri(o)})")
+            # logger.debug(f"Individual type: {node_class}")
+
+            if o == OWL.NamedIndividual:
+                continue
+
+            if node_class:
+                raise RuntimeError(
+                    f"Instantiating from multiple classes is not supported, "
+                    f"fix individual `{subj}`, it should not instantiate both "
+                    f"`{node_class}` and `{o}`")
+
+            if rdflib.URIRef(o) != OWL.NamedIndividual:
+                node_class = o
+
+        return node_class
+
+
+class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
     def __init__(self,
                  graph: rdflib.Graph,
                  raise_errors = True,
@@ -554,63 +607,25 @@ class OWLAutoAdapter(base.Adapter):
 
 
     def run(self):
-        def iri(subj):
-            if "#" in str(subj):
-                obj = str(subj).split('#')[-1] 
-                logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
-                return obj
-                
-            elif "/" in str(subj):
-                obj = str(subj).split('/')[-1] # FIXME strong assumption
-                logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
-                return obj
-
-            else:
-                return subj
-
-        def label_of(subj):
-            # First, get the label, if any; else use the IRI end tag.
-            triples = list(self.graph.triples((subj, RDFS.label, None)))
-            # logger.debug(f"\tLabel triples: {triples}")
-            if len(triples) == 0:
-                obj = iri(subj)
-            else:
-                assert(len(triples[0]) == 3)
-                obj = str(triples[0][2])
-                logger.debug(f"\t\tUse label: {obj}")
-            # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
-            return obj[0].lower() + obj[1:]
-            # return obj
-
         # Iterate over individuals.
         for i,indi_triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
             local_nodes = []
             local_edges = []
-            
+
             subj = indi_triple[0]
-            logger.debug(f"{i}:({iri(subj)})")
-            subj_label = label_of(subj)
+            logger.debug(f"{i}:({self.iri(subj)})")
+            subj_label = self.label_of(subj)
 
-            node_type = None
-            for s,p,o in self.graph.triples((subj, RDF.type, None)):
-                logger.debug(f"({iri(s)})-[{iri(p)}]->({iri(o)})")
-                logger.debug(f"Individual type: {node_type}")
-                if node_type:
-                    raise RuntimeError(f"Instantiating from multiple classes is not supported,"
-                                       f" fix individual `{subj}`, it should not instantiate both `{node_type}` and `{o}`")
-
-                if rdflib.URIRef(o) != OWL.NamedIndividual:
-                    node_type = o
-
-            logger.debug(f"Individual type: {node_type}")
-            if not node_type:
+            node_class = self.node_class(subj)
+            logger.debug(f"Individual class: {node_class}")
+            if not node_class:
                 logger.warning(f"Individual `{subj}` has no owl:Class, I'll ignore it.")
                 continue
 
             properties = {}
             # Gather everything about the subject individual.
             for _,rel,obj in self.graph.triples((subj, None, None)):
-                logger.debug(f"\t-[{iri(rel)}]->({iri(obj)})")
+                logger.debug(f"\t-[{self.iri(rel)}]->({self.iri(obj)})")
 
                 if obj == OWL.NamedIndividual:
                     logger.debug("\t\t= pass")
@@ -618,72 +633,92 @@ class OWLAutoAdapter(base.Adapter):
 
                 elif rel == RDF.type:
                     #e = base.GenericEdge(None, str(subj), str(obj), {}, str(rel))
-                    e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
+                    e = base.GenericEdge(None, self.iri(subj), self.iri(obj), {}, self.label_of(rel))
                     logger.debug(f"\t\t= {e}")
                     local_edges.append(e)
 
                 elif type(obj) == rdflib.URIRef:
-                    e = base.GenericEdge(None, iri(subj), iri(obj), {}, label_of(rel))
+                    e = base.GenericEdge(None, self.iri(subj), self.iri(obj), {}, self.label_of(rel))
                     logger.debug(f"\t\t= {e}")
                     local_edges.append(e)
 
                 else:
-                    logger.debug(f"\t\t= prop[{iri(rel)}] = {iri(obj)}")
+                    logger.debug(f"\t\t= prop[{self.iri(rel)}] = {self.iri(obj)}")
                     properties[str(rel)] = str(obj)
 
-            assert(node_type)
-            n = base.Node(iri(subj), properties, label_of(node_type))
+            assert(node_class)
+            n = base.Node(self.iri(subj), properties, self.label_of(node_class))
             logger.debug(f"\tnode: {n}")
             local_nodes.append(n)
 
             self.edges_append(local_edges)
             self.nodes_append(local_nodes)
-            
+
             yield local_nodes, local_edges
 
 
-# TODO
-#class OWLAdapter(IterativeAdapter):
-#    def __init__(self,
-#                 graph: rdflib.Graph,
-#                 subject_transformer: transformer.Transformer,
-#                 transformers: Iterable[transformer.Transformer],
-#                 metadata: Optional[dict] = None,
-#                 validator: Optional[validate.InputValidator] = None,
-#                 type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
-#                 type_affix_sep: Optional[str] = ":",
-#                 parallel_mapping: int = 0,
-#                 raise_errors = True,
-#                 ):
-#
-#        super().__init__(
-#            subject_transformer,
-#            transformers,
-#            metadata,
-#            validator,
-#            type_affix,
-#            type_affix_sep,
-#            parallel_mapping,
-#            raise_errors
-#        )
-#        self.graph = graph
-#
-#
-#    def iterate(self):
-#        # Iterate over individuals.
-#        for i,indi_triple in self.enumerate(self.graph.triples((None,RDF.Type,OWL.NamedIndividual))):
-#            subject_iri = indi_triple[0]
-#            subject = {}
-#            # Gather everything about the subject individual.
-#            for triple in self.graph.triples((subject_iri, None, None)):
-#                _,rel,obj = triple
-#                # Assemble all data for this individual in a dictionary.
-#                if rel in subject:
-#                    raise RuntimeError(f"Relation [{rel}]->({obj}) already declared for individual ({subject_iri})")
-#                subject[rel] = obj
-#
-#            # Yield each individual's dictionary.
-#            yield i,subject
+class OWLAdapter(BaseOWLAdapter, IterativeAdapter):
+
+    def __init__(self,
+            graph: rdflib.Graph,
+            subject_transformer: transformer.Transformer,
+            transformers: Iterable[transformer.Transformer],
+            metadata: Optional[dict] = None,
+            validator: Optional[validate.InputValidator] = None,
+            type_affix: Optional[TypeAffixes] = TypeAffixes.suffix,
+            type_affix_sep: Optional[str] = ":",
+            parallel_mapping: int = 0,
+            raise_errors = True
+        ):
+
+        super().__init__(
+           subject_transformer,
+           transformers,
+           metadata,
+           validator,
+           type_affix,
+           type_affix_sep,
+           parallel_mapping,
+           raise_errors
+        )
+        self.graph = graph
+        logger.debug(f"OWLAdapter on {len(self.graph)} input RDF triples.")
+
+
+    def iterate(self):
+        for i,triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
+            subj,t,ni = triple
+            logger.debug(f"({self.iri(subj)})-[{self.iri(t)}]->({self.iri(ni)})")
+            node_class = self.node_class(subj)
+            logger.debug(f"\tIndividual class: ({node_class})-")
+            if not node_class:
+                logger.warning(f"Individual `{subj}` has no owl:Class, I'll ignore it.")
+                continue
+
+            row = {}
+            # Gather everything about the subject individual.
+            for _,rel,obj in self.graph.triples((subj, None, None)):
+                logger.debug(f"\t-[{self.iri(rel)}]->({self.iri(obj)})")
+
+                if obj == OWL.NamedIndividual:
+                    logger.debug("\t\t= pass")
+                    continue
+
+                else:
+                    t = self.label_of(rel)
+                    o = self.label_of(obj)
+                    logger.debug(f"\t\t=> {t} : {o}")
+                    if t in row:
+                        self.error(f"Multiple definitions for ({subj})--[{t}]->({o}), I don't know how to handle this.", section = "OWLAdapter", exception = exceptions.InputDataError)
+                    else:
+                        row[t] = o
+
+            logger.debug(f"\t= {i}th individual:")
+            for  k,v in row.items():
+                logger.debug(f"\t\t{k}: {v}")
+
+            yield i,row
+
 
 
 class PandasAdapter(IterativeAdapter):
@@ -1068,7 +1103,7 @@ class YamlParser(base.Declare):
         Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
         """
         logger.debug(f"Parse properties...")
-            
+
         for n_transformer, transformer_types in enumerate(transformers_list):
             if not hasattr(transformer_types, "items"):
                 transformer_types = {transformer_types: []}
@@ -1110,10 +1145,12 @@ class YamlParser(base.Declare):
                     p_output_validation_rules = self.get(self.k_validate_output, pconfig=field_dict)
                     p_output_validator = self._make_output_validator(p_output_validation_rules)
 
-                    prop_transformer = self.make_transformer_class(transformer_type, columns=column_names,
-                                                                   output_validator=p_output_validator,
-                                                                   label_maker=make_labels.SimpleLabelMaker(
-                                                                       raise_errors=self.raise_errors), **gen_data)
+                    prop_transformer = self.make_transformer_class(
+                        transformer_type, columns=column_names,
+                        output_validator=p_output_validator,
+                        label_maker=make_labels.SimpleLabelMaker(
+                            raise_errors=self.raise_errors),
+                        **gen_data)
 
                     for object_type in object_types:
                         properties_of.setdefault(object_type, {})
@@ -1150,8 +1187,10 @@ class YamlParser(base.Declare):
             subject_columns = [subject_columns]
 
         # Parse the validation rules for the output of the subject transformer.
-        subject_output_validation_rules = self.get(self.k_validate_output,
-                                                   subject_transformer_dict[subject_transformer_class])
+        subject_output_validation_rules = self.get(
+            self.k_validate_output,
+            subject_transformer_dict[subject_transformer_class])
+
         subject_output_validator = self._make_output_validator(subject_output_validation_rules)
 
         subject_multi_type_dict = {}
@@ -1162,8 +1201,9 @@ class YamlParser(base.Declare):
         possible_subject_types = set()
         subject_branching = False
 
-        s_final_type_class = self._extract_final_type_class(subject_final_type, possible_subject_types, metadata,
-                                                            metadata_list, subject_columns, properties_of)
+        s_final_type_class = self._extract_final_type_class(
+            subject_final_type, possible_subject_types, metadata,
+            metadata_list, subject_columns, properties_of)
 
         if subject_transformer_params:
 
@@ -1213,7 +1253,7 @@ class YamlParser(base.Declare):
                                                                                            {}) if not subject_branching else None,
                                                               columns=subject_columns,
                                                               output_validator=subject_output_validator,
-                                                              label_maker=s_label_maker, raise_errors=self.raise_errors,
+                                                              label_maker=s_label_maker,
                                                               **subject_kwargs)
 
             logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
@@ -1378,7 +1418,7 @@ class YamlParser(base.Declare):
         for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
             if not hasattr(target_transformer_yaml_dict, "items"):
                 target_transformer_yaml_dict = {target_transformer_yaml_dict: []}
-                
+
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
@@ -1440,8 +1480,7 @@ class YamlParser(base.Declare):
                                                                                               {}) if not target_branching else None,
                                                                  columns=columns,
                                                                  output_validator=output_validator,
-                                                                 label_maker=label_maker,
-                                                                 raise_errors=self.raise_errors, **gen_data)
+                                                                 label_maker=label_maker, **gen_data)
                 transformers.append(target_transformer)
                 # Declare the metadata for the target and edge types.
 
@@ -1471,7 +1510,7 @@ class YamlParser(base.Declare):
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         self.k_row = ["row", "entry", "line", "subject", "source"]
         self.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column"]
-        self.k_columns = ["columns", "fields", "column", "field", "match_column", "id_from_column"]
+        self.k_columns = ["columns", "fields", "column", "field", "match_column", "id_from_column", "label"]
         self.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
         self.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
         self.k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -1492,7 +1531,7 @@ class YamlParser(base.Declare):
             self.error(f"I cannot find the `transformers' section or it is empty,"
             f"check syntax for a typo (forgotten `s'?) or declare at leaset one transformer.`",
             exception = exceptions.ParsingDeclarationsError)
-        
+
         metadata_list = self.get(self.k_metadata)
 
         # Parse subject type, metadata for subject, and properties for both subject and target types (parse_subject calls parse_properties).
