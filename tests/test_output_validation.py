@@ -1,5 +1,6 @@
 def test_output_validation():
     from . import testing_functions
+    from . import testing_functions
     import logging
     import ontoweaver
 

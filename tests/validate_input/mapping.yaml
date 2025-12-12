@@ -40,7 +40,10 @@ validate:
             - A
             - B
             - C
-
+    gene:
+      dtype: str
+      checks:
+        str_matches: ^[A-Z]{4}[0-9]$
 
 
 

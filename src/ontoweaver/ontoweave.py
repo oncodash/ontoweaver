@@ -220,12 +220,44 @@ def main():
     # Validate the input data if asked.
     if asked.validate_only:
         logger.info(f"Validating input data frame...")
-        if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep):
-            logger.info(f"  Input data is valid according to provided rules.")
-            sys.exit(0)
+        if asked.debug:
+            if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep, raise_errors = not asked.pass_errors):
+                logger.info(f"Input data is valid according to provided rules.")
+                sys.exit(0)
+            else:
+                logger.error(f"Input data is INVALID according to provided rules.")
+                sys.exit(error_codes["DataValidationError"])
         else:
-            logger.error(f"  Input data is invalid according to provided rules.")
-            sys.exit(error_codes["DataValidationError"])
+            try:
+                if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep, raise_errors = not asked.pass_errors):
+                    logger.info(f"Input data is valid according to provided rules.")
+                    sys.exit(0)
+                else:
+                    logger.error(f"Input data is INVALID according to provided rules.")
+                    sys.exit(error_codes["DataValidationError"])
+            # Manage exceptions wih specific error codes:
+            except ontoweaver.exceptions.ConfigError as e:
+                logger.error(f"ERROR in configuration: "+str(e))
+                sys.exit(error_codes["ConfigError"])
+            except ontoweaver.exceptions.RunError as e:
+                logger.error(f"ERROR in content: "+str(e))
+                sys.exit(error_codes["RunError"])
+            except ontoweaver.exceptions.ParsingError as e:
+                logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+                sys.exit(error_codes["ParsingError"])
+            except ontoweaver.exceptions.DataValidationError as e:
+                logger.error(f"ERROR during data validation: "+str(e))
+                sys.exit(error_codes["DataValidationError"])
+            except ontoweaver.exceptions.OntoWeaverError as e:
+                logger.error(f"ERROR: "+str(e))
+                sys.exit(error_codes["OntoWeaverError"])
+            except networkx.exception.NetworkXError as e:
+                logger.error(f"ERROR: "+str(e))
+                logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
+                sys.exit(error_codes["NetworkXError"])
+            except Exception as e:
+                logger.error(f"UNKNOWN ERROR: "+str(e))
+                sys.exit(error_codes["Exception"])
 
     # Register all transformers existing in the given modules.
     for mpath in asked.register:

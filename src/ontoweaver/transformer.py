@@ -5,6 +5,7 @@ import logging
 from abc import abstractmethod
 
 import pandas as pd
+import pandera.pandas as pa
 
 
 from . import errormanager
@@ -216,6 +217,7 @@ class Transformer(errormanager.ErrorManager):
         except pa.errors.SchemaErrors as error:
             msg = f"Transformer {self.__repr__()} did not produce valid data {error}."
             self.error(msg, exception = exceptions.DataValidationError)
+
 
     def create(self, returned_value, row):
         """

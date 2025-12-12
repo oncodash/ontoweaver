@@ -1,5 +1,6 @@
-import logging
 import math
+import logging
+import warnings
 
 import pandas as pd
 import pandera.pandas as pa
@@ -24,14 +25,19 @@ class Validator(errormanager.ErrorManager):
 
         self.validation_rules: pa.DataFrameSchema = validation_rules
 
+        if self.validation_rules:
+            self.make_raise_warnings(self.validation_rules.columns)
+
         # Repeated validation error messages.
         self.messages = {}
+
 
     def error(self, msg, section = None):
         super().error(msg, section = section, exception = exceptions.DataValidationError)
         err = self.messages.get(msg, {"count": 0, "section": section})
         err["count"] += 1
         self.messages[msg] = err
+
 
     def __call__(self, df, section = None):
         """
@@ -47,16 +53,36 @@ class Validator(errormanager.ErrorManager):
             # May raise a pa.errors.SchemaError which will be catched in caller.
             # Generally base.Transformer.label_maker(...), so that
             # we know which transformer deals the issue.
-            try:
+            # try:
+            #     self.validation_rules.validate(df)
+            #     return True
+            # except pa.errors.SchemaError as e:
+            #     self.error(str(e), section = section)
+            #     return False
+            with warnings.catch_warnings(record = True) as caught:
+                warnings.simplefilter("always")
                 self.validation_rules.validate(df)
-                return True
-            except pa.errors.SchemaError as e:
-                self.error(str(e), section = section)
-                return False
+                for warn in caught:
+                    self.error(str(warn.message), section = section)
 
+                if caught:
+                    return False
+                else:
+                    return True
         else:
             logger.warning("No schema provided for data validation.")
             return True
+
+
+    def make_raise_warnings(self, rules = None):
+        if not rules:
+            rules = self.validation_rules.columns
+
+        # Add the raise_warning predicate for all rules.
+        for k in rules:
+            for i,c in enumerate(rules[k].checks):
+                rules[k].checks[i].raise_warning = True
+
 
 class InputValidator(Validator):
     """Class used for input data validation against a schema. The class uses the Pandera package to validate the data frame."""
@@ -100,7 +126,8 @@ default_validation_rules: pa.DataFrameSchema = pa.DataFrameSchema({
                                                 and str(x).lower() != "nan"
                                                 and x != "")
                         ),
-                        error="Invalid value detected"
+                        error="Invalid value detected",
+                        raise_warning = True,
                     )
                 ],
 
@@ -149,9 +176,13 @@ class OutputValidator(Validator):
         if not isinstance(new_rules, pa.DataFrameSchema):
             self.error("new_rules must be a Pandera DataFrameSchema instance.", section = self.__class__.__name__)
 
+
         # Merge the existing rules with the new ones
         merged_rules = self.validation_rules.columns.copy() if self.validation_rules else {}
+
         merged_rules.update(new_rules.columns)
+
+        self.make_raise_warnings(merged_rules)
 
         # Update the validation rules
         self.validation_rules = pa.DataFrameSchema(merged_rules)
