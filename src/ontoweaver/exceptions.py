@@ -54,3 +54,6 @@ class TransformerConfigError(TransformerError):
 class TransformerInputError(TransformerError):
     pass
 
+
+class InputDataError(RunError):
+    pass
