@@ -15,7 +15,7 @@ class user_transformer(ontoweaver.transformer.Transformer):
 
 def test_ontoweave():
     logging.debug(f"From: {os.getcwd()}")
-    cmd="poetry run ontoweave --biocypher-config ./tests/simplest/biocypher_config.yaml --biocypher-schema ./tests/simplest/schema_config.yaml --type-affix suffix --type-affix-sep : --prop-sep ';' --log-level DEBUG ./tests/simplest/data.csv:./tests/simplest/mapping.yaml"
+    cmd="uv run ontoweave --biocypher-config ./tests/simplest/biocypher_config.yaml --biocypher-schema ./tests/simplest/schema_config.yaml --type-affix suffix --type-affix-sep : --prop-sep ';' --log-level DEBUG ./tests/simplest/data.csv:./tests/simplest/mapping.yaml"
 
     logging.debug(f"Run: {cmd}")
     subprocess.run(cmd.split(), capture_output=True, check=True)
@@ -23,7 +23,7 @@ def test_ontoweave():
 
 def test_ontoweave_register():
     logging.debug(f"From: {os.getcwd()}")
-    cmd="poetry run ontoweave --biocypher-config ./tests/simplest/biocypher_config.yaml --biocypher-schema ./tests/simplest/schema_config.yaml --type-affix suffix --type-affix-sep : --prop-sep ';' --log-level DEBUG ./tests/simplest/data.csv:./tests/simplest/mapping.yaml --register ./tests/test_ontoweave.py"
+    cmd="uv run ontoweave --biocypher-config ./tests/simplest/biocypher_config.yaml --biocypher-schema ./tests/simplest/schema_config.yaml --type-affix suffix --type-affix-sep : --prop-sep ';' --log-level DEBUG ./tests/simplest/data.csv:./tests/simplest/mapping.yaml --register ./tests/test_ontoweave.py"
 
     logging.debug(f"Run: {cmd}")
     subprocess.run(cmd.split(), capture_output=True, check=True)
