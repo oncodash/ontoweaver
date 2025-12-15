@@ -517,9 +517,9 @@ to the transformer as a regular expression. For example:
                - treatment
            to_object: drug
            via_relation: alteration_biomarker_for_drug
-           forbidden: '[^0-9]' # Pattern matching all characters that are not numeric. 
-           # Therefore, you only allow numeric characters. 
-           substitute: "_" # Substitute all removed characters with an underscore, in case they are  
+           forbidden: '[^0-9]' # Pattern matching all characters that are not numeric.
+           # Therefore, you only allow numeric characters.
+           substitute: "_" # Substitute all removed characters with an underscore, in case they are
            # located inbetween allowed_characters.
 
 Here we define that the transformer should only allow numeric characters
@@ -572,6 +572,53 @@ The result of this mapping would be a node of type ``phone_number``,
 with the id of the node being ``01234567``, connected to a node of type
 ``id`` with the id ``Jennifer``, via an edge of type
 ``phone_number_of_person``.
+
+
+boolean
+^^^^^^^
+
+The *boolean* transformer can map any set of values onto a boolean pair.
+
+It considers a set of truth values, along with a set of falsehood values,
+and then set the node ID to the user's true or false value.
+
+If no configuration is given for ``consider_true`` and ``consider_false``,
+OntoWeaver will use Python's `bool(value)`` to assert the truth of the value
+passed from the cell.
+
+If ``output_true`` or ``output_false`` are omitted, they will default to "True"
+and "False".
+
+For instance:
+
+.. code:: yaml
+
+    - boolean:
+        column: my_column
+        via_relation: my_relation
+        consider_true:
+            - Y
+            - Yes
+            - yes
+        output_true: my_truth
+        consider_false:
+            - N
+            - No
+            - no
+        output_false: my_falsehood
+
+Is equivalent to:
+
+.. code:: python
+
+    if value in ["Y", "Yes", "yes"]:
+        yield "my_truth"
+    elif value in ["N", "No", no"]:
+        yield "my_falsehood"
+    else:
+        raise exceptions.TransformerConfigError("Unknown value")
+
+
 
 Multi-type Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~
