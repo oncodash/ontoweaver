@@ -4,32 +4,30 @@ Installation and quick setup guide
 Python Module
 ~~~~~~~~~~~~~
 
-The project is written in Python and uses
-`Poetry <https://python-poetry.org>`__. You can install the necessary
-dependencies in a virtual environment like this:
+The project is written in Python and has been tested with the
+`UV <https://docs.astral.sh/uv/>`__ environment manager.
+You can install the necessary dependencies in a virtual environment like this:
 
 ::
 
    git clone https://github.com/oncodash/ontoweaver.git
    cd ontoweaver
-   poetry install
+   uv build
 
-Poetry will create a virtual environment according to your configuration
-(either centrally or in the project folder). You can activate it by
-running ``poetry shell`` inside the project directory.
+UV will create a virtual environment according to your configuration
+(either centrally or in the project folder).
+You can then run any script or command using ``uv run``.
+For isntance, to run the ontoweave command: ``uv run ontoweave``.
 
-If you are using Poetry version ``2.0.0`` or later, you can use ``poetry env activate`` instead of
-``poetry shell``. This command will output a line which you should copy and run to activate the environment.
-Alternatively, you may use the `poetry-plugin-shell <https://github.com/python-poetry/poetry-plugin-shell>`_
-plugin to enable the ``poetry shell`` command to work with Poetry ``2.0.0`` or later.
 
 Output Database
 ~~~~~~~~~~~~~~~
 
-Theoretically, the graph can be imported in any [graph] database
+OntoWeaver can export the created knowledge graph in any format
 supported by BioCypher (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite,
 NetworkX, … see `BioCypher’s
 documentation <https://biocypher.org/output/index.html>`__).
+
 
 Graph visualization with Neo4j
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,6 +56,7 @@ By default, Neo4j Community Edition (CE) and Neo4j Enterprise Edition
 (EE) report a small amount of usage data. If necessary, reporting can be
 turned off with the configuration setting ``dbms.usage_report.enabled=false``.
 
+
 Tests
 ~~~~~
 
@@ -70,11 +69,5 @@ To run tests, use ``pytest``:
 
 ::
 
-   poetry run pytest
+   uv run pytest
 
-or, alternatively:
-
-::
-
-   poetry shell
-   pytest
