@@ -1,4 +1,6 @@
-"variant_id","patient"
-0,A
-1,E
-2,C
+"variant_id","patient","gene"
+0,A,BRCA1
+1,E,BRCA2
+2,C,FIXMEFIXME
+3,D,BRCA3
+4,B,IDONTKNOW

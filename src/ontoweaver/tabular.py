@@ -559,7 +559,7 @@ class OWLAutoAdapter(base.Adapter):
                 obj = str(subj).split('#')[-1] 
                 logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
                 return obj
-                
+
             elif "/" in str(subj):
                 obj = str(subj).split('/')[-1] # FIXME strong assumption
                 logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
@@ -586,7 +586,7 @@ class OWLAutoAdapter(base.Adapter):
         for i,indi_triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
             local_nodes = []
             local_edges = []
-            
+
             subj = indi_triple[0]
             logger.debug(f"{i}:({iri(subj)})")
             subj_label = label_of(subj)
@@ -638,7 +638,7 @@ class OWLAutoAdapter(base.Adapter):
 
             self.edges_append(local_edges)
             self.nodes_append(local_nodes)
-            
+
             yield local_nodes, local_edges
 
 
@@ -1068,7 +1068,7 @@ class YamlParser(base.Declare):
         Parse the properties of the transformers defined in the YAML mapping, and update the properties_of dictionary.
         """
         logger.debug(f"Parse properties...")
-            
+
         for n_transformer, transformer_types in enumerate(transformers_list):
             if not hasattr(transformer_types, "items"):
                 transformer_types = {transformer_types: []}
@@ -1378,7 +1378,7 @@ class YamlParser(base.Declare):
         for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
             if not hasattr(target_transformer_yaml_dict, "items"):
                 target_transformer_yaml_dict = {target_transformer_yaml_dict: []}
-                
+
             for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
                 target_branching = False
@@ -1492,7 +1492,7 @@ class YamlParser(base.Declare):
             self.error(f"I cannot find the `transformers' section or it is empty,"
             f"check syntax for a typo (forgotten `s'?) or declare at leaset one transformer.`",
             exception = exceptions.ParsingDeclarationsError)
-        
+
         metadata_list = self.get(self.k_metadata)
 
         # Parse subject type, metadata for subject, and properties for both subject and target types (parse_subject calls parse_properties).
@@ -1504,7 +1504,7 @@ class YamlParser(base.Declare):
         validator = self._get_input_validation_rules()
 
         if not validator or type(validator) == validate.SkipValidator:
-                logger.warning(f"Input validation will be skipped.")
+            logger.warning(f"Input validation will be skipped.")
 
         skipped_columns = []
         for t in transformers:
