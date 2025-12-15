@@ -736,7 +736,7 @@ class replace(Transformer):
 class boolean(Transformer):
     """A transformer that can map any set of values onto a boolean pair.
 
-    It consider a set of truth values, along with a set of falsehood values,
+    It considers a set of truth values, along with a set of falsehood values,
     and then set the node ID to the user's true or false value.
 
     If no configuration is given for ``consider_true`` and ``consider_false``,
