@@ -786,7 +786,7 @@ class boolean(Transformer):
                 if len(consider_true) == 0 or len(consider_false) == 0:
                     msg = "I need both `consider_true` and `consider_false` to contain at least one value."
                     logger.error(msg)
-                    raise TransformerConfigError(msg)
+                    raise exceptions.TransformerConfigError(msg)
 
                 common = set(consider_true) & set(consider_false)
                 if common:
