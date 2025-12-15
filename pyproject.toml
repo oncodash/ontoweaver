@@ -17,7 +17,11 @@ testpaths = [
 
 [project]
 authors = [
-    {name = "Johann Dreo", email = "johann.dro@pasteur.fr>, Marko Baric <marko.baric@pasteur.fr>, Claire Laudy <claire.laudy@thalesgroup.com>, Matthieu Najm <matthieu.najm@pasteur.fr>, Benno Schwikowski <benno.schwikowski@pasteur.fr"},
+    { name = "Johann Dreo", email = "johann.dreo@pasteur.fr" },
+    { name = "Marko Baric", email = "marko.baric@pasteur.fr" },
+    { name = "Claire Laudy", email = "claire.laudy@thalesgroup.com" },
+    { name = "Matthieu Najm", email = "matthieu.najm@pasteur.fr" },
+    { name = "Benno Schwikowski", email = "benno.schwikowski@pasteur.fr" },
 ]
 requires-python = "<4.0,>=3.10"
 dependencies = [
