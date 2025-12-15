@@ -56,22 +56,22 @@ which means a lot of tabular formats.
 
 ### Installation
 
-The project is written in Python and uses [Poetry](https://python-poetry.org).
+The project is written in Python and is tested with the
+[UV](https://docs.astral.sh/uv/) environment manager.
 You can install the necessary dependencies in a virtual environment like this:
 
 ```
 git clone https://github.com/oncodash/ontoweaver.git
 cd ontoweaver
-poetry install
+uv build
 ```
 
-Poetry will create a virtual environment according to your configuration (either
-centrally or in the project folder). You can activate it by running `poetry
-shell` inside the project directory.
+UV will create a virtual environment according to your configuration (either
+centrally or in the project folder).
+You can then run any script with `uv run` and it should just work.
 
-Theoretically, the graph can be imported in
-any [graph] database supported by BioCypher
-(Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite, NetworkX, …
+Theoretically, OntoWeaver can export a knowledge graph in any of the formats
+supported by BioCypher (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite, NetworkX, …
 see [BioCypher's documentation](https://biocypher.org/output/index.html)).
 
 
@@ -89,7 +89,7 @@ shows the simplest example of mapping tabular data through BioCypher.
 
 To run tests, use `pytest`:
 ```
-poetry run pytest
+uv run pytest
 ```
 
 
