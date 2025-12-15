@@ -797,7 +797,7 @@ class boolean(Transformer):
             if output_true == output_false:
                 msg = "Both `output_true` and `output_false` are the same value, this makes no sense."
                 logger.error(msg)
-                raise excceptions.TransformerConfigError(msg)
+                raise exceptions.TransformerConfigError(msg)
 
             if not output_true or not output_false:
                 msg = "I need both `output_true` and `ooutput_false` to have some value."
