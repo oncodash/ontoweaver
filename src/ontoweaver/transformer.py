@@ -458,7 +458,8 @@ class map(Transformer):
                 if key not in row:
                     self.error(f"Column '{key}' not found in data", section="map.call",
                                exception=exceptions.TransformerDataError)
-                yield row[key]
+                else:
+                    yield row[key]
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
@@ -480,6 +481,10 @@ class map(Transformer):
         super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
+        if not self.columns:
+            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
+
+
     def __call__(self, row, i):
         """
         Process a row and yield cell values as node IDs.
@@ -494,9 +499,6 @@ class map(Transformer):
         Raises:
             Warning: If the cell value is invalid.
         """
-        if not self.columns:
-            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
-
         for item in super().__call__(row, i):
             yield item
 

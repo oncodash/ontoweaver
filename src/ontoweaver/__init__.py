@@ -39,7 +39,8 @@ from . import errormanager
 logger = logging.getLogger("ontoweaver")
 
 __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate',
-           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'owl_to_biocypher', 'biocypher_to_owl', 'make_value', "make_labels"]
+           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', "make_labels"]
+
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,

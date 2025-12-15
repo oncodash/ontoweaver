@@ -279,12 +279,14 @@ class Edge(Element):
     def __repr__(self):
         if self.source_type() == Node:
             st = "."
+        elif self.source_type() == None:
+            st = ""
         else:
-            st = f"{self.source_type()}"
+            st = f"{self.source_type().__name__}"
         if self.target_type() == Node:
             tt = "."
         else:
-            tt = f"{self.target_type()}"
+            tt = f"{'>'.join([t.__name__ for t in self.target_type()])}"
 
         return f"<({st}:{self.id_source})--[{self.label}:{self.id}/{self.properties}]-->({tt}:{self.id_target})>"
 
@@ -510,7 +512,7 @@ class Declare(errormanager.ErrorManager):
 
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
-                               properties=None, columns=None, output_validator=None, label_maker = None, raise_errors = True, **kwargs):
+                               properties=None, columns=None, output_validator=None, label_maker = None, **kwargs):
         """
         LabelMaker a transformer class with the given parameters.
 
@@ -520,7 +522,6 @@ class Declare(errormanager.ErrorManager):
             properties: The properties of the transformer.
             columns: The columns to be processed by the transformer.
             output_validator: validate.OutputValidator instance for transformer output validation.
-            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
             **kwargs: Additional keyword arguments.
 
         Returns:
@@ -541,7 +542,7 @@ class Declare(errormanager.ErrorManager):
                             multi_type_dict = multi_type_dictionary,
                             branching_properties = branching_properties,
                             label_maker = label_maker,
-                            raise_errors = raise_errors,
+                            raise_errors = self.raise_errors,
                             **kwargs)
         else:
             # logger.debug(dir(generators))
