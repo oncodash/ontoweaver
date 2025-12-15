@@ -616,7 +616,7 @@ Is equivalent to:
     elif value in ["N", "No", no"]:
         yield "my_falsehood"
     else:
-        raise TransformerConfigError("Unknown value")
+        raise exceptions.TransformerConfigError("Unknown value")
 
 
 
