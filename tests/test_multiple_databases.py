@@ -67,7 +67,7 @@ def test_multiple_databases():
     list_nodes += nodes
     list_edges += edges
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(list_nodes), ontoweaver.ow2bc(list_edges), separator=",")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(list_nodes), ontoweaver.ow2bc(list_edges), reconciliate_sep=",")
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
     f_node_set = testing_functions.convert_to_set(fnodes)

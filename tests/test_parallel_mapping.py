@@ -732,7 +732,7 @@ def test_oncokb():
     bc_edges = ontoweaver.ow2bc(edges)
     # The fusion functions is not being used due to the large number of duplicates, resulting in the properties being
     # fused in varying orders. This is not normally an issue, as the properties are still the same.
-    # fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, separator=",")
+    # fnodes, fedges = ontoweaver.fusion.reconciliate(nodes, edges, reconciliate_sep=",")
 
     assert_node_set = testing_functions.convert_to_set(assert_nodes)
     f_node_set = testing_functions.convert_to_set(bc_nodes)

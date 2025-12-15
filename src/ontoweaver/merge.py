@@ -135,8 +135,8 @@ class dictry:
         returns a string, where all values are joined.
         """
 
-        def __init__(self, separator = ","):
-            self.separator = separator
+        def __init__(self, reconciliate_sep = ","):
+            self.reconciliate_sep = reconciliate_sep
             self.merged = {}
 
         def reset(self):
@@ -161,7 +161,7 @@ class dictry:
             for k,v in self.merged.items():
                 assert(type(v) == set)
                 # Convert sets as str.
-                merged[k] = self.separator.join(v)
+                merged[k] = self.reconciliate_sep.join(v)
             return merged
 
 
@@ -303,8 +303,8 @@ class string:
 
         returns a string, where all values are joined.
         """
-        def __init__(self, separator = ","):
-            self.separator = separator
+        def __init__(self, reconciliate_sep = ","):
+            self.reconciliate_sep = reconciliate_sep
 
         def reset(self):
             self.merged = OrderedDict()
@@ -321,5 +321,5 @@ class string:
             self.set(rhs)
 
         def get(self) -> str:
-            return self.separator.join(self.merged.keys())
+            return self.reconciliate_sep.join(self.merged.keys())
 

@@ -106,7 +106,7 @@ def remap_edges(edges, ID_mapping):
         yield edge.as_tuple()
 
 
-def reconciliate_nodes(nodes, separator = "|"):
+def reconciliate_nodes(nodes, reconciliate_sep = "|"):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -142,7 +142,7 @@ def reconciliate_nodes(nodes, separator = "|"):
     # Fuse them
     use_key    = merge.string.UseKey()
     identicals = merge.string.EnsureIdentical()
-    in_lists   = merge.dictry.Append(separator)
+    in_lists   = merge.dictry.Append(reconciliate_sep)
     node_fuser = fuse.Members(base.Node,
             merge_ID    = use_key,
             merge_label = identicals,
@@ -161,7 +161,7 @@ def reconciliate_nodes(nodes, separator = "|"):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, separator = "|"):
+def reconciliate_edges(edges, reconciliate_sep = "|"):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -193,9 +193,9 @@ def reconciliate_edges(edges, separator = "|"):
         pass
 
     # Fuse them
-    set_of_ID       = merge.string.OrderedSet(separator)
+    set_of_ID       = merge.string.OrderedSet(reconciliate_sep)
     identicals      = merge.string.EnsureIdentical()
-    in_lists        = merge.dictry.Append(separator)
+    in_lists        = merge.dictry.Append(reconciliate_sep)
     use_last_source = merge.string.UseLast()
     use_last_target = merge.string.UseLast()
     edge_fuser = fuse.Members(base.GenericEdge,
@@ -218,7 +218,7 @@ def reconciliate_edges(edges, separator = "|"):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, separator = "|"):
+def reconciliate(nodes, edges, reconciliate_sep = "|"):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
@@ -240,7 +240,7 @@ def reconciliate(nodes, edges, separator = "|"):
     assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
-    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, separator = separator)
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep)
 
     # EDGES REMAP
     # If we use on_ID/use_key,
@@ -257,7 +257,7 @@ def reconciliate(nodes, edges, separator = "|"):
     else:
         remaped_edges = edges
 
-    fusioned_edges = reconciliate_edges(remaped_edges, separator = separator)
+    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
