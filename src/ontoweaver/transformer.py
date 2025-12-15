@@ -781,7 +781,7 @@ class boolean(Transformer):
                 if type(consider_true) != list or type(consider_false) != list:
                     msg = "I can only consider both `consider_true` and `consider_false` being lists."
                     logger.error(msg)
-                    raise excceptions.TransformerConfigError(msg)
+                    raise exceptions.TransformerConfigError(msg)
 
                 if len(consider_true) == 0 or len(consider_false) == 0:
                     msg = "I need both `consider_true` and `consider_false` to contain at least one value."
