@@ -70,7 +70,7 @@ metadata:
     """
     config = yaml.full_load(mapping)
 
-    lrg = ontoweaver.LoadRDFGraph()
+    lrg = ontoweaver.loader.LoadOWLGraph()
     local_nodes,local_edges = ontoweaver.load_extract(g, config, lrg, raise_errors = False)
 
     logging.debug("Nodes:")
@@ -84,7 +84,7 @@ metadata:
     bc_nodes = [n.as_tuple() for n in local_nodes]
     bc_edges = [e.as_tuple() for e in local_edges]
 
-    fnodes, fedges = ontoweaver.fusion.reconciliate(bc_nodes, bc_edges, separator=";")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(bc_nodes, bc_edges, reconciliate_sep=";")
 
     logging.debug("Nodes:")
     for n in fnodes:

@@ -12,10 +12,10 @@ def test_loader():
     lpd = ontoweaver.loader.LoadPandasDataframe()
     lpd.load(df)
 
-    lrf = ontoweaver.loader.LoadRDFFile()
+    lrf = ontoweaver.loader.LoadOWLFile()
     lrf.load("./tests/test_preprocessing_ontology/OIM_test_preprocessing.owl")
 
     g = rdflib.Graph()
     g.parse("./tests/test_preprocessing_ontology/bc_OIM_test_preprocessing.owl")
-    lrg = ontoweaver.loader.LoadRDFGraph()
+    lrg = ontoweaver.loader.LoadOWLGraph()
     lrg.load(g)

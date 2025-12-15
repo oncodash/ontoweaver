@@ -126,7 +126,7 @@ class LoadPandasFile(Loader):
         return tabular.PandasAdapter
 
 
-class LoadRDFGraph(Loader):
+class LoadOWLGraph(Loader):
     def allows(self, data):
         return type(data) == rdflib.Graph
 
@@ -134,10 +134,10 @@ class LoadRDFGraph(Loader):
         return g
 
     def adapter(self):
-        return tabular.RDFAutoAdapter
+        return tabular.OWLAdapter
 
 
-class LoadRDFFile(Loader):
+class LoadOWLFile(Loader):
     def __init__(self):
         self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
@@ -170,6 +170,6 @@ class LoadRDFFile(Loader):
 
 
     def adapter(self):
-        return tabular.OWLAutoAdapter
+        return tabular.OWLAdapter
 
 

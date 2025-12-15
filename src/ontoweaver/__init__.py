@@ -180,8 +180,8 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
 
     lpf = loader.LoadPandasFile()
     lpd = loader.LoadPandasDataframe()
-    lrf = loader.LoadRDFFile()
-    lrg = loader.LoadRDFGraph()
+    lrf = loader.LoadOWLFile()
+    lrg = loader.LoadOWLGraph()
 
     def pairs(iterable):
         if type(iterable) == dict:
