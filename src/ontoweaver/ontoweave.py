@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import natsort
 import pathlib
 import platform
 import xdg_base_dirs as xdg
@@ -118,6 +119,10 @@ def main():
     do.add_argument("-i", "--import-script-run", action="store_true",
         help=f"If passed {appname} will call the import scripts created by Biocypher for you.")
 
+    do.add_argument("-R", "--sort", metavar="KEY", default = "none",
+        choices = ["none", "ascend"],
+        help="Sort nodes and edges on their IDs. [default: %(default)s]")
+
     do.add_argument("-r", "--register", metavar="PYTHON_MODULE", nargs="*", default=[],
         help="Register all transformers available in the given module.")
 
@@ -168,10 +173,14 @@ def main():
     logger.info(f"    config files: {config_files}")
     logger.info(f"    config: `{asked.biocypher_config}`")
     logger.info(f"    schema: `{asked.biocypher_schema}`")
+    logger.info(f"    parallel: `{asked.parallel}`")
     logger.info(f"    prop-sep: `{asked.prop_sep}`")
     logger.info(f"    type-affix: `{asked.type_affix}`")
     logger.info(f"    type-affix-sep: `{asked.type_affix_sep}`")
+    logger.info(f"    pandas-sep: `{asked.pandas_sep}`")
     logger.info(f"    import-script-run: `{asked.import_script_run}`")
+    logger.info(f"    sort: `{asked.sort}`")
+    logger.info(f"    register: `{asked.register}`")
     logger.info(f"    debug: `{asked.debug}`")
     logger.info(f"    log-level: `{asked.log_level}`")
     logger.info(f"    pass-errors: `{asked.pass_errors}`")
@@ -289,6 +298,15 @@ def main():
     if asked.pandas_sep:
         kw = {"sep": asked.pandas_sep}
 
+    if asked.sort == "none":
+        sort_key = None
+    elif asked.sort == "ascend":
+        sort_key = natsort.natsort_keygen()
+    else:
+        msg = f"Unsupported sorting type `{asked.sort}`"
+        logging.error(msg)
+        sys.exit("ConfigError")
+
     logger.info(f"Running OntoWeaver...")
     if asked.debug:
         import_file = ontoweaver.weave(
@@ -300,6 +318,7 @@ def main():
             affix=asked.type_affix,
             type_affix_sep = asked.type_affix_sep,
             validate_output = validate_output,
+            sort_key = sort_key,
             raise_errors = not asked.pass_errors,
             **kw)
     else:
@@ -313,6 +332,7 @@ def main():
                 affix=asked.type_affix,
                 type_affix_sep = asked.type_affix_sep,
                 validate_output = validate_output,
+                sort_key = sort_key,
                 raise_errors = not asked.pass_errors,
                 **kw)
         # Manage exceptions wih specific error codes:

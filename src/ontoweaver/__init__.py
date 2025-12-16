@@ -42,7 +42,7 @@ __all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', "make_labels"]
 
 
-def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -68,9 +68,22 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
 
     # The fusion module is independant from OntoWeaver,
     # and thus operates on BioCypher's tuples.
+    logger.debug("Convert OntoWeaver elements to BioCypher tuples.")
     bc_nodes = ow2bc(nodes)
     bc_edges = ow2bc(edges)
-    import_file = reconciliate_write(bc_nodes, bc_edges, biocypher_config_path, schema_path, reconciliate_sep, raise_errors)
+
+    fnodes, fedges = reconciliate(bc_nodes, bc_edges, reconciliate_sep, raise_errors)
+
+    if sort_key:
+        logger.debug(f"Sort elements using: {sort_key}.")
+        snodes = sorted(fnodes, key = sort_key)
+        sedges = sorted(fedges, key = sort_key)
+    else:
+        logger.debug("Do not sort elements.")
+        snodes = fnodes
+        sedges = fedges
+
+    import_file = write(snodes, sedges, biocypher_config_path, schema_path, raise_errors)
 
     return import_file
 
@@ -283,6 +296,26 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     Returns:
         str: The path to the import file.
     """
+    fnodes, fedges = reconciliate(nodes, edges, reconciliate_sep, raise_errors)
+
+    import_file = write(fnodes, fedges, biocypher_config_path, schema_path, raise_errors)
+
+    return import_file
+
+
+def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = None, raise_errors = True) -> str:
+    """
+    Reconciliates duplicated nodes and edges, then writes them using BioCypher.
+
+    Args:
+        nodes (list): A list of nodes to be reconciliated and written.
+        edges (list): A list of edges to be reconciliated and written.
+        reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+
+    Returns:
+        str: The path to the import file.
+    """
     assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
@@ -293,21 +326,43 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep)
     logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
-    logging.info("Export the graph...")
-    bc = biocypher.BioCypher(
-        biocypher_config_path = biocypher_config_path,
-        schema_config_path = schema_path
-    )
+    return fnodes,fedges
 
-    if fnodes:
-        bc.write_nodes(fnodes)
-    if fedges:
-        bc.write_edges(fedges)
-    #bc.summary()
-    import_file = bc.write_import_call()
-    logging.info("OK")
 
-    return import_file
+def write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, schema_path: str, raise_errors = True) -> str:
+    """
+    Reconciliates duplicated nodes and edges, then writes them using BioCypher.
+
+    Args:
+        nodes (list): A list of nodes to be reconciliated and written.
+        edges (list): A list of edges to be reconciliated and written.
+        biocypher_config_path (str): the BioCypher configuration file.
+        schema_path (str): the assembling schema file
+        raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+
+    Returns:
+        str: The path to the import file.
+    """
+    if not nodes and not edges:
+        msg = "There is no node or edge to write."
+        logger.warning(msg)
+        raise RuntimeError(msg)
+    else:
+        logging.info("Export the graph...")
+        bc = biocypher.BioCypher(
+            biocypher_config_path = biocypher_config_path,
+            schema_config_path = schema_path
+        )
+
+        if nodes:
+            bc.write_nodes(nodes)
+        if edges:
+            bc.write_edges(edges)
+        #bc.summary()
+        import_file = bc.write_import_call()
+        logging.info("OK")
+
+        return import_file
 
 
 def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs) -> bool:
