@@ -36,12 +36,16 @@ from . import make_labels
 from . import loader
 from . import errormanager
 from . import iterative
+from . import xml
+from . import owl
 from . import mapping as owmapping
 
 logger = logging.getLogger("ontoweaver")
 
-__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular', 'types', 'transformer', 'serialize', 'congregate',
-           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', "make_labels"]
+__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular',
+           'types', 'transformer', 'serialize', 'congregate',
+           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', 'make_labels', 'iterative', 'xml',
+           'owl', 'mapping']
 
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):

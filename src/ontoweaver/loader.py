@@ -5,6 +5,7 @@ from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import tabular
 from . import owl
+from . import xml
 
 class Loader(metaclass = ABSTRACT):
     def __call__(self, data, **kwargs):
@@ -174,3 +175,13 @@ class LoadOWLFile(Loader):
         return owl.OWLAdapter
 
 
+
+class LoadXMLString(Loader):
+    def allows(self, data):
+        return type(data) == str
+
+    def load(self, xml, **kwargs):
+        return xml
+
+    def adapter(self):
+        return xml.XMLAdapter

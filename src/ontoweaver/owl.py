@@ -68,60 +68,6 @@ class BaseOWLAdapter:
 
 
 
-class BaseOWLAdapter:
-
-    def iri(self, subj):
-        if "#" in str(subj):
-            obj = str(subj).split('#')[-1]
-            logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
-            return obj
-
-        elif "/" in str(subj):
-            obj = str(subj).split('/')[-1] # FIXME strong assumption
-            logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
-            return obj
-
-        else:
-            return subj
-
-
-    def label_of(self, subj):
-        # First, get the label, if any; else use the IRI end tag.
-        triples = list(self.graph.triples((subj, RDFS.label, None)))
-        # logger.debug(f"\tLabel triples: {triples}")
-        if len(triples) == 0:
-            obj = self.iri(subj)
-        else:
-            assert(len(triples[0]) == 3)
-            obj = str(triples[0][2])
-            logger.debug(f"\t\tUse label: {obj}")
-        # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
-        return obj[0].lower() + obj[1:]
-        # return obj
-
-
-    def node_class(self, subj):
-        node_class = None
-        for s,p,o in self.graph.triples((subj, RDF.type, None)):
-            # logger.debug(f"({self.iri(s)})-[{self.iri(p)}]->({self.iri(o)})")
-            # logger.debug(f"Individual type: {node_class}")
-
-            if o == OWL.NamedIndividual:
-                continue
-
-            if node_class:
-                raise RuntimeError(
-                    f"Instantiating from multiple classes is not supported, "
-                    f"fix individual `{subj}`, it should not instantiate both "
-                    f"`{node_class}` and `{o}`")
-
-            if rdflib.URIRef(o) != OWL.NamedIndividual:
-                node_class = o
-
-        return node_class
-
-
-
 class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
     def __init__(self,
                  graph: rdflib.Graph,

@@ -36,6 +36,7 @@ dependencies = [
     "alive-progress<4.0,>=3.2",
     "fsspec<2026.0.0,>=2025.10.0",
     "natsort>5.0.0",
+    "lxml>6.0.0",
 ]
 name = "ontoweaver"
 version = "1.0.0"
