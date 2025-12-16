@@ -35,6 +35,8 @@ from . import make_value
 from . import make_labels
 from . import loader
 from . import errormanager
+from . import iterative
+from . import mapping as owmapping
 
 logger = logging.getLogger("ontoweaver")
 
@@ -63,6 +65,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
        Returns:
            The path to the import file.
    """
+    assert sort_key == None or callable(sort_key)
 
     nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
@@ -111,9 +114,9 @@ def read_table_file(filename, **kwargs):
     return data
 
 
-def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, raise_errors = True, **kwargs):
+def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
     logger.warning("The `extract_reconciliate_write` function is deprecated and will be removed in the next version, use `weave` instead.")
-    return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+    return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
 def load_extract(data, mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
@@ -138,7 +141,7 @@ def load_extract(data, mapping, with_loader, parallel_mapping = 0, affix="none",
             with open(mapping) as fd:
                 config = yaml.full_load(fd)
 
-        parser = tabular.YamlParser(
+        parser = owmapping.YamlParser(
             config,
             validate_output=validate_output,
             raise_errors = raise_errors,
@@ -386,7 +389,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        validator = tabular.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
+        validator = owmapping.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
 
         return validate_input_data_loaded(table, validator)
 

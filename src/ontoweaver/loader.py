@@ -4,6 +4,7 @@ import pandas as pd
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import tabular
+from . import owl
 
 class Loader(metaclass = ABSTRACT):
     def __call__(self, data, **kwargs):
@@ -134,7 +135,7 @@ class LoadOWLGraph(Loader):
         return g
 
     def adapter(self):
-        return tabular.OWLAdapter
+        return owl.OWLAdapter
 
 
 class LoadOWLFile(Loader):
@@ -170,6 +171,6 @@ class LoadOWLFile(Loader):
 
 
     def adapter(self):
-        return tabular.OWLAdapter
+        return owl.OWLAdapter
 
 

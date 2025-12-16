@@ -1,18 +1,51 @@
 import logging
+
+import types as pytypes
+
 from collections.abc import Iterable
 from abc import ABCMeta as ABSTRACT, abstractmethod
 from abc import abstractmethod as abstract
 from typing import TypeAlias
 from typing import Optional
+from enum import Enum, EnumMeta
 
 from . import errormanager
 from . import serialize
 from . import exceptions
 from . import transformer
 from . import types as owtypes
-import types as pytypes
 
 logger = logging.getLogger("ontoweaver")
+
+
+class MetaEnum(EnumMeta):
+    """
+    Metaclass for Enum to allow checking if an item is in the Enum.
+    """
+
+    def __contains__(cls, item):
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True
+
+
+class Enumerable(Enum, metaclass=MetaEnum):
+    """
+    Base class for Enums with MetaEnum metaclass.
+    """
+    pass
+
+
+class TypeAffixes(str, Enumerable):
+    """
+    Enum for type affixes used in ID creation.
+    """
+    suffix = "suffix"
+    prefix = "prefix"
+    none = "none"
+
 
 class ErrorManager:
     def __init__(self, raise_errors = True):
