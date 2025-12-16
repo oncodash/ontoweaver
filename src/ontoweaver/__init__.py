@@ -93,7 +93,7 @@ def read_table_file(filename, **kwargs):
         A Pandas DataFrame.
     """
 
-    lpf = load.LoadPandasFile()
+    lpf = loader.LoadPandasFile()
     data = lpf.load(filename, **kwargs)
     return data
 

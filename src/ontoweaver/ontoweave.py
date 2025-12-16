@@ -221,7 +221,7 @@ def main():
     if asked.validate_only:
         logger.info(f"Validating input data frame...")
         if asked.debug:
-            if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep, raise_errors = not asked.pass_errors):
+            if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.pandas_sep, raise_errors = not asked.pass_errors):
                 logger.info(f"Input data is valid according to provided rules.")
                 sys.exit(0)
             else:
@@ -229,7 +229,7 @@ def main():
                 sys.exit(error_codes["DataValidationError"])
         else:
             try:
-                if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.database_sep, raise_errors = not asked.pass_errors):
+                if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.pandas_sep, raise_errors = not asked.pass_errors):
                     logger.info(f"Input data is valid according to provided rules.")
                     sys.exit(0)
                 else:
@@ -239,15 +239,15 @@ def main():
             except ontoweaver.exceptions.ConfigError as e:
                 logger.error(f"ERROR in configuration: "+str(e))
                 sys.exit(error_codes["ConfigError"])
-            except ontoweaver.exceptions.RunError as e:
-                logger.error(f"ERROR in content: "+str(e))
-                sys.exit(error_codes["RunError"])
             except ontoweaver.exceptions.ParsingError as e:
                 logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
                 sys.exit(error_codes["ParsingError"])
             except ontoweaver.exceptions.DataValidationError as e:
                 logger.error(f"ERROR during data validation: "+str(e))
                 sys.exit(error_codes["DataValidationError"])
+            except ontoweaver.exceptions.RunError as e:
+                logger.error(f"ERROR in content: "+str(e))
+                sys.exit(error_codes["RunError"])
             except ontoweaver.exceptions.OntoWeaverError as e:
                 logger.error(f"ERROR: "+str(e))
                 sys.exit(error_codes["OntoWeaverError"])
@@ -319,15 +319,15 @@ def main():
         except ontoweaver.exceptions.ConfigError as e:
             logger.error(f"ERROR in configuration: "+str(e))
             sys.exit(error_codes["ConfigError"])
-        except ontoweaver.exceptions.RunError as e:
-            logger.error(f"ERROR in content: "+str(e))
-            sys.exit(error_codes["RunError"])
         except ontoweaver.exceptions.ParsingError as e:
             logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
             sys.exit(error_codes["ParsingError"])
         except ontoweaver.exceptions.DataValidationError as e:
             logger.error(f"ERROR during data validation: "+str(e))
             sys.exit(error_codes["DataValidationError"])
+        except ontoweaver.exceptions.RunError as e:
+            logger.error(f"ERROR in content: "+str(e))
+            sys.exit(error_codes["RunError"])
         except ontoweaver.exceptions.OntoWeaverError as e:
             logger.error(f"ERROR: "+str(e))
             sys.exit(error_codes["OntoWeaverError"])
