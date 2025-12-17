@@ -21,6 +21,7 @@ Transformer = transformer.Transformer
 Adapter = base.Adapter
 All = base.All
 
+from . import base
 from . import types
 from . import tabular
 from . import serialize
@@ -29,8 +30,6 @@ from . import merge
 from . import fuse
 from . import fusion
 from . import exceptions
-from . import owl_to_biocypher
-from . import biocypher_to_owl
 from . import make_value
 from . import make_labels
 from . import loader
@@ -38,14 +37,14 @@ from . import errormanager
 from . import iterative
 from . import xml
 from . import owl
-from . import mapping as owmapping
+from . import mapping
 
 logger = logging.getLogger("ontoweaver")
 
-__all__ = ['Node', 'Edge', 'Transformer', 'Adapter', 'All', 'tabular',
+__all__ = ['tabular',
            'types', 'transformer', 'serialize', 'congregate',
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', 'make_labels', 'iterative', 'xml',
-           'owl', 'mapping']
+           'owl', 'mapping', 'base']
 
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
@@ -123,7 +122,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     logger.info(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
 
     assert with_loader.allows(data), "This loader cannot handle this data"
@@ -132,20 +131,20 @@ def load_extract(data, mapping, with_loader, parallel_mapping = 0, affix="none",
 
     data = with_loader(data, **kwargs)
 
-    if mapping == "automap":
+    if with_mapping == "automap":
         logger.debug("\twith auto mapping")
         mapper = {}
     else:
-        if type(mapping) == dict:
-            logger.debug(f"\twith explicit user mapping: `{mapping}`")
-            config = mapping
+        if type(with_mapping) == dict:
+            logger.debug(f"\twith explicit user mapping: `{with_mapping}`")
+            config = with_mapping
         else:
-            assert type(mapping) == str, "I was expecting a file name as value for the data in the data_to_mapping dictionary"
-            logger.debug(f"\twith user file mapping: `{mapping}`")
-            with open(mapping) as fd:
+            assert type(with_mapping) == str, "I was expecting a file name as value for the data in the data_to_mapping dictionary"
+            logger.debug(f"\twith user file mapping: `{with_mapping}`")
+            with open(with_mapping) as fd:
                 config = yaml.full_load(fd)
 
-        parser = owmapping.YamlParser(
+        parser = mapping.YamlParser(
             config,
             validate_output=validate_output,
             raise_errors = raise_errors,
@@ -393,7 +392,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        validator = owmapping.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
+        validator = mapping.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
 
         return validate_input_data_loaded(table, validator)
 
