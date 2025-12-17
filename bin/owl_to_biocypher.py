@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
 
 '''
 Pre-processing of ontologies in order to be compatible with the requirements of Biocypher.

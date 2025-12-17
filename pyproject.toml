@@ -42,6 +42,3 @@ name = "ontoweaver"
 version = "1.0.0"
 description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
-
-[project.scripts]
-ontoweave = "ontoweaver.ontoweave:main"
