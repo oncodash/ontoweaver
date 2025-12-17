@@ -1,6 +1,42 @@
+import io
 import yaml
 import logging
 import ontoweaver
+
+def test_from_file():
+    mapping = """
+row:
+   map:
+       column: /table/tbody/tr/td[1]
+       to_subject: variant
+transformers:
+    - map:
+        column: /table/tbody/tr/td[2]
+        to_object: patient
+        via_relation: patient_has_variant
+    - map:
+        column: /table/tbody/tr/td[3]
+        to_property: age
+        for_object: patient
+metadata:
+    - origin: somewhere
+    """
+    config = yaml.full_load(mapping)
+
+    parser = ontoweaver.mapping.YamlParser(config)
+    mapper = parser()
+
+    lxs = ontoweaver.loader.LoadXMLFile()
+    local_nodes,local_edges = ontoweaver.load_extract("tests/xml/friends.xml", config, lxs, raise_errors = False)
+
+    for n in local_nodes:
+        logging.debug(repr(n))
+    for e in local_edges:
+        logging.debug(repr(e))
+
+    assert len(local_nodes) == 6
+    assert len(local_edges) == 3
+
 
 def test_xpath():
     xml="""

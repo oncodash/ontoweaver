@@ -1,0 +1,12 @@
+<table>
+    <caption>Friends</caption>
+    <thead>
+        <tr><th>variant_id</th><th>patient</th><th>age</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td>B</td><td>12</td></tr>
+        <tr><td>0</td><td>A</td><td>23</td></tr>
+        <tr><td>2</td><td>C</td><td>34</td></tr>
+    </tbody>
+</table>
+

@@ -35,6 +35,7 @@ class LoadPandasDataframe(Loader):
     def adapter(self):
         return tabular.PandasAdapter
 
+
 class LoadPandasFile(Loader):
     """Read a file with Pandas, using its extension to guess its format.
 
@@ -103,7 +104,7 @@ class LoadPandasFile(Loader):
 
     def allows(self, filename):
         if type(filename) == str or type(filename) == pathlib.Path:
-            ext = pathlib.Path(filename).suffix 
+            ext = pathlib.Path(filename).suffix
             if ext in self.read_funcs:
                 return True
 
@@ -141,7 +142,7 @@ class LoadOWLGraph(Loader):
 
 class LoadOWLFile(Loader):
     def __init__(self):
-        self.allowed = [".owl", ".xml", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
+        self.allowed = [".owl", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
     def allows(self, filename):
         if type(filename) == str or type(filename) == pathlib.Path:
@@ -175,7 +176,6 @@ class LoadOWLFile(Loader):
         return owl.OWLAdapter
 
 
-
 class LoadXMLString(Loader):
     def allows(self, data):
         return type(data) == str
@@ -185,3 +185,33 @@ class LoadXMLString(Loader):
 
     def adapter(self):
         return xml.XMLAdapter
+
+
+class LoadXMLFile(Loader):
+    def __init__(self):
+        self.allowed = [".xml"]
+
+    def allows(self, filename):
+        if type(filename) == str or type(filename) == pathlib.Path:
+            ext = pathlib.Path(filename).suffix
+            if ext in self.allowed:
+                return True
+
+        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
+        logger.warning(msg)
+        return False
+
+    def load(self, filename, **kwargs):
+        ext = pathlib.Path(filename).suffix
+        if not self.allows(filename):
+            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
+
+        with open(filename, 'r') as fd:
+            data = fd.read()
+            return data
+
+    def adapter(self):
+        return xml.XMLAdapter
+
