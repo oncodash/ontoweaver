@@ -6,6 +6,7 @@ from abc import ABCMeta as ABSTRACT, abstractmethod
 from . import tabular
 from . import owl
 from . import xml
+from . import json
 
 class Loader(metaclass = ABSTRACT):
     def __call__(self, data, **kwargs):
@@ -214,4 +215,44 @@ class LoadXMLFile(Loader):
 
     def adapter(self):
         return xml.XMLAdapter
+
+
+class LoadJSONString(Loader):
+    def allows(self, data):
+        return type(data) == str
+
+    def load(self, json, **kwargs):
+        return json
+
+    def adapter(self):
+        return json.JSONAdapter
+
+
+class LoadJSONFile(Loader):
+    def __init__(self):
+        self.allowed = [".json"]
+
+    def allows(self, filename):
+        if type(filename) == str or type(filename) == pathlib.Path:
+            ext = pathlib.Path(filename).suffix
+            if ext in self.allowed:
+                return True
+
+        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
+        logger.warning(msg)
+        return False
+
+    def load(self, filename, **kwargs):
+        ext = pathlib.Path(filename).suffix
+        if not self.allows(filename):
+            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
+            logger.error(msg)
+            raise exceptions.FeatureError(msg)
+
+        with open(filename, 'r') as fd:
+            data = fd.read()
+            return data
+
+    def adapter(self):
+        return json.JSONAdapter
 

@@ -37,6 +37,7 @@ dependencies = [
     "fsspec<2026.0.0,>=2025.10.0",
     "natsort>5.0.0",
     "lxml>6.0.0",
+    "jmespath>=1.0.1",
 ]
 name = "ontoweaver"
 version = "1.0.0"
