@@ -6,7 +6,7 @@ def test_validate_input():
     logging.basicConfig(level=logging.DEBUG)
 
     logging.debug(f"From: {os.getcwd()}")
-    cmd = "uv run ontoweave ./tests/validate_input/data.csv:./tests/validate_input/mapping.yaml --validate-only"
+    cmd = "./bin/ontoweave ./tests/validate_input/data.csv:./tests/validate_input/mapping.yaml --validate-only"
 
     logging.debug(f"Run: {cmd}")
 
