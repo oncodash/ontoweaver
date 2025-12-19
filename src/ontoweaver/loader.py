@@ -142,7 +142,7 @@ class LoadOWLGraph(Loader):
         return g
 
     def adapter(self, **kwargs):
-        if kwargs["automap"]:
+        if "automap" in kwargs:
             logger.debug("Asked for `automap`, I'll use owl.OWLAutoAdapter")
             return owl.OWLAutoAdapter
         else:
@@ -183,7 +183,7 @@ class LoadOWLFile(Loader):
 
 
     def adapter(self, **kwargs):
-        if kwargs["automap"]:
+        if "automap" in kwargs:
             logger.debug("Asked for `automap`, I'll use owl.OWLAutoAdapter")
             return owl.OWLAutoAdapter
         else:
