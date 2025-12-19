@@ -96,7 +96,15 @@ uv build
 
 UV will create a virtual environment according to your configuration (either
 centrally or in the project folder).
-You can then run any script with `uv run` and it should just work.
+
+You can then run any script by calling it directly (.e.g. `./bin/ontoweave`)
+and it should just work. If you want to call scripts from anywhere in your
+system, you will have to add the `…/ontoweaver/bin/` directory to your PATH:
+
+```sh
+# Put this in your ~/.bashrc or ~/.zshrc
+export PATH="$PATH:$HOME/<your path>/ontoweaver/bin/"
+```
 
 Theoretically, OntoWeaver can export a knowledge graph in any of the formats
 supported by BioCypher (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite, NetworkX, …
