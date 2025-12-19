@@ -130,10 +130,12 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     edges = []
 
     data = with_loader(data, **kwargs)
+    mapping_options = {}
 
     if with_mapping == "automap":
         logger.debug("\twith auto mapping")
         mapper = {}
+        mapping_options = {"automap": True}
     else:
         if type(with_mapping) == dict:
             logger.debug(f"\twith explicit user mapping: `{with_mapping}`")
@@ -152,7 +154,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         mapper = parser()
 
     logger.debug(f"Instantiate the adapter...")
-    adapter = with_loader.adapter()(
+    adapter = with_loader.adapter(**mapping_options)(
         data,
         *mapper,
         type_affix=affix,

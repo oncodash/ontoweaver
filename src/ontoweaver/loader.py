@@ -1,5 +1,6 @@
 import rdflib
 import pathlib
+import logging
 import pandas as pd
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
@@ -7,6 +8,9 @@ from . import tabular
 from . import owl
 from . import xml
 from . import json
+
+logger = logging.getLogger("ontoweaver")
+
 
 class Loader(metaclass = ABSTRACT):
     def __call__(self, data, **kwargs):
@@ -22,7 +26,7 @@ class Loader(metaclass = ABSTRACT):
         raise NotImplementedError()
 
     @abstractmethod
-    def adapter(self):
+    def adapter(self, **kwargs):
         return NotImplementedError()
 
 
@@ -33,7 +37,7 @@ class LoadPandasDataframe(Loader):
     def load(self, df, **kwargs):
         return df
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return tabular.PandasAdapter
 
 
@@ -126,7 +130,7 @@ class LoadPandasFile(Loader):
         return f(filename, **kw)
 
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return tabular.PandasAdapter
 
 
@@ -137,8 +141,13 @@ class LoadOWLGraph(Loader):
     def load(self, g, **kwargs):
         return g
 
-    def adapter(self):
-        return owl.OWLAdapter
+    def adapter(self, **kwargs):
+        if kwargs["automap"]:
+            logger.debug("Asked for `automap`, I'll use owl.OWLAutoAdapter")
+            return owl.OWLAutoAdapter
+        else:
+            logger.debug("Asked for regular mapping, I'll use owl.OWLAdapter")
+            return owl.OWLAdapter
 
 
 class LoadOWLFile(Loader):
@@ -173,8 +182,13 @@ class LoadOWLFile(Loader):
         return g
 
 
-    def adapter(self):
-        return owl.OWLAdapter
+    def adapter(self, **kwargs):
+        if kwargs["automap"]:
+            logger.debug("Asked for `automap`, I'll use owl.OWLAutoAdapter")
+            return owl.OWLAutoAdapter
+        else:
+            logger.debug("Asked for regular mapping, I'll use owl.OWLAdapter")
+            return owl.OWLAdapter
 
 
 class LoadXMLString(Loader):
@@ -184,7 +198,7 @@ class LoadXMLString(Loader):
     def load(self, xml, **kwargs):
         return xml
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return xml.XMLAdapter
 
 
@@ -213,7 +227,7 @@ class LoadXMLFile(Loader):
             data = fd.read()
             return data
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return xml.XMLAdapter
 
 
@@ -224,7 +238,7 @@ class LoadJSONString(Loader):
     def load(self, json, **kwargs):
         return json
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return json.JSONAdapter
 
 
@@ -253,6 +267,6 @@ class LoadJSONFile(Loader):
             data = fd.read()
             return data
 
-    def adapter(self):
+    def adapter(self, **kwargs):
         return json.JSONAdapter
 
