@@ -14,17 +14,18 @@ from . import transformer
 logger = logging.getLogger("ontoweaver")
 
 
-class BaseOWLAdapter:
+class OWLtools:
+    def __init__(self, graph):
+        self.graph = graph
+        self.seen_labels = {}
 
     def iri(self, subj):
         if "#" in str(subj):
             obj = str(subj).split('#')[-1]
-            logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
             return obj
 
         elif "/" in str(subj):
             obj = str(subj).split('/')[-1] # FIXME strong assumption
-            logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
             return obj
 
         else:
@@ -35,15 +36,24 @@ class BaseOWLAdapter:
         # First, get the label, if any; else use the IRI end tag.
         triples = list(self.graph.triples((subj, RDFS.label, None)))
         # logger.debug(f"\tLabel triples: {triples}")
-        if len(triples) == 0:
+        if subj in self.seen_labels:
+            logger.debug(f"Label of `{subj}` already seen: `{self.seen_labels[subj]}`")
+            return self.seen_labels[subj]
+
+        elif len(triples) == 0:
             obj = self.iri(subj)
+            logger.warning(f"I can't find the label of the element `{subj}'. Label guessed from IRI: {obj}")
+            self.seen_labels[subj] = obj
+
         else:
+            if len(triples) > 1:
+                logger.warning(f"There is {len(triples)} elements with label `{subj}`: {';'.join(triples)}, I'll take the first one: `{triples[0]}`.")
             assert(len(triples[0]) == 3)
             obj = str(triples[0][2])
             logger.debug(f"\t\tUse label: {obj}")
+            self.seen_labels[subj] = obj
         # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
         return obj[0].lower() + obj[1:]
-        # return obj
 
 
     def node_class(self, subj):
@@ -67,8 +77,7 @@ class BaseOWLAdapter:
         return node_class
 
 
-
-class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
+class OWLAutoAdapter(base.Adapter):
     def __init__(self,
                  graph: rdflib.Graph,
                  raise_errors = True,
@@ -81,49 +90,23 @@ class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
         self.graph = graph
         logger.debug(f"OWLAutoAdapter on {len(self.graph)} input RDF triples.")
 
+        self.get = OWLtools(self.graph)
+
         if kwargs:
             logger.warning(f"OWLAutoAdapter does not support mappings, but you passed: {kwargs}, I'll ignore those arguments.")
 
 
     def run(self):
-        def iri(subj):
-            if "#" in str(subj):
-                obj = str(subj).split('#')[-1] 
-                logger.debug(f"\t\tGuess label: {obj} from IRI {str(subj)}")
-                return obj
-
-            elif "/" in str(subj):
-                obj = str(subj).split('/')[-1] # FIXME strong assumption
-                logger.warning(f"I can't find the label of the element `{subj}'. Guess label: {obj}")
-                return obj
-
-            else:
-                return subj
-
-        def label_of(subj):
-            # First, get the label, if any; else use the IRI end tag.
-            triples = list(self.graph.triples((subj, RDFS.label, None)))
-            # logger.debug(f"\tLabel triples: {triples}")
-            if len(triples) == 0:
-                obj = iri(subj)
-            else:
-                assert(len(triples[0]) == 3)
-                obj = str(triples[0][2])
-                logger.debug(f"\t\tUse label: {obj}")
-            # return biocypher._misc.pascalcase_to_sentencecase(str(obj))
-            return obj[0].lower() + obj[1:]
-            # return obj
-
         # Iterate over individuals.
         for i,indi_triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
             local_nodes = []
             local_edges = []
 
             subj = indi_triple[0]
-            logger.debug(f"{i}:({self.iri(subj)})")
-            subj_label = self.label_of(subj)
+            logger.debug(f"{i}:({self.get.iri(subj)})")
+            subj_label = self.get.label_of(subj)
 
-            node_class = self.node_class(subj)
+            node_class = self.get.node_class(subj)
             logger.debug(f"Individual class: {node_class}")
             if not node_class:
                 logger.warning(f"Individual `{subj}` has no owl:Class, I'll ignore it.")
@@ -132,7 +115,7 @@ class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
             properties = {}
             # Gather everything about the subject individual.
             for _,rel,obj in self.graph.triples((subj, None, None)):
-                logger.debug(f"\t-[{self.iri(rel)}]->({self.iri(obj)})")
+                logger.debug(f"\t-[{self.get.iri(rel)}]->({self.get.iri(obj)})")
 
                 if obj == OWL.NamedIndividual:
                     logger.debug("\t\t= pass")
@@ -140,21 +123,21 @@ class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
 
                 elif rel == RDF.type:
                     #e = base.GenericEdge(None, str(subj), str(obj), {}, str(rel))
-                    e = base.GenericEdge(None, self.iri(subj), self.iri(obj), {}, self.label_of(rel))
+                    e = base.GenericEdge(None, self.get.iri(subj), self.get.iri(obj), {}, self.get.label_of(rel))
                     logger.debug(f"\t\t= {e}")
                     local_edges.append(e)
 
                 elif type(obj) == rdflib.URIRef:
-                    e = base.GenericEdge(None, self.iri(subj), self.iri(obj), {}, self.label_of(rel))
+                    e = base.GenericEdge(None, self.get.iri(subj), self.get.iri(obj), {}, self.get.label_of(rel))
                     logger.debug(f"\t\t= {e}")
                     local_edges.append(e)
 
                 else:
-                    logger.debug(f"\t\t= prop[{self.iri(rel)}] = {self.iri(obj)}")
+                    logger.debug(f"\t\t= prop[{self.get.iri(rel)}] = {self.get.iri(obj)}")
                     properties[str(rel)] = str(obj)
 
             assert(node_class)
-            n = base.Node(self.iri(subj), properties, self.label_of(node_class))
+            n = base.Node(self.get.iri(subj), properties, self.get.label_of(node_class))
             logger.debug(f"\tnode: {n}")
             local_nodes.append(n)
 
@@ -164,7 +147,7 @@ class OWLAutoAdapter(BaseOWLAdapter, base.Adapter):
             yield local_nodes, local_edges
 
 
-class OWLAdapter(BaseOWLAdapter, iterative.IterativeAdapter):
+class OWLAdapter(iterative.IterativeAdapter):
 
     def __init__(self,
             graph: rdflib.Graph,
@@ -191,12 +174,14 @@ class OWLAdapter(BaseOWLAdapter, iterative.IterativeAdapter):
         self.graph = graph
         logger.debug(f"OWLAdapter on {len(self.graph)} input RDF triples.")
 
+        self.get = OWLtools(self.graph)
+
 
     def iterate(self):
         for i,triple in enumerate(self.graph.triples((None,RDF.type,OWL.NamedIndividual))):
             subj,t,ni = triple
-            logger.debug(f"({self.iri(subj)})-[{self.iri(t)}]->({self.iri(ni)})")
-            node_class = self.node_class(subj)
+            logger.debug(f"({self.get.iri(subj)})-[{self.get.iri(t)}]->({self.get.iri(ni)})")
+            node_class = self.get.node_class(subj)
             logger.debug(f"\tIndividual class: ({node_class})-")
             if not node_class:
                 logger.warning(f"Individual `{subj}` has no owl:Class, I'll ignore it.")
@@ -205,15 +190,15 @@ class OWLAdapter(BaseOWLAdapter, iterative.IterativeAdapter):
             row = {}
             # Gather everything about the subject individual.
             for _,rel,obj in self.graph.triples((subj, None, None)):
-                logger.debug(f"\t-[{self.iri(rel)}]->({self.iri(obj)})")
+                logger.debug(f"\t-[{self.get.iri(rel)}]->({self.get.iri(obj)})")
 
                 if obj == OWL.NamedIndividual:
                     logger.debug("\t\t= pass")
                     continue
 
                 else:
-                    t = self.label_of(rel)
-                    o = self.label_of(obj)
+                    t = self.get.label_of(rel)
+                    o = self.get.label_of(obj)
                     logger.debug(f"\t\t=> {t} : {o}")
                     if t in row:
                         self.error(f"Multiple definitions for ({subj})--[{t}]->({o}), I don't know how to handle this.", section = "OWLAdapter", exception = exceptions.InputDataError)
