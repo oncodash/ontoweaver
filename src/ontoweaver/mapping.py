@@ -491,8 +491,8 @@ class YamlParser(base.Declare):
             logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
             logger.debug(
-                f"\tDeclare subject of possible types: '{possible_subject_types}', subject transformer: '{subject_transformer_class}', "
-                f"subject kwargs: '{subject_kwargs}', subject columns: '{subject_columns}'")
+                f"\tDeclare subject of possible types: `{possible_subject_types}`, subject transformer: `{subject_transformer_class}`, "
+                f"subject kwargs: `{subject_kwargs}`, subject columns: '{subject_columns}'")
 
         else:
 
@@ -524,7 +524,7 @@ class YamlParser(base.Declare):
 
         if (target and not edge) or (edge and not target):
             self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
-                       f"missing either an object or a relation.", "transformers", transformer_index,
+                       f"missing either a `to_object` or a `via_relation` in the mapping?.", "transformers", transformer_index,
                        indent=2, exception=exceptions.MissingDataError)
         elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
             label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,

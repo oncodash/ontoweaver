@@ -224,8 +224,10 @@ class Transformer(errormanager.ErrorManager):
         Create the output of the transformer, using the label_maker of the transformer instance.
 
         Returns:
-            Extracted cell value (can be node ID, property value, edge ID), edge type, target node type, and
-            reverse relation in case declared in the mapping.
+            - Extracted cell value (can be node ID, property value, edge ID),
+            - edge type,
+            - target node type, and
+            - reverse relation in case declared in the mapping.
         """
         result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
         if result_object.target_node_type:
