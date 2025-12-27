@@ -494,6 +494,10 @@ class Declare(errormanager.ErrorManager):
         return t
 
 
+    def get_node_class(self, name):
+        return getattr(self.module, name)
+
+
     def make_edge_class(self, name, source_t, target_t, properties={}, base=Edge):
         """
         LabelMaker an edge class with the given name, source type, target type, and properties.
@@ -542,6 +546,10 @@ class Declare(errormanager.ErrorManager):
         logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
         return t
+
+
+    def get_edge_class(self, name):
+        return getattr(self.module, name)
 
 
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
