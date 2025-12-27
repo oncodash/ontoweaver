@@ -6,6 +6,6 @@ biocypher:
 
     # Ontology configuration
     head_ontology:
-        url: reasoned.ttl
+        url: tests/family_automap/reasoned.ttl
         root_node: Biocypherroot
 

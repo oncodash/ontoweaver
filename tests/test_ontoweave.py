@@ -31,7 +31,7 @@ def test_ontoweave_register():
 
 def test_ontoweave_automap():
     logging.debug(f"From: {os.getcwd()}")
-    cmd="./bin/ontoweave --biocypher-config ./tests/family_automap/biocypher_config_2_bioPathNet.yaml --biocypher-schema ./tests/family_automap/schema_config.yaml ./tests/family_automap/reasoned.ttl:.automap --debug"
+    cmd="./bin/ontoweave --biocypher-config ./tests/family_automap/biocypher_config_2_bioPathNet.yaml --biocypher-schema ./tests/family_automap/schema_config.yaml ./tests/family_automap/reasoned.ttl:automap --debug"
 
     logging.debug(f"Run: {cmd}")
     subprocess.run(cmd.split(), capture_output=True, check=True)
