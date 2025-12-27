@@ -117,15 +117,14 @@ class OWLAutoAdapter(base.Adapter):
             for _,rel,obj in self.graph.triples((subj, None, None)):
                 logger.debug(f"\t-[{self.get.iri(rel)}]->({self.get.iri(obj)})")
 
-                if obj == OWL.NamedIndividual:
+                if    obj == OWL.NamedIndividual \
+                  or subj == OWL.NamedIndividual \
+                  or subj_label == "NamedIndividual" \
+                  or  rel == RDF.type \
+                  or self.get.label_of(rel) == "type":
                     logger.debug("\t\t= pass")
+                    # We don't need types, they will be set by BioCypher from labels.
                     pass
-
-                elif rel == RDF.type:
-                    #e = base.GenericEdge(None, str(subj), str(obj), {}, str(rel))
-                    e = base.GenericEdge(None, self.get.iri(subj), self.get.iri(obj), {}, self.get.label_of(rel))
-                    logger.debug(f"\t\t= {e}")
-                    local_edges.append(e)
 
                 elif type(obj) == rdflib.URIRef:
                     e = base.GenericEdge(None, self.get.iri(subj), self.get.iri(obj), {}, self.get.label_of(rel))

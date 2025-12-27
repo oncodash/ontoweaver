@@ -1,0 +1,161 @@
+@prefix : <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix biocypher: <https://biocypher.org/biocypher#> .
+@base <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3> .
+
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3> rdf:type owl:Ontology .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://swrl.stanford.edu/ontologies/3.3/swrla.owl#isRuleEnabled
+<http://swrl.stanford.edu/ontologies/3.3/swrla.owl#isRuleEnabled> rdf:type owl:AnnotationProperty .
+
+
+###  https://biocypher.org/biocypher#id
+biocypher:id rdf:type owl:AnnotationProperty .
+
+
+###  https://biocypher.org/biocypher#preferred_id
+biocypher:preferred_id rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/childOf
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/childOf> rdf:type owl:ObjectProperty ;
+                                                                                   owl:equivalentProperty [ owl:inverseOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parentOf>
+                                                                                                          ] ;
+                                                                                   rdfs:subPropertyOf owl:topObjectProperty ;
+                                                                                   owl:inverseOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parentOf> ;
+                                                                                   rdfs:domain <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                   rdfs:range <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                   rdfs:label "childOf" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/has_role
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/has_role> rdf:type owl:ObjectProperty ;
+                                                                                    rdfs:subPropertyOf owl:topObjectProperty .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parentOf
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parentOf> rdf:type owl:ObjectProperty ;
+                                                                                    rdfs:subPropertyOf owl:topObjectProperty ;
+                                                                                    rdfs:domain <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                    rdfs:range <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                    rdfs:label "parentOf" .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot> rdf:type owl:Class ;
+                                                                                         rdfs:label "Biocypherroot" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> rdf:type owl:Class ;
+                                                                                  rdfs:subClassOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot> ;
+                                                                                  rdfs:label "person" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Role
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Role> rdf:type owl:Class ;
+                                                                                rdfs:subClassOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot> ;
+                                                                                rdfs:label "role" .
+
+
+###  http://www.w3.org/2002/07/owl#NamedIndividual
+owl:NamedIndividual rdf:type owl:Class ;
+                    rdfs:subClassOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot> ;
+                    rdfs:label "NamedIndividual" .
+
+
+###  http://www.w3.org/2002/07/owl#ObjectProperty
+owl:ObjectProperty rdf:type owl:Class ;
+                   rdfs:subClassOf <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Biocypherroot> ;
+                   rdfs:label "ObjectProperty" .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parent
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parent> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Role> ;
+                                                                                  rdfs:label "parent" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/207451
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/207451> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/parentOf> <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/445533> ,
+                                                                                                                                                                      <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/981867> ,
+                                                                                                                                                                      <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/987845> ;
+                                                                                  rdfs:label "207451" ;
+                                                                                  biocypher:id "207451" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/445533
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/445533> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/childOf> <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/207451> ;
+                                                                                  rdfs:label "445533" ;
+                                                                                  biocypher:id "445533" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/476864
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/476864> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  rdfs:label "476864" ;
+                                                                                  biocypher:id "476864" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/546996
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/546996> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  rdfs:label "546996" ;
+                                                                                  biocypher:id "546996" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/971626
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/971626> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  rdfs:label "971626" ;
+                                                                                  biocypher:id "971626" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/981867
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/981867> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/childOf> <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/207451> ;
+                                                                                  rdfs:label "981867" ;
+                                                                                  biocypher:id "981867" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/987845
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/987845> rdf:type owl:NamedIndividual ,
+                                                                                           <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/Person> ;
+                                                                                  <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/childOf> <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/207451> ;
+                                                                                  rdfs:label "987845" ;
+                                                                                  biocypher:id "987845" ;
+                                                                                  biocypher:preferred_id "id" .
+
+
+###  Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi
