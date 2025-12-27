@@ -19,7 +19,7 @@ class simplest(ontoweaver.transformer.Transformer):
         yield self.create(str(row["patient"]), row)
 
 
-def test_transformer_iftypes():
+def test_transformer_simplest():
     # Add the passed transformer to the list available to OntoWeaver.
     ontoweaver.transformer.register(simplest)
 
