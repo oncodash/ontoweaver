@@ -218,11 +218,20 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         logger.debug("\tLabelMaker subject node:")
         subject_generator_list = list(self.subject_transformer(row, i))
-        if (len(subject_generator_list) > 1):
-            local_errors.append(self.error(f"You cannot use a transformer yielding multiple IDs as a subject. "
-                                           f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
-                                           f"{subject_generator_list}", indent=2,
-                                           exception=exceptions.TransformerInterfaceError))
+        if len(subject_generator_list) > 1:
+            local_errors.append(self.error(
+                f"You cannot use transformer yielding multiple IDs for the subject. "
+                f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
+                f"{subject_generator_list}, I'll take the first one and pretend this"
+                f" did not happened.",
+                indent=2, exception=exceptions.TransformerInterfaceError))
+
+        elif len(subject_generator_list) == 0:
+            local_errors.append(self.error(
+                f"The subject transformer did not produce any valid ID,"
+                f" I'll try to skip this entry.",
+                indent=2, exception=exceptions.TransformerDataError))
+            return None
 
         source_id, subject_edge, subject_node, subject_reverse_relation = subject_generator_list[0]
 
@@ -231,6 +240,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             # of the default type.
             subject_node = self.subject_transformer.final_type
 
+        assert subject_node
         if source_id:
             source_node_id = self.make_id(subject_node.__name__, source_id)
 
@@ -323,6 +333,15 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                            f"{transformer.from_subject}` must not be the same as the default subject type.",
                                            exception=exceptions.ConfigError))
 
+
+    def _no_element(self, local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
+        if local_nodes == None or local_edges == None or local_errors == None \
+            or local_rows == None or local_transformations == None or local_nb_nodes == None:
+            logger.debug(f"There's a None in: {local_nodes}, {local_edges}, {local_errors}, {local_rows}, {local_transformations}, {local_nb_nodes}")
+            return True
+        return False
+
+
     def _run_all(self, process_row, nb_rows, nb_transformations, nb_nodes):
         """
         Perform the final logging after processing all rows.
@@ -337,6 +356,9 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
             # Append the results in a thread-safe manner after all rows have been processed
             for local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes in results:
+                if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
+                    logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    continue
                 with self._nodes_lock:
                     self.nodes_append(local_nodes)
                 with self._edges_lock:
@@ -356,6 +378,9 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             logger.debug(f"Processing data sequentially...")
             for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
+                if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
+                    logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    continue
                 self.nodes_append(local_nodes)
                 self.edges_append(local_edges)
                 self.errors += local_errors
@@ -420,6 +445,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             local_rows += 1
 
             source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
+            if not source_node_id:
+                return None, None, None, None, None, None
 
             if source_node_id:
                 local_nb_nodes += 1

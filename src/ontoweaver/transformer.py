@@ -75,7 +75,7 @@ class Transformer(errormanager.ErrorManager):
         for value in self.value_maker(self.columns, row, i):
             value, edge_type, node_type, reverse_edge = self.create(value, row)
             if self.is_not_null(value):
-                yield str(value), edge_type, node_type, reverse_edge
+                yield value, edge_type, node_type, reverse_edge
 
 
     def is_not_null(self, val):
@@ -94,6 +94,8 @@ class Transformer(errormanager.ErrorManager):
         elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
             return False
         elif str(val) == "":
+            return False
+        elif str(val) == 'None':
             return False
         return True
 
@@ -235,7 +237,7 @@ class Transformer(errormanager.ErrorManager):
         if result_object.target_element_properties is not None:
             self.properties_of = result_object.target_element_properties
         self.final_type = result_object.final_type
-        return str(result_object.extracted_cell_value), result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
+        return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
 
 def register(transformer_class):
@@ -289,7 +291,7 @@ class split(Transformer):
             for key in columns:
                 items = str(row[key]).split(self.separator)
                 for item in items:
-                    yield str(item)
+                    yield item
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = None, **kwargs):
         """
@@ -454,7 +456,7 @@ class map(Transformer):
                     self.error(f"Column '{key}' not found in data", section="map.call",
                                exception=exceptions.TransformerDataError)
                 else:
-                    yield str(row[key])
+                    yield row[key]
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
         """
