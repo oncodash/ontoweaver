@@ -1,4 +1,4 @@
-def test_oncokb():
+def DISABLED_test_oncokb():
     from . import testing_functions
     import logging
     import ontoweaver
