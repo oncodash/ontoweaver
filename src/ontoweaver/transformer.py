@@ -95,6 +95,8 @@ class Transformer(errormanager.ErrorManager):
             return False
         elif str(val) == "":
             return False
+        elif str(val) == 'None':
+            return False
         return True
 
     #FIXME: The functions below are never implemented.
@@ -238,9 +240,6 @@ class Transformer(errormanager.ErrorManager):
         return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
 
-
-
-
 def register(transformer_class):
     """Adds the given transformer class to those available to OntoWeaver.
 
@@ -318,8 +317,6 @@ class split(Transformer):
                          raise_errors=raise_errors, **kwargs)
 
 
-
-
 class cat(Transformer):
     """Transformer subclass used to concatenate cell values of defined columns and label_maker nodes with
     their respective values as id."""
@@ -371,8 +368,6 @@ class cat(Transformer):
 
         for item in super().__call__(row, i):
             yield item
-
-
 
 
 class cat_format(Transformer):

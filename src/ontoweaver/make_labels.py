@@ -31,6 +31,7 @@ class ReturnCreate:
         self.final_type = final_type
         self.reverse_relation = reverse_relation
 
+
 class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
     """Interface for defining the correct labels (types) for each extracted value.
     The class is responsible for validating the extracted cell value and returning the appropriate label.
@@ -86,6 +87,7 @@ class SimpleLabelMaker(LabelMaker):
             # Validation failed, return empty object with None values.
             return ReturnCreate()
 
+
 class MultiTypeLabelMaker(LabelMaker):
     """
     The class is used when the transformer has type branching logic based on the value that will become the ID of the element.
@@ -115,6 +117,7 @@ class MultiTypeLabelMaker(LabelMaker):
         else:
             # Validation failed, return empty object with None values.
             return ReturnCreate()
+
 
 class MultiTypeOnColumnLabelMaker(LabelMaker):
     """
@@ -146,6 +149,4 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                 return ReturnCreate(res)
         else:
             return ReturnCreate()
-
-
 

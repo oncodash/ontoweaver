@@ -125,8 +125,14 @@ class LoadPandasFile(Loader):
 
         f  = self.read_funcs[ext][0]
         kw = self.read_funcs[ext][1]
+
         # Overwrite default named arguments with the passed ones.
         kw.update(kwargs)
+
+        # Always load data as string, to avoid conversion of numbers
+        # to floating-point values with decimal separators.
+        kw.update({'dtype':str})
+
         return f(filename, **kw)
 
 
