@@ -394,7 +394,10 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         with open(mapping_file) as fd:
             yaml_mapping = yaml.full_load(fd)
 
-        validator = mapping.YamlParser(yaml_mapping, types, raise_errors=raise_errors)._get_input_validation_rules()
+        validator = mapping.YamlParser(
+            yaml_mapping, types,
+            raise_errors=raise_errors
+        )._get_input_validation_rules()
 
         return validate_input_data_loaded(table, validator)
 

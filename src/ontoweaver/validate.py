@@ -31,6 +31,11 @@ class Validator(errormanager.ErrorManager):
         # Repeated validation error messages.
         self.messages = {}
 
+        self.dtypes = {
+            'int64': int,
+            'float64': float
+        }
+
 
     def error(self, msg, section = None):
         super().error(msg, section = section, exception = exceptions.DataValidationError)
@@ -50,6 +55,14 @@ class Validator(errormanager.ErrorManager):
             bool: True if the data frame is valid, Otherwise raise an pa.errors.SchemaError.
         """
         if self.validation_rules:
+            logger.debug(f"Input validation rules: on {len(self.validation_rules.columns)} columns:")
+            for col in self.validation_rules.columns:
+                dtype = self.validation_rules.columns[col].dtype
+                logger.debug(f"\t{col}: {dtype}")
+                if str(dtype) in self.dtypes:
+                    logger.debug(f"\t\tConvert to {self.dtypes[str(dtype)]}")
+                    df[col] = df[col].astype(self.dtypes[str(dtype)])
+
             # May raise a pa.errors.SchemaError which will be catched in caller.
             # Generally base.Transformer.label_maker(...), so that
             # we know which transformer deals the issue.
@@ -106,6 +119,7 @@ class InputValidator(Validator):
         Returns:
             bool: True if the data frame is valid, False otherwise.
         """
+
         return super().__call__(df, section = self.__class__.__name__)
 
 
@@ -136,6 +150,7 @@ default_validation_rules: pa.DataFrameSchema = pa.DataFrameSchema({
             )
     })
 
+
 class OutputValidator(Validator):
     """Class used for transformer output data validation against a schema.
     The schema contains some general rules for the output data frame expected by default. The user can add additional rules
@@ -151,7 +166,6 @@ class OutputValidator(Validator):
             validation_rules: The schema used for validation.
         """
         super().__init__(validation_rules, raise_errors)
-
 
 
     def __call__(self, df):
@@ -187,6 +201,7 @@ class OutputValidator(Validator):
         # Update the validation rules
         self.validation_rules = pa.DataFrameSchema(merged_rules)
 
+
 class SimpleOutputValidator(Validator):
 
     def __init__(self, validation_rules = None, raise_errors = True):
@@ -199,6 +214,7 @@ class SimpleOutputValidator(Validator):
         """
         super().__init__(validation_rules, raise_errors)
 
+
     def __call__(self, val):
         if pd.api.types.is_numeric_dtype(type(val)):
             if math.isnan(val) or val == float("nan"):
@@ -208,6 +224,7 @@ class SimpleOutputValidator(Validator):
             return False
 
         return True
+
 
 class SkipValidator(Validator):
     """Class used for skipping validation. This class is used to skip validation for specific transformers.
@@ -223,6 +240,7 @@ class SkipValidator(Validator):
         super().__init__(validation_rules, raise_errors)
         logger.debug(f"Instantiate a `SkipValidator`, some output validation will be skipped. This could result in some empty or `nan` nodes in your knowledge graph."
                     f" To enable output validation set validate_output to True.")
+
 
     def __call__(self, val):
         return True
