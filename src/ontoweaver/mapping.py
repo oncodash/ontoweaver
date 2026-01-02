@@ -528,13 +528,14 @@ class YamlParser(base.Declare):
             self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
                        f"missing either a `to_object` or a `via_relation` in the mapping?.", "transformers", transformer_index,
                        indent=2, exception=exceptions.MissingDataError)
+
         elif multi_type_dictionary and any(key in gen_data for key in self.k_match_type_from) and not target and not edge:
             label_maker = make_labels.MultiTypeOnColumnLabelMaker(
                 raise_errors=self.raise_errors,
                 match_type_from_column=self.get(self.k_match_type_from, gen_data)
             )
 
-        elif multi_type_dictionary and not target and not edge and any(key in gen_data for key in self.k_match_type_from):
+        elif multi_type_dictionary and not target and not edge and not any(key in gen_data for key in self.k_match_type_from):
             label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
         else:
             label_maker = make_labels.SimpleLabelMaker(raise_errors = self.raise_errors)
