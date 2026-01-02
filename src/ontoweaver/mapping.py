@@ -453,9 +453,11 @@ class YamlParser(base.Declare):
                 subject_type = None
                 logger.debug(f"Parse subject transformer...")
 
-                if "match_type_from_column" in subject_kwargs: #FIXME should be a k_variable just like the others.
-                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
-                                                                            match_type_from_column=subject_kwargs['match_type_from_column'])
+                if any(key in subject_kwargs for key in self.k_match_type_from):
+                    s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(
+                        raise_errors=self.raise_errors,
+                        match_type_from_column=self.get(self.k_match_type_from, subject_kwargs)
+                    )
                 else:
                     s_label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
 
@@ -526,11 +528,13 @@ class YamlParser(base.Declare):
             self.error(f"Cannot declare the mapping  `{columns}` => `{edge}` (target: `{target}`), "
                        f"missing either a `to_object` or a `via_relation` in the mapping?.", "transformers", transformer_index,
                        indent=2, exception=exceptions.MissingDataError)
-        elif multi_type_dictionary and "match_type_from_column" in gen_data and not target and not edge:
-            label_maker = make_labels.MultiTypeOnColumnLabelMaker(raise_errors=self.raise_errors,
-                                                                match_type_from_column=gen_data["match_type_from_column"])
+        elif multi_type_dictionary and any(key in gen_data for key in self.k_match_type_from) and not target and not edge:
+            label_maker = make_labels.MultiTypeOnColumnLabelMaker(
+                raise_errors=self.raise_errors,
+                match_type_from_column=self.get(self.k_match_type_from, gen_data)
+            )
 
-        elif multi_type_dictionary and not target and not edge and "match_type_from_column" not in gen_data:
+        elif multi_type_dictionary and not target and not edge and any(key in gen_data for key in self.k_match_type_from):
             label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
         else:
             label_maker = make_labels.SimpleLabelMaker(raise_errors = self.raise_errors)
@@ -743,8 +747,8 @@ class YamlParser(base.Declare):
 
         # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
         self.k_row = ["row", "entry", "line", "subject", "source"]
-        self.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column"]
-        self.k_columns = ["columns", "fields", "column", "field", "match_column", "id_from_column", "label"]
+        self.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
+        self.k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element"]
         self.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
         self.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
         self.k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -756,6 +760,7 @@ class YamlParser(base.Declare):
         self.k_validate_output = ["validate_output"]
         self.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
         self.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
+        self.k_match_type_from = ["match_type_from_column", "match_type_from_element"]
 
         #TODO create make node class for nested final_type instantiation
 
