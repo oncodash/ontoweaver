@@ -50,8 +50,8 @@ owl:ObjectProperty rdfs:subClassOf owl:thing .
     mapping = """
 subject:
     map:
-        id_from_column: label
-        match_type_from_column: type
+        id_from_element: label
+        match_type_from_element: type
         match:
             - source:
                 to_subject: source
@@ -59,11 +59,11 @@ subject:
                 to_subject: target
 transformers:
     - map:
-        column: link
+        element: link
         to_object: target
         via_relation: link
     - map:
-        column: prop
+        element: prop
         to_property: prop
 metadata:
     - source: "Test"
