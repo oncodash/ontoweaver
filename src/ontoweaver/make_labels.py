@@ -84,8 +84,8 @@ class SimpleLabelMaker(LabelMaker):
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(res)
         else:
-            # Validation failed, return empty object with None values.
-            return ReturnCreate()
+            # Validation failed.
+            return None
 
 
 class MultiTypeLabelMaker(LabelMaker):

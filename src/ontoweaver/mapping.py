@@ -699,27 +699,36 @@ class YamlParser(base.Declare):
                 if "match" in gen_data:
 
                     target_branching = True
-                    self._make_branching_dict(subject=False, match_parser=gen_data["match"],
-                                              properties_of=properties_of, metadata_list=metadata_list,
-                                              metadata=metadata,
-                                              columns=columns, final_type_class=final_type_class,
-                                              multi_type_dictionary=multi_type_dictionary,
-                                              possible_node_types=possible_target_types,
-                                              possible_edge_types=possible_edge_types)
+                    self._make_branching_dict(
+                        subject = False,
+                        match_parser = gen_data["match"],
+                        properties_of = properties_of,
+                        metadata_list = metadata_list,
+                        metadata = metadata,
+                        columns = columns,
+                        final_type_class = final_type_class,
+                        multi_type_dictionary = multi_type_dictionary,
+                        possible_node_types = possible_target_types,
+                        possible_edge_types = possible_edge_types
+                    )
                 # Parse the validation rules for the output of the transformer. Each transformer gets its own
                 # instance of the OutputValidator with (at least) the default output validation rules.
                 output_validation_rules = self.get(self.k_validate_output, pconfig=transformer_keyword_dict)
                 output_validator = self._make_output_validator(output_validation_rules)
 
                 label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
-                target_transformer = self.make_transformer_class(transformer_type=transformer_type,
-                                                                 multi_type_dictionary=multi_type_dictionary,
-                                                                 branching_properties=properties_of if target_branching else None,
-                                                                 properties=properties_of.get(target_t.__name__,
-                                                                                              {}) if not target_branching else None,
-                                                                 columns=columns,
-                                                                 output_validator=output_validator,
-                                                                 label_maker=label_maker, **gen_data)
+                target_transformer = self.make_transformer_class(
+                    transformer_type = transformer_type,
+                    multi_type_dictionary = multi_type_dictionary,
+                    branching_properties = properties_of if target_branching else None,
+                    properties = properties_of.get(
+                        target_t.__name__,
+                        {}) if not target_branching else None,
+                    columns = columns,
+                    output_validator = output_validator,
+                    label_maker = label_maker,
+                    **gen_data
+                )
                 transformers.append(target_transformer)
                 # Declare the metadata for the target and edge types.
 

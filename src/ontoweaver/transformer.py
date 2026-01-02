@@ -12,6 +12,7 @@ from . import errormanager
 from. import exceptions
 from . import validate
 from . import make_value
+from . import make_labels
 from . import base
 
 logger = logging.getLogger("ontoweaver")
@@ -58,8 +59,10 @@ class Transformer(errormanager.ErrorManager):
 
         self.declare_types = base.Declare()
 
+
     def get_transformer(self):
         return self
+
 
     def __call__(self, row, i):
         """
@@ -232,6 +235,8 @@ class Transformer(errormanager.ErrorManager):
             - reverse relation in case declared in the mapping.
         """
         result_object = self.label_maker(self.validate, returned_value, self.multi_type_dict, self.branching_properties, row)
+        if not result_object:
+            return None, None, None, None
         if result_object.target_node_type:
             self.target_type = result_object.target_node_type.__name__
         if result_object.target_element_properties is not None:

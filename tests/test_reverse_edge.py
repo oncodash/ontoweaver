@@ -8,7 +8,7 @@ def test_reverse_edge():
 
     directory_name = "reverse_edge"
 
-    assert_nodes = [('0:variant', 'variant', {'whatever': 'A0', 'database_name': 'my_database'}),
+    expected_nodes = [('0:variant', 'variant', {'whatever': 'A0', 'database_name': 'my_database'}),
                     ('A:disease', 'disease', {'whatever': 'A0', 'something': 'Whatever it is', 'database_name': 'my_database'}),
                     ('1:variant', 'variant', {'whatever': 'B1', 'database_name': 'my_database'}),
                     ('B:patient', 'patient', {'something': 'Whatever it is', 'database_name': 'my_database'}),
@@ -16,7 +16,7 @@ def test_reverse_edge():
                     ('C:oncogenicity', 'oncogenicity', {'database_name': 'my_database'}),
                     ]
 
-    assert_edges = [('', '0:variant', 'A:disease', 'variant_to_disease', {'something': 'Whatever it is', 'database_name': 'my_database'}),
+    expected_edges = [('', '0:variant', 'A:disease', 'variant_to_disease', {'something': 'Whatever it is', 'database_name': 'my_database'}),
                     ('', '1:variant', 'B:patient', 'patient_has_variant', {'database_name': 'my_database'}),
                     ('', 'B:patient', '1:variant', 'variant_of_patient', {'whatever': 'B1', 'database_name': 'my_database'}),
                     ('', '2:variant', 'C:oncogenicity', 'variant_to_oncogenicity', {'whatever': 'C2', 'database_name': 'my_database'}),
@@ -29,12 +29,12 @@ def test_reverse_edge():
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    expected_node_set = testing_functions.convert_to_set(expected_nodes)
     f_node_set = testing_functions.convert_to_set(fnodes)
 
-    assert assert_node_set == f_node_set, "Nodes are not equal."
+    assert expected_node_set == f_node_set, "Nodes are not equal."
 
-    testing_functions.assert_edges(fedges, assert_edges)
+    testing_functions.assert_edges(fedges, expected_edges)
 
 
 if __name__ == "__main__":
