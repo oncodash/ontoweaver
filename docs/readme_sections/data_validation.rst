@@ -96,12 +96,13 @@ return an error if the data does not meet the expectations.
    ontoweave my_data.csv:my_mapping.yaml --validate-only
 
 .. note::
-.. note::
       If you want to know more about the rules you can use to validate your
-   .. note::
+
+.. note::
       data, you can check the `Pandera
       documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
-   
+
+
 Output Data Validation
 ~~~~~~~~~~~~~~~~~~~~~~
 

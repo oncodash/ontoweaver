@@ -15,6 +15,7 @@ adapter, the only way to solve this problem is to implement a single
 adapter, which reconciliate the data before producing nodes, which makes
 the task difficult and the adapter code even harder to understand.
 
+
 Reconciliation
 ~~~~~~~~~~~~~~
 
@@ -42,6 +43,7 @@ edges:
    fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, reconciliate_sep=";")
 
    # Then you can pass those to biocypher.write_nodes and biocypher.write_edges...
+
 
 High-level Interface
 ^^^^^^^^^^^^^^^^^^^^
@@ -83,7 +85,7 @@ To do so, it is allows to manage two problems:
 1. How to detect that two elements are duplicates?
 2. How to fuse duplicated element in a single one?
 
-The first problem is handled by the `Congregater` interface, which needs to
+The first problem is handled by the ``Congregater`` interface, which needs to
 construct a dictionary associating a *key* with a list of duplicated elements.
 The *key* is a representation of the elements in the form of a string. If two
 elements have the same *key* then they are considered duplicates and put in the
@@ -93,11 +95,12 @@ For the second problem, OntoWeaver provides three layers, depending on what one
 wants to fuse. For fusing:
 
 1. a whole *list of duplicated elements*, use objects implementing the low-level
-   interface `fusion.Fusioner`,
+   interface ``fusion.Fusioner``,
 2. two duplicated elements, use objects implementing the low-level interface
-   `fuse.Fuser`,
+   ``fuse.Fuser``,
 3. two member variables (e.g. ID, label, properties, source or target) of two
-   duplicated elements, use the mid-level interface `merge.Merger`.
+   duplicated elements, use the mid-level interface ``merge.Merger``.
+
 
 Mid-level Interfaces
 ^^^^^^^^^^^^^^^^^^^^
@@ -110,20 +113,24 @@ The simplest approach to fusion is to define how to:
 4. fuse two properties dictionaries, and then
 5. let OntoWeaver browse the nodes by pairs, until everything is fused.
 
+
 Detecting duplicates
 """"""""""""""""""""
 
-For step 1, OntoWeaver provides the `serialize` module, which allows to extract
+For step 1, OntoWeaver provides the ``serialize`` module, which allows to extract
 the part of a node (or an edge) that should be used when checking equality.
 
-To produce such a *key* from an element, OntoWeaver provides `Serializer`s. A
-serializer object takes the element as an input, and returns the string key
+To produce such a *key* from an element, OntoWeaver provides ``Serializer``s.
+A serializer object takes the element as an input, and returns the string key
 representing it. For instance, it can return the concatenation of a node's ID
 and label, or the concatenation of an edge's source, target and the value of a
 specific property.
 
-For example, with 4 nodes all having the same label, using the `IDLabel`
-serializer, the `Node` congregater will detect three duplicated nodes::
+For example, with 4 nodes all having the same label, using the ``IDLabel``
+serializer, the ``Node`` congregater will detect three duplicated nodes:
+
+::
+
     nodes ==
     ⎡ ┌node1───────┐  ┌node2───────┐  ┌node3───────┐  ┌node4───────┐  ⎤
     ⎢ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ ⎥
@@ -188,6 +195,7 @@ For example:
    congregater(my_nodes) # Actual processing call.
    # congregarter now holds a dictionary of duplicated nodes.
 
+
 Fuse duplicates
 """""""""""""""
 
@@ -239,7 +247,10 @@ For example, to fuse “congregated” nodes, one can do:
        fusioned_nodes = fusioner(congregater) # Call on the previously found duplicates.
 
 For example, the three duplicated nodes shown in the previous section would be
-merged into a single node in two steps::
+merged into a single node in two steps:
+
+::
+
     congregate.duplicates() ==
     ⎧             ⎡ ┌node1───────┐ ┌node2───────┐ ┌node4───────┐ ⎤ ⎫
     ⎪             ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥ ⎪
@@ -259,8 +270,11 @@ merged into a single node in two steps::
                          merge node1 and node2,
                          one now have a single node.
 
-Each `Reduce` step would consists in calling `Members` mergers on each variable
-members, for example, for the second step::
+Each ``Reduce`` step would consists in calling ``Members`` mergers on each variable
+members, for example, for the second step:
+
+::
+
     fuse.Members.merge \
       ⎛            ┌node1───────┐ ┌node2─────────┐ ⎞                     ┌node────────────┐
       ⎜            │   ID: BRCA2│ │   ID: BRCA2  │ ⎟ ──────UseFirst─────▶│   ID: BRCA2    │
@@ -316,6 +330,7 @@ classes, they need to be converted back to Biocypher’s tuples:
 .. code:: python
 
        return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
+
 
 Low-level Interfaces
 ^^^^^^^^^^^^^^^^^^^^
