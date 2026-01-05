@@ -15,6 +15,10 @@ testpaths = [
     "tests",
 ]
 
+[tool.poetry.scripts]
+ontoweave = "bin.ontoweave:main"
+
+
 [project]
 authors = [
     { name = "Johann Dreo", email = "johann.dreo@pasteur.fr" },
