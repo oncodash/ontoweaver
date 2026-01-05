@@ -38,4 +38,5 @@ jobs:
       - name: Run tests
         run: poetry run pytest
         env:
+          PYTHONPATH: ${{ github.workspace }}
           SHELL: /bin/bash
