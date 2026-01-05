@@ -42,6 +42,7 @@ dependencies = [
     "natsort>5.0.0",
     "lxml>6.0.0",
     "jmespath>=1.0.1",
+    "sphinx-rtd-theme>=3.0.2,<4.0.0"
 ]
 name = "ontoweaver"
 version = "1.0.0"
