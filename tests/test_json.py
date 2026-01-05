@@ -52,15 +52,15 @@ def test_jmespath():
     mapping = """
 row:
    map:
-       column: data[*].variant
+       element: data[*].variant
        to_subject: variant
 transformers:
     - map:
-        column: data[*].patient
+        element: data[*].patient
         to_object: patient
         via_relation: patient_has_variant
     - map:
-        column: data[*].age
+        element: data[*].age
         to_property: age
         for_object: patient
 metadata:

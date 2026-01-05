@@ -9,10 +9,16 @@ line by line, creating node(s) and edge(s) at each step.
 However, technically, OntoWeaver can consume any iterable data, providing that
 it has an "Adapter" class knowing how to do it.
 
+The more generic adapters run a query on a data file, which issue a set of
+iterable data. For instance, you can run a XPath query on an XML document,
+or a JMESPath query on a JSON file.
+
 For a basic usage through the `ontoweave` command, OntoWeaver will guess the
-input data type from the input file extension. Thus, in theory, you will not
-have to do anything special to consume a data file of a supported type;
-even the mapping would work for any input data type.
+input data type from the input file extension. Then, it will read the
+``element`` (i.e. the same as ``column``) sections of the mapping as an input
+query. In several query language, using a matching string already works. Thus,
+for simple queries, you should not have much to do to consume a data file of a
+supported type.
 
 The following sections show the available input data adapters.
 
@@ -32,6 +38,9 @@ The automatic input data type detection can handle the following
 formats/extensions:
 csv, tsv, txt,  xls, xlsx, xlsm, xlsb, odf, ods, odt, json, html, hdf,
 feather, parquet, pickle, orc, sas, spss, stata.
+
+Simple tables being the most common data format, we use it for all examples in
+the :ref:`Mapping API` section.
 
 
 Web Ontology data
@@ -55,7 +64,7 @@ and import them as pieces of data.
    "an ontology", for the sake of simplicity.
 
 More specifically, OntoWeaver can import RDF triples which predicate is
-`owl:NamedIndividual`.
+``owl:NamedIndividual``.
 
 OntoWeaver can read ontology files written in the RDF dialects that
 `RDFlib <https://rdflib.readthedocs.io>`_ can read:
@@ -140,8 +149,8 @@ as a subject, and then map "object properties" via a relation.
 If you need to call the adapter yourself, use the ``OWLAdapter`` class.
 
 
-Example
-_______
+OWL Example
+___________
 
 Example of mapping working with an OWL file:
 
@@ -207,3 +216,118 @@ file (here in the Turtle syntax):
             rdfs:label "T0" ;
             :prop "data property" .
 
+
+JavaScript Object Notation (JSON)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+JSON data is ubiquituous in Web APIs. To extract data from JSON files,
+OntoWeaver uses the `JMESPath query language <https://jmespath.org/>`_.
+
+JMESPath is a mature query language that is well defined and documented, simple
+queries are intuitive, and accessing iterable data is easy.
+It also allows slicing, filtering data and multiselection of lists.
+You will learn more by looking at the `JMESPath tutorial <https://jmespath.org/tutorial.html>`_.
+
+
+JSON Example
+^^^^^^^^^^^^
+
+You will most probably want to extract data from a JSON list, which means you
+will just need to understand the `wilcard expression <https://jmespath.org/specification.html#wildcards>`_.
+
+Imagine that you have the following JSON document, containing a table:
+
+.. code:: json
+
+    {
+        "data": [
+            {"variant": 0, "patient": "A", "age": 12 },
+            {"variant": 1, "patient": "B", "age": 23 },
+            {"variant": 2, "patient": "C", "age": 34 }
+        ]
+    }
+
+To extract its data with OntoWeaver, you can use the following mapping:
+
+.. code:: yaml
+
+    row:
+       map:
+           element: data[*].variant
+           to_subject: variant
+    transformers:
+        - map:
+            element: data[*].patient
+            to_object: patient
+            via_relation: patient_has_variant
+        - map:
+            element: data[*].age
+            to_property: age
+            for_object: patient
+
+Note how the wilcard expression ``[*]`` will return *all* matching elements,
+hence building an iterable data set. Right in the mapping, you can use filters,
+for instance by using ``element: data[?age > 18].age``.
+
+To work with more complex data (for instance nested data), you will want to
+learn more about
+`multi-select lists <https://jmespath.org/specification.html#multiselectlist>`_,
+for which the `tutorial <https://jmespath.org/examples.html#working-with-nested-data>`_ have some
+examples.
+
+
+Extensible Markup Language (XML, HTML…)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XML data formats are ubuiquitous to word processors, and the Web in general (for
+instance: HTML, ODF, DOCX are all XML dialects).
+To extract XML data, OntoWeaver uses the
+`ElementTree XPath query language <https://docs.python.org/3/library/xml.etree.elementtree.html#xpath-support>`_,
+which is a small extension on top of the `XPath Web standard <https://www.w3.org/TR/xpath>`_.
+
+
+HTML Example
+^^^^^^^^^^^^
+
+You will most probably want to extract data from tables encoded as nested XML
+tags, which means you will just need to understand
+`localization paths <https://www.w3.org/TR/xpath-3/#id-path-expressions>`_
+and `numerical predicates <https://www.w3.org/TR/xpath-3/#id-predicate>`_.
+
+Imagine that you have the followimg HTML page, containing a table:
+
+.. code:: html
+
+    <body>
+        <table>
+            <caption>Friends</caption>
+            <thead>
+                <tr><th>variant_id</th><th>patient</th><th>age</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>B</td><td>12</td></tr>
+                <tr><td>0</td><td>A</td><td>23</td></tr>
+                <tr><td>2</td><td>C</td><td>34</td></tr>
+            </tbody>
+        </table>
+    <body>
+
+To extract its data with OntoWeaver, you can use the following mapping:
+
+.. code:: yaml
+
+    row:
+       map:
+           element: /body/table/tbody/tr/td[1]
+           to_subject: variant
+    transformers:
+        - map:
+            element: /body/table/tbody/tr/td[2]
+            to_object: patient
+            via_relation: patient_has_variant
+        - map:
+            element: /body/table/tbody/tr/td[3]
+            to_property: age
+            for_object: patient
+
+Note that XPath also allows `filtering <https://www.w3.org/TR/xpath-3/#id-filter-expression>`_.

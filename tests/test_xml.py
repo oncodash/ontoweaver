@@ -56,15 +56,15 @@ def test_xpath():
     mapping = """
 row:
    map:
-       column: /table/tbody/tr/td[1]
+       element: /table/tbody/tr/td[1]
        to_subject: variant
 transformers:
     - map:
-        column: /table/tbody/tr/td[2]
+        element: /table/tbody/tr/td[2]
         to_object: patient
         via_relation: patient_has_variant
     - map:
-        column: /table/tbody/tr/td[3]
+        element: /table/tbody/tr/td[3]
         to_property: age
         for_object: patient
 metadata:
