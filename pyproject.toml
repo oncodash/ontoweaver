@@ -15,9 +15,14 @@ testpaths = [
     "tests",
 ]
 
-[tool.poetry.scripts]
-ontoweave = "src.bin.ontoweave:main"
+[tool.poetry]
+packages = [
+    { include = "ontoweaver", from = "src" },
+    { include = "bin", from = "src" }
+]
 
+[tool.poetry.scripts]
+ontoweave = "bin.ontoweave:main"
 
 [project]
 authors = [
