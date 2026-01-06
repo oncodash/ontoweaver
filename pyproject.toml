@@ -10,7 +10,7 @@ dev = [
 addopts = [
     "--import-mode=importlib",
 ]
-pythonpath = ["src"]
+pythonpath = ["src", "bin"]
 testpaths = [
     "tests",
 ]
