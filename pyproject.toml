@@ -20,7 +20,7 @@ requires = ["uv_build>=0.8.22,<0.9.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-ontoweave = "ontoweaver.ontoweave:ontoweave"
+ontoweave = "bin.ontoweave:main"
 
 [project]
 authors = [
