@@ -10,10 +10,15 @@ dev = [
 addopts = [
     "--import-mode=importlib",
 ]
-pythonpath = "src"
+pythonpath = ["src"]
 testpaths = [
     "tests",
 ]
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
 
 [tool.poetry]
 packages = [
