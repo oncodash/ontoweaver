@@ -16,7 +16,7 @@ testpaths = [
 ]
 
 [tool.poetry.scripts]
-ontoweave = "bin.ontoweave:main"
+ontoweave = "src.bin.ontoweave:main"
 
 
 [project]
