@@ -43,7 +43,7 @@ logger = logging.getLogger("ontoweaver")
 
 __all__ = ['tabular',
            'types', 'transformer', 'serialize', 'congregate',
-           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'ow2bc' 'make_value', 'make_labels', 'iterative', 'xml',
+           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'make_value', 'make_labels', 'iterative', 'xml',
            'owl', 'mapping', 'base']
 
 
