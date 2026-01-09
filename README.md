@@ -92,7 +92,7 @@ You can install the necessary dependencies in a virtual environment like this:
 git clone https://github.com/oncodash/ontoweaver.git
 cd ontoweaver
 uv venv
-uv pip install -e .
+uv pip install .
 ```
 
 UV will create a virtual environment according to your configuration (either
