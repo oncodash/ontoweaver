@@ -53,6 +53,6 @@ dependencies = [
     "sphinx-rtd-theme<4.0.0,>=3.0.2",
 ]
 name = "ontoweaver"
-version = "1.0.0"
+version = "1.2.0"
 description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
