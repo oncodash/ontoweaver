@@ -91,19 +91,30 @@ You can install the necessary dependencies in a virtual environment like this:
 ```
 git clone https://github.com/oncodash/ontoweaver.git
 cd ontoweaver
-uv build
+uv venv
+uv pip install .
 ```
 
 UV will create a virtual environment according to your configuration (either
 centrally or in the project folder).
 
-You can then run any script by calling it directly (.e.g. `./bin/ontoweave`)
+You can then run any script by calling it directly (.e.g. `uv run ontoweave`),
 and it should just work. If you want to call scripts from anywhere in your
-system, you will have to add the `…/ontoweaver/bin/` directory to your PATH:
+system, you will have to add the `…/ontoweaver/src/ontoweaver` directory to your PATH:
 
 ```sh
 # Put this in your ~/.bashrc or ~/.zshrc
-export PATH="$PATH:$HOME/<your path>/ontoweaver/bin/"
+export PATH="$PATH:$HOME/<your path>/ontoweaver/src/ontoweaver/
+```
+
+The package can also be used in a [Poetry](https://python-poetry.org/) environment. Just run:
+
+```poetry install
+```
+
+Poetry will create a virtual environment according to your configuration, and you can call the CLI with:
+
+```poetry run ontoweave
 ```
 
 Theoretically, OntoWeaver can export a knowledge graph in any of the formats

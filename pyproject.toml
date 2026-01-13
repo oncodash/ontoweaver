@@ -1,4 +1,3 @@
-
 [dependency-groups]
 dev = [
     "pyaml>=25.7.0",
@@ -10,7 +9,7 @@ dev = [
 addopts = [
     "--import-mode=importlib",
 ]
-pythonpath = ["src", "bin"]
+pythonpath = ["src"]
 testpaths = [
     "tests",
 ]
@@ -20,11 +19,11 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-ontoweave = "bin.ontoweave:main"
+ontoweave = "ontoweaver.ontoweave:main"
 
 [tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["ontoweaver*", "bin*"]
+where = ["src"]
+include = ["ontoweaver*"]
 
 [project]
 authors = [
