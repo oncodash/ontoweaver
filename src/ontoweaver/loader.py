@@ -165,9 +165,6 @@ class LoadOWLFile(Loader):
             ext = pathlib.Path(filename).suffix
             if ext in self.allowed:
                 return True
-
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
-        logger.warning(msg)
         return False
 
 
@@ -217,9 +214,6 @@ class LoadXMLFile(Loader):
             ext = pathlib.Path(filename).suffix
             if ext in self.allowed:
                 return True
-
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
-        logger.warning(msg)
         return False
 
     def load(self, filename, **kwargs):
@@ -257,9 +251,6 @@ class LoadJSONFile(Loader):
             ext = pathlib.Path(filename).suffix
             if ext in self.allowed:
                 return True
-
-        msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {', '.join(self.allowed)})"
-        logger.warning(msg)
         return False
 
     def load(self, filename, **kwargs):

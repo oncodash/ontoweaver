@@ -222,7 +222,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
                 break
 
         if not found_loader:
-            msg = f"I found no loader able to load `{data_file}`"
+            msg = f"I found no loader able to load `{data}`"
             logger.error(msg)
             raise exceptions.FeatureError(msg)
 
