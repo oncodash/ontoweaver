@@ -505,6 +505,46 @@ class map(Transformer):
             yield item
 
 
+class capitalize(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with first letter in uppercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.capitalize()
+
+
+class lower_capitalize(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with first letter in uppercase, and all others in lowercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.lower().capitalize()
+
+
 class translate(Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
