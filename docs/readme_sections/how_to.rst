@@ -496,3 +496,9 @@ You can declare a property transformer on-the-fly within your custom transformer
 
 In case of using this feature, remember to include all the dynamically created properties in the schema configuration file of BioCypher.
 
+
+How to load multiple Parquet files?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: ./readme_sections/glob.rst
+

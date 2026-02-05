@@ -113,7 +113,7 @@ def read_table_file(filename, **kwargs):
     """
 
     lpf = loader.LoadPandasFile()
-    data = lpf.load(filename, **kwargs)
+    data = lpf.load([filename], **kwargs)
     return data
 
 
@@ -125,11 +125,11 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
 def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     logger.info(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
 
-    assert with_loader.allows(data), "This loader cannot handle this data"
+    assert with_loader.allows([data]), "This loader cannot handle this data"
     nodes = []
     edges = []
 
-    data = with_loader(data, **kwargs)
+    data = with_loader([data], **kwargs)
     mapping_options = {}
 
     if with_mapping == "automap":
@@ -214,12 +214,16 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         data, mapping = d2m
         found_loader = False
         for with_loader in [lpf, lpd, lrf, lrg]:
-            if with_loader.allows(data):
+            logger.debug(f"Trying loader: {type(with_loader).__name__}")
+            if with_loader.allows([data]):
+                logger.debug(f"  Loader allows this data type")
                 found_loader = True
                 ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
                 nodes += ln
                 edges += le
                 break
+            else:
+                logger.debug(f"  Loader does not allow this data type")
 
         if not found_loader:
             msg = f"I found no loader able to load `{data}`"

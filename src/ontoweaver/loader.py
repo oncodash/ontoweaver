@@ -1,6 +1,8 @@
+import glob
 import rdflib
 import pathlib
 import logging
+import json as pyjson
 import pandas as pd
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
@@ -8,6 +10,7 @@ from . import tabular
 from . import owl
 from . import xml
 from . import json
+from . import exceptions
 
 logger = logging.getLogger("ontoweaver")
 
@@ -29,13 +32,36 @@ class Loader(metaclass = ABSTRACT):
     def adapter(self, **kwargs):
         return NotImplementedError()
 
+    def extensions(self, filenames):
+        assert type(filenames) == list, "You must pass a list to this function"
+
+        if not all(type(f) == str for f in filenames):
+            # Those cannot be extensions
+            return None
+
+        extensions = []
+        for filename in filenames:
+            if type(filename) == str or type(filename) == pathlib.Path:
+                ext = pathlib.Path(filename).suffix
+                if not ext:
+                    # If the passed filename is itself an extension,
+                    # just use it as-is.
+                    ext = filename
+                assert ext != '', f"I can't parse the extension of file {filename}"
+                extensions.append(ext)
+            else:
+                logger.warning(f"I don't know how to handle the filename `{filename}` of type `{type(filename)}`. I'll pretend I saw nothing, but this may generate errors later on.")
+        return extensions
+
 
 class LoadPandasDataframe(Loader):
     def allows(self, data):
-        return type(data) == pd.DataFrame
+        return all(type(d) == pd.DataFrame for d in data)
 
-    def load(self, df, **kwargs):
-        return df
+    def load(self, dataframes, **kwargs):
+        logger.debug(dataframes)
+        assert type(dataframes) != str and len(dataframes) > 0 and not any(d.empty for d in dataframes), "A Loader expects a list (or an iterable) of data."
+        return pd.concat(dataframes)
 
     def adapter(self, **kwargs):
         return tabular.PandasAdapter
@@ -68,73 +94,93 @@ class LoadPandasFile(Loader):
         self.read_funcs = {
             '.csv'    : (pd.read_csv, {
                 "sep": ",",
-                'na_filter': True,
+                'na_filter': True, # Do not load empty cells, if possible.
+                'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
                 'engine': 'python'
             }),
             '.tsv'    : (pd.read_csv, {
                 "sep": "\t",
                 'na_filter': True,
+                'dtype': str,
                 'engine': 'python'
             }),
             '.txt'    : (pd.read_csv, {
                 'na_filter': True,
+                'dtype': str,
                 'engine': 'python'
             }),
             '.dat'    : (pd.read_csv, {
                 'na_filter': True,
+                'dtype': str,
                 'engine': 'python'
             }),
 
-            '.xls'    : (pd.read_excel,   {'na_filter': True}),
-            '.xlsx'   : (pd.read_excel,   {'na_filter': True}),
-            '.xlsm'   : (pd.read_excel,   {'na_filter': True}),
-            '.xlsb'   : (pd.read_excel,   {'na_filter': True}),
-            '.odf'    : (pd.read_excel,   {'na_filter': True}),
-            '.ods'    : (pd.read_excel,   {'na_filter': True}),
-            '.odt'    : (pd.read_excel,   {'na_filter': True}),
+            # Use dtype: str for formats not supposed to host complex objects in their cells.
+            '.xls'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.xlsx'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.xlsm'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.xlsb'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.odf'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.ods'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.odt'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
+            '.orc'    : (pd.read_orc,     {'na_filter': True, 'dtype': str}),
+            '.sas'    : (pd.read_sas,     {'na_filter': True, 'dtype': str}),
+            '.spss'   : (pd.read_spss,    {'na_filter': True, 'dtype': str}),
+            '.stata'  : (pd.read_stata,   {'na_filter': True, 'dtype': str}),
 
+            # Allow multile dtypes for the others.
             '.json'   : (pd.read_json,    {'na_filter': True}),
-            '.html'   : (pd.read_html,    {'na_filter': True}),
-            '.xml'    : (pd.read_xml,     {'na_filter': True}),
-            '.hdf'    : (pd.read_hdf,     {'na_filter': True}),
             '.feather': (pd.read_feather, {'na_filter': True}),
-            '.parquet': (pd.read_parquet, {'na_filter': True}),
             '.pickle' : (pd.read_pickle,  {'na_filter': True}),
-            '.orc'    : (pd.read_orc,     {'na_filter': True}),
-            '.sas'    : (pd.read_sas,     {'na_filter': True}),
-            '.spss'   : (pd.read_spss,    {'na_filter': True}),
-            '.stata'  : (pd.read_stata,   {'na_filter': True}),
+            '.hdf'    : (pd.read_hdf,     {'na_filter': True}),
+            '.parquet': (pd.read_parquet, {}), # There's no na_filter in read_parquet.
         }
 
 
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
-            ext = pathlib.Path(filename).suffix
-            if ext in self.read_funcs:
-                return True
+    def allows(self, filenames):
+        # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
 
-        return False
+        exts = self.extensions(filenames)
+        if not exts:
+            return False
+
+        if all(e in self.read_funcs.keys() for e in exts):
+            return True
+        else:
+            return False
 
 
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.read_funcs.keys())})"
+    def load(self, filenames, **kwargs):
+        assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
+
+        exts = list(set(self.extensions(filenames)))
+        assert exts
+        if not self.allows(exts):
+            msg = f"One of those file formats: `{', '.join(exts)}` is not supported (I can only read one of: {', '.join(self.read_funcs.keys())})"
             logger.error(msg)
             raise exceptions.FeatureError(msg)
 
-        f  = self.read_funcs[ext][0]
-        kw = self.read_funcs[ext][1]
+        expanded = []
+        for filename in filenames:
+            globbed = glob.glob(filename)
+            expanded += globbed
+        filenames = expanded
 
-        # Overwrite default named arguments with the passed ones.
-        kw.update(kwargs)
+        data = []
+        for filename in filenames:
+            f  = self.read_funcs[pathlib.Path(filename).suffix][0]
+            kw = self.read_funcs[pathlib.Path(filename).suffix][1]
 
-        # Always load data as string, to avoid conversion of numbers
-        # to floating-point values with decimal separators.
-        kw.update({'dtype':str})
+            # Overwrite default named arguments with the passed ones.
+            kw.update(kwargs)
 
-        return f(filename, **kw)
+            # Always load data as string, to avoid conversion of numbers
+            # to floating-point values with decimal separators.
+            # kw.update({'dtype':str}) # FIXME this can be a problem if one load cell values containing complex objects.
 
+            data.append( f(filename, **kw) )
+
+        return pd.concat(data)
 
     def adapter(self, **kwargs):
         return tabular.PandasAdapter
@@ -142,10 +188,26 @@ class LoadPandasFile(Loader):
 
 class LoadOWLGraph(Loader):
     def allows(self, data):
-        return type(data) == rdflib.Graph
+        return all(type(d) == rdflib.Graph for d in data)
 
-    def load(self, g, **kwargs):
-        return g
+    def load(self, graphs, **kwargs):
+        assert type(graphs) != str and len(graphs) > 0 and all(i != '' for i in graphs), "A Loader expects a list (or an iterable) of data."
+        if len(graphs) > 1:
+            logger.warning(
+                "Loading multiple OWL graphs at once does not guarantee a correct fusion." \
+                " That is, graph operations in RDFLib are assumed to be performed in subgraphs" \
+                " of some larger database and assume shared blank node IDs, and therefore may" \
+                " cause unwanted collisions of blank-nodes in graph (cf." \
+                " https://rdflib.readthedocs.io/en/7.1.1/merging.html)." \
+                " To avoid this warning, either load only compatible OWL graphs at once" \
+                " either, load OWL graphs separately and" \
+                " use OntoWeaver's fusion features afterward.")
+
+        graph = rdflib.Graph()
+        for g in graphs:
+            graph += g
+
+        return graph
 
     def adapter(self, **kwargs):
         if "automap" in kwargs:
@@ -160,27 +222,46 @@ class LoadOWLFile(Loader):
     def __init__(self):
         self.allowed = [".owl", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
-            ext = pathlib.Path(filename).suffix
-            if ext in self.allowed:
-                return True
-        return False
+    def allows(self, filenames):
+        # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
 
+        exts = self.extensions(filenames)
+        if not exts:
+            return False
 
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
+        if all(e in self.allowed for e in exts):
+            return True
+        else:
+            return False
+
+    def load(self, filenames, **kwargs):
+        assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
+        if len(filenames) > 1:
+            logger.warning(
+                "Loading multiple OWL files at once does not guarantee a correct fusion." \
+                " That is, graph operations in RDFLib are assumed to be performed in subgraphs" \
+                " of some larger database and assume shared blank node IDs, and therefore may" \
+                " cause unwanted collisions of blank-nodes in graph (cf." \
+                " https://rdflib.readthedocs.io/en/7.1.1/merging.html)." \
+                " To avoid this warning, either load only compatible OWL files at once" \
+                " either, load OWL files separately and" \
+                " use OntoWeaver's fusion features afterward.")
+
+        exts = set(self.extensions(filenames))
+        assert exts
+        for ext in exts:
+            if not self.allows([ext]):
+                msg = f"File format '{ext}' is not supported (I can only read one of: {' ,'.join(self.read_funcs.keys())})"
+                logger.error(msg)
+                raise exceptions.FeatureError(msg)
 
         g = rdflib.Graph()
-
-        if ext == ".owl":
-            g.parse(filename, format = "xml")
-        else:
-            g.parse(filename) # Guess the format based on extension.
+        for filename in filenames:
+            ext = pathlib.Path(filename).suffix
+            if ext == ".owl":
+                g.parse(filename, format = "xml")
+            else:
+                g.parse(filename) # Guess the format based on extension.
 
         return g
 
@@ -196,10 +277,19 @@ class LoadOWLFile(Loader):
 
 class LoadXMLString(Loader):
     def allows(self, data):
-        return type(data) == str
+        # assert type(data) != str and len(data) > 0 and all(i != '' for i in data), "A Loader expects a list (or an iterable) of data."
+        return all(type(d) == str for d in data)
 
-    def load(self, xml, **kwargs):
-        return xml
+    def load(self, xmls, **kwargs):
+        assert type(xmls) != str and len(xmls) > 0 and all(i != '' for i in xmls), "A Loader expects a list (or an iterable) of xmls."
+        if len(xmls) > 1:
+            logger.warning(
+                "Loading multiple XML files at once is not really supported," \
+                " since I'm only going to concatenate the documents." \
+                " I thus cannot guarantee a well-formed XML document at the end." \
+                " Ignore this warning only if you know how to sequentially assemble a valid XML document.")
+
+        return "\n".join(xmls)
 
     def adapter(self, **kwargs):
         return xml.XMLAdapter
@@ -207,36 +297,75 @@ class LoadXMLString(Loader):
 
 class LoadXMLFile(Loader):
     def __init__(self):
+        self.xl = LoadXMLString()
         self.allowed = [".xml"]
 
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
+    def allows(self, filenames):
+        # assert type(data) != str and len(data) > 0 and all(i != '' for i in data), "A Loader expects a list (or an iterable) of data."
+
+        exts = self.extensions(filenames)
+        if not exts:
+            return False
+
+        if all(e in self.allowed for e in exts):
+            return True
+        else:
+            return False
+
+    def load(self, filenames, **kwargs):
+        assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of filenames."
+        if len(filenames) > 1:
+            logger.warning(
+                "Loading multiple XML files at once is not really supported," \
+                " since I'm only going to concatenate the documents." \
+                " I thus cannot guarantee a well-formed XML document at the end." \
+                " Ignore this warning only if you know how to sequentially assemble a valid XML document.")
+
+        data = []
+        for filename in filenames:
             ext = pathlib.Path(filename).suffix
-            if ext in self.allowed:
-                return True
-        return False
+            if not self.allows([filename]):
+                msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
+                logger.error(msg)
+                raise exceptions.FeatureError(msg)
 
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
+            with open(filename, 'r') as fd:
+                data.append( fd.read() )
 
-        with open(filename, 'r') as fd:
-            data = fd.read()
-            return data
+        return self.xl(data)
 
     def adapter(self, **kwargs):
         return xml.XMLAdapter
 
 
 class LoadJSONString(Loader):
-    def allows(self, data):
-        return type(data) == str
+    def allows(self, jsons):
+        # assert type(jsons) != str and len(jsons) > 0 and all(i != '' for i in jsons), "A Loader expects a list (or an iterable) of data."
+        if not all(type(j) == str for j in jsons):
+            return False
 
-    def load(self, json, **kwargs):
-        return json
+        for j in jsons:
+            try:
+                pyjson.loads(j)
+            except ValueError as e:
+                return False
+
+        return True
+
+    def load(self, jsons, **kwargs):
+        dic = {}
+        logger.debug("Assembling JSON strings into a single data structure.")
+        for j in jsons:
+            d = pyjson.loads(j)
+            for k in d:
+                if k in dic:
+                    logger.warning(
+                        f"Overwriting `{k}:{dic[k]}` with `{d[k]}` in a previously loaded JSON." \
+                        " This happens if you ask to load multiple non-independant JSONs." \
+                        " You may also want to double-check that the JSON list has the order that you want." \
+                    )
+            dic.update(d)
+        return pyjson.dumps(dic)
 
     def adapter(self, **kwargs):
         return json.JSONAdapter
@@ -245,24 +374,27 @@ class LoadJSONString(Loader):
 class LoadJSONFile(Loader):
     def __init__(self):
         self.allowed = [".json"]
+        self.jl = LoadJSONString()
 
-    def allows(self, filename):
-        if type(filename) == str or type(filename) == pathlib.Path:
+    def allows(self, filenames):
+        # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
+        return all(pathlib.Path(f).suffix in self.allowed for f in filenames)
+
+    def load(self, filenames, **kwargs):
+        assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
+
+        jsons = []
+        for filename in filenames:
             ext = pathlib.Path(filename).suffix
-            if ext in self.allowed:
-                return True
-        return False
+            if not self.allows([filename]):
+                msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
+                logger.error(msg)
+                raise exceptions.FeatureError(msg)
 
-    def load(self, filename, **kwargs):
-        ext = pathlib.Path(filename).suffix
-        if not self.allows(filename):
-            msg = f"File format '{ext}' of file '{filename}' is not supported (I can only read one of: {' ,'.join(self.allowed)})"
-            logger.error(msg)
-            raise exceptions.FeatureError(msg)
+            with open(filename, 'r') as fd:
+                jsons.append( fd.read() )
 
-        with open(filename, 'r') as fd:
-            data = fd.read()
-            return data
+        return self.jl.load(jsons)
 
     def adapter(self, **kwargs):
         return json.JSONAdapter
