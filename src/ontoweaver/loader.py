@@ -93,13 +93,13 @@ class LoadPandasFile(Loader):
             # from '\s+' are interpreted as regex) which results in an error.
         self.read_funcs = {
             '.csv'    : (pd.read_csv, {
-                "sep": ",",
+                'sep': ',',
                 'na_filter': True, # Do not load empty cells, if possible.
                 'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
                 'engine': 'python'
             }),
             '.tsv'    : (pd.read_csv, {
-                "sep": "\t",
+                'sep': '\t',
                 'na_filter': True,
                 'dtype': str,
                 'engine': 'python'
@@ -128,7 +128,7 @@ class LoadPandasFile(Loader):
             '.spss'   : (pd.read_spss,    {'na_filter': True, 'dtype': str}),
             '.stata'  : (pd.read_stata,   {'na_filter': True, 'dtype': str}),
 
-            # Allow multile dtypes for the others.
+            # Allow multiple dtypes for the others.
             '.json'   : (pd.read_json,    {'na_filter': True}),
             '.feather': (pd.read_feather, {'na_filter': True}),
             '.pickle' : (pd.read_pickle,  {'na_filter': True}),
@@ -173,10 +173,7 @@ class LoadPandasFile(Loader):
 
             # Overwrite default named arguments with the passed ones.
             kw.update(kwargs)
-
-            # Always load data as string, to avoid conversion of numbers
-            # to floating-point values with decimal separators.
-            # kw.update({'dtype':str}) # FIXME this can be a problem if one load cell values containing complex objects.
+            logger.debug(f"Additional arguments passed to the {pathlib.Path(filename).suffix} load function: {kw}")
 
             data.append( f(filename, **kw) )
 

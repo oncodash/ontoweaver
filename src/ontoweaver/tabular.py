@@ -37,8 +37,8 @@ class PandasAdapter(iterative.IterativeAdapter):
 
     def __init__(self,
             df: pd.DataFrame,
-            subject_transformer: transformer.Transformer,
-            transformers: Iterable[transformer.Transformer],
+            subject_transformer: base.Transformer,
+            transformers: Iterable[base.Transformer],
             metadata: Optional[dict] = None,
             validator: Optional[validate.InputValidator] = None,
             type_affix: Optional[base.TypeAffixes] = base.TypeAffixes.suffix,

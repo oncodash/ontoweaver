@@ -5,7 +5,7 @@ import pandas as pd
 
 import ontoweaver
 
-class simplest(ontoweaver.transformer.Transformer):
+class simplest(ontoweaver.base.Transformer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

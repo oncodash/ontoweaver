@@ -463,7 +463,7 @@ would do:
 
 Of course, there could be hundreds of thousands of translations to
 declare, and you don’t want to declare them by hand in the mapping file.
-Fortunately, you have access to another table in a CSV file, showing
+Fortunately, you have access to another table in a tabular file, showing
 which one corresponds to the other:
 
 =============== ===== ========
@@ -479,15 +479,17 @@ Then, to declare a translation using this table, you would do:
        - translate:
            column: Gene
            to_object: gene
-           translations_file: <myfile.csv>
+           translations_file: <my_tabular_file.ext>
            translate_from: Ensembl
            translate_to: HGCN
 
-To load the translation file, OntoWeaver uses `Pandas’
-read_csv <https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html>`__
-function. You may pass additional string arguments in the mapping
-section, they will be passed directly as ``read_csv`` arguments. For
-example:
+.. note::
+
+   The `translate` transformer allows `translations_file` to be any tabular file
+   format that can be loaded by OntoWeaver. In most cases, this means
+   anything that can be loaded by Pandas. However, you may have to pass additional
+   arguments to the (Pandas') load function in some edge cases. To do so, just
+   add them to your mapping file. For instance:
 
 .. code:: yaml
 
@@ -501,6 +503,7 @@ example:
            compression: zip
            decimal: ","
            encoding: latin-1
+
 
 replace
 ^^^^^^^

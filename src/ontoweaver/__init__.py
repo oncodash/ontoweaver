@@ -17,7 +17,7 @@ from . import base
 from . import transformer
 Node = base.Node
 Edge = base.Edge
-Transformer = transformer.Transformer
+Transformer = base.Transformer
 Adapter = base.Adapter
 All = base.All
 

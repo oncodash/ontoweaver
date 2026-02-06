@@ -333,7 +333,7 @@ method to concatenate the values of the desired columns before yielding the resu
     from ontoweaver import transformer, validate
     from ontoweaver import types as owtypes
 
-    class MyTransformer(transformer.Transformer):
+    class MyTransformer(base.Transformer):
         """Custom end-user transformer."""
 
         def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
@@ -429,7 +429,7 @@ You can declare a property transformer on-the-fly within your custom transformer
     from ontoweaver import transformer, validate
     from ontoweaver import types as owtypes
 
-    class MyTransformer(transformer.Transformer):
+    class MyTransformer(base.Transformer):
         """Custom end-user transformer."""
 
         def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):

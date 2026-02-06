@@ -4,7 +4,7 @@ import subprocess
 
 import ontoweaver
 
-class user_transformer(ontoweaver.transformer.Transformer):
+class user_transformer(ontoweaver.base.Transformer):
     def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
         super().__init__(target, properties_of, edge, columns, **kwargs)
 
