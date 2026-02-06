@@ -45,7 +45,7 @@ Its minimal implementation is straightforward:
 
 .. code:: python
 
-    class adhoc(ontoweaver.transformer.Transformer):
+    class adhoc(ontoweaver.base.Transformer):
 
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
@@ -98,7 +98,7 @@ essentially the same.
     from ontoweaver import transformer, validate
     from ontoweaver import types as owtypes
 
-    class MyTransformer(transformer.Transformer):
+    class MyTransformer(base.Transformer):
         """Custom end-user transformer."""
 
         def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
@@ -405,11 +405,11 @@ table, as it keeps it obvious for anyone able to read the mapping (while
 it may be difficult to read the pre-processing code itself).
 
 A user-defined transformer takes the form of a Python class inheriting
-from ``ontoweaver.transformer.Transformer``:
+from ``ontoweaver.base.Transformer``:
 
 .. code:: python
 
-   class my_transformer(ontoweaver.transformer.Transformer):
+   class my_transformer(ontoweaver.base.Transformer):
 
        # Each transformer class should have a ValueMaker nested - class, to define how the value is extracted from the cell.
        # The ValueMaker class should inherit from the ontoweaver.make_value.ValueMaker class.

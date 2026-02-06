@@ -1,8 +1,9 @@
 
 from ontoweaver import transformer, validate
 from ontoweaver import types as owtypes
+from ontoweaver import base
 
-class OmniPath(transformer.Transformer):
+class OmniPath(base.Transformer):
     """Custom end-user transformer, used to create elements for OmniPath KG database."""
 
     def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
