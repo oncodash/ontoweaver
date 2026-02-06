@@ -175,7 +175,11 @@ class LoadPandasFile(Loader):
             kw.update(kwargs)
             logger.debug(f"Additional arguments passed to the {pathlib.Path(filename).suffix} load function: {kw}")
 
-            data.append( f(filename, **kw) )
+            if not kw:
+                # pd.read_parquet does not allow even an empty kwargs.
+                data.append( f(filename) )
+            else:
+                data.append( f(filename, **kw) )
 
         return pd.concat(data)
 
