@@ -63,7 +63,30 @@ and import them as pieces of data.
    Biocypher incorrectly calls *a taxonomy defined in an ontology file*
    "an ontology", for the sake of simplicity.
 
-More specifically, OntoWeaver can import RDF triples which predicate is
+It may be confusing to have a clear view of how to handle ontology files.
+They can host both the taxonomy (the "type labels") and a data graph.
+As shown in the diagram below, the data parts are handled by OntoWeaver, while
+the taxonomy part is handled by BioCypher.
+
+What's confusing is that you may have to use the taxonomy from an ontology file,
+but not its instances graph (it may not even have one!).
+And you may even have to combine data from tabular files and an ontology's
+instance graph, while also combining the taxonomies of several ontology files.
+
+.. image:: ../OntoWeaver__ontology-taxonomy-data.svg
+   :alt: A diagram showing the paths of types and data in an OWL file, across
+         OntoWeaver and BioCypher.
+
+.. note::
+   Ontologies specialists have specific terms for different parts of an
+   ontology file. You may encounter "T-box" or "vacabulary", which means the
+   taxonomy along with a set of logical rules.
+
+   The "A-box" in an ontology file is the set (or "population") of "instances"
+   (or "individuals"), which in BioCypher is just called a "graph".
+
+
+For ontology specialists: OntoWeaver can import RDF triples which predicate is
 ``owl:NamedIndividual``.
 
 OntoWeaver can read ontology files written in the RDF dialects that
@@ -88,6 +111,8 @@ in the ontology file to the types found in the taxonomy of the *same* ontology
 file.
 Using this ``OWLAutoAdapter``, you thus don't need to define a mapping, it will
 be automatically extracted from the input ontology file.
+
+.. image:: ../OntoWeaver__owl-automap.svg
 
 Of course, this adapter will expect that the classes defined in the input
 ontology exist in the taxonomy configured by BioCypher.
