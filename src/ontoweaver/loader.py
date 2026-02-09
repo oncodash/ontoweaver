@@ -168,7 +168,7 @@ class LoadPandasFile(Loader):
 
         data = []
         for filename in filenames:
-            f  = self.read_funcs[pathlib.Path(filename).suffix][0]
+            loadfunc  = self.read_funcs[pathlib.Path(filename).suffix][0]
             kw = self.read_funcs[pathlib.Path(filename).suffix][1]
 
             # Overwrite default named arguments with the passed ones.
@@ -177,9 +177,9 @@ class LoadPandasFile(Loader):
 
             if not kw:
                 # pd.read_parquet does not allow even an empty kwargs.
-                data.append( f(filename) )
+                data.append( loadfunc(filename) )
             else:
-                data.append( f(filename, **kw) )
+                data.append( loadfunc(filename, **kw) )
 
         return pd.concat(data)
 
