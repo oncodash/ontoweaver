@@ -72,7 +72,7 @@ If you're using OntoWeaver from its Git repository, you will have to indicate
 the path to the command:
 
 ```sh
-./bin/ontoweave data_A.csv:map_A.yaml data_B.tsv:map_B.yaml
+./src/ontoweaver/ontoweave data_A.csv:map_A.yaml data_B.tsv:map_B.yaml
 ```
 
 The `ontoweave` command is very configurable, see `ontoweave --help` for more
@@ -88,7 +88,7 @@ The project is written in Python and is tested with the
 [UV](https://docs.astral.sh/uv/) environment manager.
 You can install the necessary dependencies in a virtual environment like this:
 
-```
+``` sh
 git clone https://github.com/oncodash/ontoweaver.git
 cd ontoweaver
 uv venv
@@ -107,14 +107,16 @@ system, you will have to add the `…/ontoweaver/src/ontoweaver` directory to yo
 export PATH="$PATH:$HOME/<your path>/ontoweaver/src/ontoweaver/
 ```
 
-The package can also be used in a [Poetry](https://python-poetry.org/) environment. Just run:
+The package can also be used in a [UV](https://docs.astral.sh/uv) environment. Just run:
 
-```poetry install
+``` sh
+uv sync
 ```
 
-Poetry will create a virtual environment according to your configuration, and you can call the CLI with:
+UV will create a virtual environment according to your configuration, and you can call the CLI with:
 
-```poetry run ontoweave
+``` sh
+uv run ./src/ontoweaver/ontoweave --help
 ```
 
 Theoretically, OntoWeaver can export a knowledge graph in any of the formats
@@ -131,7 +133,7 @@ to see OntoWeaver in practice. You may start with `tests/test_simplest.py` which
 shows the simplest example of mapping tabular data through BioCypher.
 
 To run tests, use `pytest`:
-```
+``` sh
 uv run pytest
 ```
 
