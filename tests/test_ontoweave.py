@@ -37,5 +37,35 @@ def test_ontoweave_automap():
     subprocess.run(cmd.split(), capture_output=True, check=True)
 
 
+def test_ontoweave_autoschema_min():
+    logging.debug(f"From: {os.getcwd()}")
+    d = "./tests/autoschema"
+    os.remove(f"{d}/extended_schema.yaml")
+    cmd = f"ontoweave --biocypher-config {d}/biocypher_config.yaml --auto-schema {d}/extended_schema.yaml --biocypher-schema {d}/schema_min.yaml {d}/example.csv:{d}/mapping.yaml {d}/example.csv:{d}/mapping_with_props.yaml --debug"
+
+    logging.debug(f"Run: {cmd}")
+    subprocess.run(cmd.split(), capture_output=True, check=True)
+
+
+def test_ontoweave_autoschema_complete():
+    logging.debug(f"From: {os.getcwd()}")
+    d = "./tests/autoschema"
+    os.remove(f"{d}/extended_schema.yaml")
+    cmd = f"ontoweave --biocypher-config {d}/biocypher_config.yaml --auto-schema {d}/extended_schema.yaml --biocypher-schema {d}/schema_complete.yaml {d}/example.csv:{d}/mapping.yaml {d}/example.csv:{d}/mapping_with_props.yaml --debug"
+
+    logging.debug(f"Run: {cmd}")
+    subprocess.run(cmd.split(), capture_output=True, check=True)
+
+
+def test_ontoweave_autoschema_half():
+    logging.debug(f"From: {os.getcwd()}")
+    d = "./tests/autoschema"
+    os.remove(f"{d}/extended_schema.yaml")
+    cmd = f"ontoweave --biocypher-config {d}/biocypher_config.yaml --auto-schema {d}/extended_schema.yaml --biocypher-schema {d}/schema_half.yaml {d}/example.csv:{d}/mapping.yaml {d}/example.csv:{d}/mapping_with_props.yaml --debug"
+
+    logging.debug(f"Run: {cmd}")
+    subprocess.run(cmd.split(), capture_output=True, check=True)
+
+
 if __name__ == "__main__":
     test_ontoweave()

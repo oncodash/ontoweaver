@@ -1,0 +1,17 @@
+,first_name,last_name,genre,age,partner,children,pets,tenant,owner,id
+0,Kayla,Cooper,female,9,,,guided_sole0(cat),False,False,42729721_0
+1,Julie,Cooper,female,3,,,first_hermit1(cat);intent_civet2(dog),False,False,31652090_0
+2,Charles,Cooper,male,15,,,,False,False,17509785_0
+3,Melanie,Cooper,female,37,,42729721_0;31652090_0;17509785_0,tight_monkey3(dog);choice_koi4(dog),False,True,57307932_0
+4,Abigail,Smith,female,11,,,,False,False,88154602_0
+5,Crystal,Smith,female,33,,88154602_0,free_elk5(dog);noted_grub6(cat),True,False,75752405_0
+6,Christine,Ortiz,female,37,75752405_0,,,True,True,57369143_0
+7,Leslie,Allen,female,38,,,,True,False,24847440_0
+8,Michael,Mercado,male,3,,,,False,False,61993518_0
+9,Kimberly,Mercado,female,29,,61993518_0,,False,False,90768517_0
+10,Jerry,Compton,male,36,90768517_0,,,False,False,70785114_0
+11,Anthony,Roberts,male,11,,,,False,False,74008996_0
+12,Alexander,Roberts,male,10,,,,False,False,66178056_0
+13,Seth,Roberts,male,3,,,,False,False,21727630_0
+14,Daniel,Roberts,male,37,,74008996_0;66178056_0;21727630_0,,False,False,31174142_0
+15,Tony,Beck,male,36,31174142_0,,,False,False,31902927_0

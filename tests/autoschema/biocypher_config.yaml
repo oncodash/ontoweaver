@@ -1,0 +1,16 @@
+biocypher:
+    debug: false
+    offline: true
+    dbms: owl
+
+    # Ontology configuration
+    head_ontology:
+        url: ./tests/autoschema/ontology.ttl
+        root_node: Biocypherroot
+
+owl:
+    edge_model: ObjectProperty
+    file_format: turtle
+    labels_order: "Ascending" # Default: From more specific to more generic.
+    node_labels_order: "Ascending" # Default: use labels_order.
+    edge_labels_order: "Leaves"

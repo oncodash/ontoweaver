@@ -458,6 +458,8 @@ class Declare(errormanager.ErrorManager):
         super().__init__(raise_errors)
         self.module = module
 
+        self.declared = []
+
 
     def make_node_class(self, name, properties={}, base=Node):
         """
@@ -491,6 +493,8 @@ class Declare(errormanager.ErrorManager):
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
+
+        self.declared.append(t)
         return t
 
 
@@ -545,6 +549,8 @@ class Declare(errormanager.ErrorManager):
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
+
+        self.declared.append(t)
         return t
 
 
@@ -555,7 +561,7 @@ class Declare(errormanager.ErrorManager):
     def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
                                properties=None, columns=None, output_validator=None, label_maker = None, **kwargs):
         """
-        LabelMaker a transformer class with the given parameters.
+        Make a transformer class with the given parameters.
 
         Args:
             multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
@@ -577,14 +583,17 @@ class Declare(errormanager.ErrorManager):
             if not issubclass(parent_t, transformer.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
             logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
-            return parent_t(properties_of=properties,
-                            columns=columns,
-                            output_validator=output_validator,
-                            multi_type_dict = multi_type_dictionary,
-                            branching_properties = branching_properties,
-                            label_maker = label_maker,
-                            raise_errors = self.raise_errors,
-                            **kwargs)
+
+            t = parent_t(properties_of=properties,
+                         columns=columns,
+                         output_validator=output_validator,
+                         multi_type_dict = multi_type_dictionary,
+                         branching_properties = branching_properties,
+                         label_maker = label_maker,
+                         raise_errors = self.raise_errors,
+                         **kwargs)
+            self.declared.append(t)
+            return t
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)

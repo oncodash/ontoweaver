@@ -57,3 +57,19 @@ class TransformerInputError(TransformerError):
 
 class InputDataError(RunError):
     pass
+
+
+class FileError(RunError):
+    pass
+
+class FileAccessError(FileError):
+    pass
+
+class FileOverwriteError(FileError):
+    pass
+
+
+
+class AutoSchemaError(OntoWeaverError):
+    pass
+
