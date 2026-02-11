@@ -23,14 +23,6 @@ parentOf:
   target: individual
 person:
   label_in_input: person
-  properties:
-    age: str
-    family_name: str
-    first_name: str
-    given_name: str
-    last_name: str
-    possess_home: str
-    rents_home: str
   represented_as: node
 role:
   label_in_input: role

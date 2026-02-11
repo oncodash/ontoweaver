@@ -97,7 +97,7 @@ def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, ext
         logger.debug(f"Parse schema from mapping `{map}`")
         for item in parser.declared:
             logger.debug(f"\tParsing: {item}")
-            if isinstance(item, transformer.Transformer):
+            if isinstance(item, base.Transformer):
                 if item.multi_type_dict:
                     # This is a type mapping.
                     for colval,section in item.multi_type_dict.items():
