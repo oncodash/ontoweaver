@@ -68,11 +68,10 @@ the SKG you prepared:
 ontoweave my_data.csv:my_mapping.yaml --import-script-run
 ```
 
-If you're using OntoWeaver from its Git repository, you will have to indicate
-the path to the command:
+If you're using OntoWeaver from its Git repository, you will have to us UV:
 
 ```sh
-./bin/ontoweave data_A.csv:map_A.yaml data_B.tsv:map_B.yaml
+uv run ontoweave data_A.csv:map_A.yaml data_B.tsv:map_B.yaml
 ```
 
 The `ontoweave` command is very configurable, see `ontoweave --help` for more
