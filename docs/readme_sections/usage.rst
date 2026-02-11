@@ -28,6 +28,10 @@ and schema (usually ``schema_config.yaml``), the simplest call would be:
 
    ontoweave my_data.csv:my_mapping.yaml
 
+
+Specific configuration
+~~~~~~~~~~~~~~~~~~~~~~
+
 If you want to indicate your own configuration files, pass their name as
 options:
 
@@ -37,6 +41,16 @@ options:
 
 note that you can use the same mapping on several data files, and/or
 several mappings.
+
+
+Multiple files at once
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: ./readme_sections/glob.rst
+
+
+Run the data importer
+~~~~~~~~~~~~~~~~~~~~~
 
 To actually insert data in an SKG database, you need to run the import
 files that are prepared by the previous command. Either you ask

@@ -305,7 +305,7 @@ def main():
         for name,cls in mod.__dict__.items():
             if inspect.isclass(cls):
                 logger.debug(f"{cls}")
-                if issubclass(cls, ontoweaver.transformer.Transformer):
+                if issubclass(cls, ontoweaver.base.Transformer):
                     logger.info(f"    Register transformer: `{cls}`")
                     ontoweaver.transformer.register(cls)
 
