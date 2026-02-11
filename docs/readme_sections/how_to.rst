@@ -500,5 +500,5 @@ In case of using this feature, remember to include all the dynamically created p
 How to load multiple Parquet files?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. include:: ./readme_sections/glob.rst
+.. include:: glob.rst
 

@@ -479,13 +479,13 @@ Then, to declare a translation using this table, you would do:
        - translate:
            column: Gene
            to_object: gene
-           translations_file: <my_tabular_file.ext>
+           translations_file: my_tabular_file.ext
            translate_from: Ensembl
            translate_to: HGCN
 
 .. note::
 
-   The `translate` transformer allows `translations_file` to be any tabular file
+   The ``translate`` transformer allows ``translations_file`` to be any tabular file
    format that can be loaded by OntoWeaver. In most cases, this means
    anything that can be loaded by Pandas. However, you may have to pass additional
    arguments to the (Pandas') load function in some edge cases. To do so, just
@@ -496,13 +496,18 @@ Then, to declare a translation using this table, you would do:
        - translate:
            column: Gene
            to_object: gene
-           translations_file: <myfile.csv.zip>
+           translations_file: myfile.csv.zip
            translate_from: Ensembl
            translate_to: HGCN
            sep: ";"
            compression: zip
            decimal: ","
            encoding: latin-1
+
+.. note::
+   
+   You can use the "glob" feature to load multiple files to form your translation
+   table. For example: ``translations_file: my_table-part*.parquet``.
 
 
 replace
