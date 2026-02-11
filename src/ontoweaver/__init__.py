@@ -2,7 +2,9 @@ from typing import Tuple
 from pathlib import Path
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
+import os
 import yaml
+import copy
 import rdflib
 import logging
 import pathlib
@@ -45,6 +47,247 @@ __all__ = ['tabular',
            'types', 'transformer', 'serialize', 'congregate',
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'make_value', 'make_labels', 'iterative', 'xml',
            'owl', 'mapping', 'base']
+
+def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, extended_schema_filename = "extended_schema.yaml", validate_output = False, raise_errors = True, overwrite = False):
+
+    logger.info("Automatically generating a BioCypher schema based on the mappings...")
+    supported = []
+    for f2m in filename_to_mappings:
+        f,map = f2m.split(':')
+        if map == "automap":
+            msg = "As of now, I don't know how to handle `automap` with `autoschema`."
+            logger.error(msg)
+            raise exceptions.ConfigError(msg)
+        else:
+            supported.append(map)
+
+        # TODO replace with those in the base class when merged.
+        class Vocab:
+            pass
+        vocab = Vocab()
+        vocab.k_row = ["row", "entry", "line", "subject", "source"]
+        vocab.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
+        vocab.k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element"]
+        vocab.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
+        vocab.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
+        vocab.k_edge = ["via_edge", "via_relation", "via_predicate"]
+        vocab.k_properties = ["to_properties", "to_property"]
+        vocab.k_prop_to_object = ["for_objects", "for_object"]
+        vocab.k_transformer = ["transformers"]
+        vocab.k_metadata = ["metadata"]
+        vocab.k_metadata_column = ["add_source_column_names_as"]
+        vocab.k_validate_output = ["validate_output"]
+        vocab.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
+        vocab.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
+        vocab.k_match_type_from = ["match_type_from_column", "match_type_from_element"]
+
+    auto_schema = copy.deepcopy(existing_schema)
+    for map in supported:
+        logger.debug(f"\twith user file map: `{map}`")
+        with open(map) as fd:
+            config = yaml.full_load(fd)
+
+        parser = mapping.YamlParser(
+            config,
+            validate_output=validate_output,
+            raise_errors = raise_errors,
+        )
+        subject_transformer, transformers, metadata, validator = parser()
+
+        logger.debug(f"Parse schema from mapping `{map}`")
+        for item in parser.declared:
+            logger.debug(f"\tParsing: {item}")
+            if isinstance(item, transformer.Transformer):
+                if item.multi_type_dict:
+                    # This is a type mapping.
+                    for colval,section in item.multi_type_dict.items():
+                        for pred,ptype in section.items():
+                            if ptype:
+                                t = ptype.__name__
+                                logger.debug(f"\t\tseen type: {t}")
+                                if pred in vocab.k_target \
+                                         + vocab.k_subject_type \
+                                         + vocab.k_final_type \
+                                         + vocab.k_reverse_edge:
+                                    auto_schema[t] = auto_schema.get(t, {})
+
+                                if pred in vocab.k_properties:
+                                    st = auto_schema.get(t, {})
+                                    st["properties"] = st.get("properties", {})
+                                    for p,v in st["properties"]:
+                                        st["properties"][p] = v
+
+                elif hasattr(item, "to_property"):
+                    # This is a mono-property mapping.
+                    t = item.for_object
+                    logger.debug(f"\t\tto property: {t}")
+                    st = auto_schema.get(t, {})
+                    st["properties"] = st.get("properties", {})
+                    st["properties"][item.to_property] = "str"
+
+                elif hasattr(item, "to_properties"):
+                    # This is a multi-properties mapping.
+                    # logger.debug(dir(item))
+                    # logger.debug(item.to_properties)
+                    # logger.debug(item.for_object)
+                    t = item.for_object
+                    st = auto_schema.get(t, {})
+                    st["properties"] = st.get("properties", {})
+                    for p in item.to_properties:
+                        logger.debug(f"\t\tto property: {p}")
+                        st["properties"][p] = "str"
+
+            elif issubclass(item, base.Node):
+                t = item.__name__
+                logger.debug(f"\t\tnode type: {t}")
+                auto_schema[t] = auto_schema.get(t, {})
+                auto_schema[t]["represented_as"] = "node"
+                auto_schema[t]["label_in_input"] = t
+                auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+                for p in item.fields():
+                    if p not in auto_schema[t]["properties"]:
+                        auto_schema[t]["properties"][p] = "str"
+
+            elif issubclass(item, base.Edge):
+                t = item.__name__
+                logger.debug(f"\t\tedge type: {t}")
+                auto_schema[t] = auto_schema.get(t, {})
+                auto_schema[t]["represented_as"] = "edge"
+                auto_schema[t]["label_in_input"] = t
+                if item.source_type():
+                    auto_schema[t]["source"] = item.source_type().__name__
+
+                auto_schema[t]["target"] = []
+                for target in item.target_type():
+                    auto_schema[t]["target"].append(target.__name__)
+
+                auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+                for p in item.fields():
+                    if p not in auto_schema[t]["properties"]:
+                        auto_schema[t]["properties"][p] = "str"
+
+            else:
+                logger.warning(f"\t\tUnknown type `{item}`, I'll just ignore it, but you may want to double-check.")
+
+    # Filter out empty keys.
+    sch = copy.deepcopy(auto_schema)
+    for t,section in sch.items():
+        if not section:
+            msg = "I cannot find the information related to type `{t}`, your mapping has an error."
+            logger.error(msg)
+            raise exceptions.ConfigError(msg)
+
+        for pred,val in section.items():
+            if not val:
+                del auto_schema[t][pred]
+
+    # Collapse target multi-types into their common super-type.
+    sch = copy.deepcopy(auto_schema)
+    for t,section in sch.items():
+        for pred,val in section.items():
+            # logger.debug(f"{pred}: {val} {type(val)}")
+            if pred != "target":
+                continue
+            else:
+                if not val:
+                    logger.error(f"\tEmpty {pred}: {val}")
+                    continue
+                elif type(val) != list:
+                    logger.debug(f"\tTarget already set in previous schema with value: `{val}`, skipping.")
+                    continue
+                else:
+                    assert len(val) > 0
+                    # logger.debug(f"{len(val)} : {val}")
+                    if len(val) == 1:
+                        logger.debug(f"\tThere is only one {pred}:{val}, collapsing.")
+                        auto_schema[t][pred] = val[0]
+                    else:
+                        msg =f"\tI don't know how to make an autoschema with" \
+                             f" multiple target types like: {', '.join(val)}." \
+                             " Try mapping them all to their common ancestor."
+                        logger.error(msg)
+                        raise exceptions.AutoSchemaError(msg)
+
+    # Save the extended automatic schema in YAML.
+    file_exists = os.path.isfile(extended_schema_filename)
+    file_writable = os.access(extended_schema_filename, os.W_OK)
+
+    if file_exists and not file_writable:
+        msg = f"Cannot write into file `{extended_schema_filename}`."
+        raise exceptions.FileAccessError(msg)
+
+    elif file_exists and overwrite and file_writable:
+        with open(extended_schema_filename, 'w') as fd:
+            fd.write(yaml.dump(auto_schema))
+
+    elif file_exists and not overwrite:
+        msg = f"You asked not to overwrite `{extended_schema_filename}`, but this file exists."
+        raise exceptions.FileOverwriteError(msg)
+
+    elif not file_exists:
+        with open(extended_schema_filename, 'w') as fd:
+            fd.write(yaml.dump(auto_schema))
+
+    return extended_schema_filename
+
+    # # BioCypher is responsible for handling the ontologies.
+    # bc = biocypher.BioCypher(
+    #     biocypher_config_path = biocypher_config,
+    #     schema_config_path = extended_schema_filename )
+
+    # try:
+    #     # Gets the assembled ontologies RDF graph.
+    #     # Note: BioCypher assembles them on the fly on request.
+    #     ontology = bc._get_ontology()
+    # except ValueError as e:
+    #     logger.error(e)
+    #     msg = "I cannot find the types of your schema in the assembled ontology." \
+    #           " Check that you maps onto the exact same type labels" \
+    #           " that can be found in the ontologies' taxonomies," \
+    #           " or else I will not be able to compute a valid schema."
+    #     logger.error(msg)
+    #     raise exceptions.AutoSchemaError(msg)
+
+    # # Fusion operators used to find the common ancestor of a set of types.
+    # cst = merge.string.CommonSuperType(ontology)
+
+    # # Collapse target multi-types into their common super-type.
+    # sch = copy.deepcopy(auto_schema)
+    # for t,section in sch.items():
+    #     for pred,val in section.items():
+    #         # logger.debug(f"{pred}: {val} {type(val)}")
+    #         if pred != "target":
+    #             continue
+    #         else:
+    #             if not val:
+    #                 logger.error(f"\tEmpty {pred}: {val}")
+    #                 continue
+    #             elif type(val) != list:
+    #                 logger.debug(f"\tTarget already set in previous schema with value: `{val}`, skipping.")
+    #                 continue
+    #             else:
+    #                 assert len(val) > 0
+    #                 # logger.debug(f"{len(val)} : {val}")
+    #                 if len(val) == 1:
+    #                     logger.debug(f"\tThere is only one {pred}:{val}, collapsing.")
+    #                     auto_schema[t][pred] = val[0]
+    #                 else:
+    #                     logger.debug(f"\tSearch the common ancestor in the assembled ontology for all: `{val}`")
+    #                     try:
+    #                         ancestor = functools.reduce(cst, val)
+    #                     except Exception as e:
+    #                         logger.error(e)
+    #                         msg =  "I couldn't find a common ancestor to the following target" \
+    #                               f" types: {val}. Please double-check that" \
+    #                                " your mapping is consistent with the assembled ontology."
+    #                         logger.error(msg)
+    #                         raise exceptions.AutoSchemaError(msg)
+
+    #                     logger.debug(f"\t\tCommon ancestor: {ancestor}")
+    #                     auto_schema[t][pred] = ancestor
+
+    # print(yaml.dump(auto_schema, indent=4))
+
 
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):

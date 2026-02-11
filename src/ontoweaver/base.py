@@ -458,6 +458,8 @@ class Declare(errormanager.ErrorManager):
         super().__init__(raise_errors)
         self.module = module
 
+        self.declared = []
+
 
     def make_node_class(self, name, properties={}, base=Node):
         """
@@ -491,6 +493,8 @@ class Declare(errormanager.ErrorManager):
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
+
+        self.declared.append(t)
         return t
 
 
@@ -545,6 +549,8 @@ class Declare(errormanager.ErrorManager):
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
         logger.debug(f"\t\tDeclare Edge class `{t.__name__}` (prop: `{properties}`).")
         setattr(self.module, t.__name__, t)
+
+        self.declared.append(t)
         return t
 
 

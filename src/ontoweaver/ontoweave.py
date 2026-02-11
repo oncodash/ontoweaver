@@ -20,6 +20,7 @@
 
 import os
 import sys
+import yaml
 import logging
 import natsort
 import pathlib
@@ -33,10 +34,12 @@ error_codes = {
     "RunError"        :  70, # "internal"
     "DataValidationError": 76,  # "protocol"
     "ConfigError"     :  78, # "bad config"
+    "AutoSchemaError" : 79,  # mapping inconsistency with the ontology
     "CannotAccessFile": 126, # "no perm"
     "FileError"       : 127, # "not found"
     "SubprocessError" : 128, # "bad exit"
     "NetworkXError"   : 129, # probably "type not in the digraph"
+    "FileOverwriteError": 157, # "I/O allowed"
     "OntoWeaverError" : 254,
     "Exception"       : 255,
 }
@@ -131,6 +134,13 @@ def main():
     do.add_argument("-s", "--biocypher-schema", metavar="FILE", default="schema.yaml",
         help="The BioCypher schema file (the one managing node and edge types). [default: %(default)s]")
 
+    do.add_argument("-m", "--auto-schema", metavar="FILE", default=None,
+        help="Automatically generate a BioCypher schema from the mapping(s)," \
+             " and save it into FILE." \
+             " If an existing schema is passed with --biocypher-schema," \
+             " then it is extended and saved into FILE." \
+             " Raises an error if FILE already exists. [default: %(default)s]")
+
     do.add_argument("-p", "--parallel", metavar="NB_CORES", default="0",
         help=f"Number of processor cores to use when processing with multi-threading. `0` means a sequential processing (no parallelization, the default). Use 'auto' to let {appname} do its best to use a good number. [default: %(default)s]")
 
@@ -191,6 +201,7 @@ def main():
     logger.info(f"    config files: {config_files}")
     logger.info(f"    config: `{asked.biocypher_config}`")
     logger.info(f"    schema: `{asked.biocypher_schema}`")
+    logger.info(f"    auto-schema: `{asked.auto_schema}`")
     logger.info(f"    parallel: `{asked.parallel}`")
     logger.info(f"    prop-sep: `{asked.prop_sep}`")
     logger.info(f"    type-affix: `{asked.type_affix}`")
@@ -300,7 +311,77 @@ def main():
 
     # Double check file inputs and exit on according errors.
     check_file(asked.biocypher_config)
-    check_file(asked.biocypher_schema)
+
+    # --auto-schema will generate this file instead of reading it.
+    if not asked.auto_schema:
+        check_file(asked.biocypher_schema)
+    else:
+        try:
+            with open(asked.biocypher_schema) as fd:
+                existing_schema = yaml.safe_load(fd)
+        except Exception as e:
+            logger.debug(e)
+            msg = "There is no valid existing BioCypher schema," \
+                  " I will create a completely new one."
+            logger.info(msg)
+            existing_schema = {}
+        else:
+            logger.info(f"Loaded the existing schema `{asked.biocypher_schema}`," \
+                         " I will now extend it.")
+
+        if asked.debug:
+            extended_schema_filename = ontoweaver.autoschema(
+                asked.mapping,
+                asked.biocypher_config,
+                existing_schema,
+                asked.auto_schema,
+                asked.validate_output,
+                not asked.pass_errors
+            )
+        else:
+            try:
+                extended_schema_filename = ontoweaver.autoschema(
+                    asked.mapping,
+                    asked.biocypher_config,
+                    existing_schema,
+                    asked.auto_schema,
+                    asked.validate_output,
+                    not asked.pass_errors
+                )
+            # Manage exceptions wih specific error codes:
+            except ontoweaver.exceptions.AutoSchemaError as e:
+                logger.error(f"ERROR while computing the autoschema: "+str(e))
+                sys.exit(error_codes["AutoSchemaError"])
+            except ontoweaver.exceptions.FileAccessError as e:
+                logger.error(f"ERROR while writing the autoschema: "+str(e))
+                sys.exit(error_codes["CannotAccessFile"])
+            except ontoweaver.exceptions.FileOverwriteError as e:
+                logger.error(f"ERROR while writing the autoschema: "+str(e))
+                sys.exit(error_codes["FileOverwriteError"])
+            except ontoweaver.exceptions.ConfigError as e:
+                logger.error(f"ERROR in configuration: "+str(e))
+                sys.exit(error_codes["ConfigError"])
+            except ontoweaver.exceptions.ParsingError as e:
+                logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+                sys.exit(error_codes["ParsingError"])
+            except ontoweaver.exceptions.RunError as e:
+                logger.error(f"ERROR in content: "+str(e))
+                sys.exit(error_codes["RunError"])
+            except ontoweaver.exceptions.OntoWeaverError as e:
+                logger.error(f"ERROR: "+str(e))
+                sys.exit(error_codes["OntoWeaverError"])
+            except networkx.exception.NetworkXError as e:
+                logger.error(f"ERROR: "+str(e))
+                logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
+                sys.exit(error_codes["NetworkXError"])
+            except Exception as e:
+                logger.error(f"UNKNOWN ERROR: "+str(e))
+                sys.exit(error_codes["Exception"])
+
+        # Replace the schema filename with the autoschema one.
+        logger.debug(f"Extend the original schema `{asked.biocypher_schema}` into `{extended_schema_filename}`")
+        asked.biocypher_schema = extended_schema_filename
+
     for file_map in asked.mapping:
         data_file, map_file = file_map.split(":")
         check_file(data_file)
