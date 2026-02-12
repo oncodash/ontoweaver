@@ -373,7 +373,7 @@ class translate(base.Transformer):
         translate_to = kwargs.get("translate_to", None)
 
         if translations and translations_file:
-            self.error(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.", secton="translate", exception = exceptions.TransformerInterfaceError)
+            self.error(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.", section="translate", exception = exceptions.TransformerInterfaceError)
 
         if translations:
             self.translate = translations
@@ -435,7 +435,7 @@ class translate(base.Transformer):
 
 
         if not self.translate:
-            self.error(f"No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
+            self.error("No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
     def __call__(self, row, i):
         """
@@ -608,12 +608,12 @@ class boolean(base.Transformer):
 
         def __init__(self, raise_errors: bool = True, output_true = "True", output_false = "False", consider_true = None, consider_false = None):
             if (not consider_true and consider_false) or (consider_true and not consider_false):
-                msg = f"I can only handle both `consider_true` and `consider_false` being `None` at the same time. But here, one of them is `None` and the other is not."
+                msg = "I can only handle both `consider_true` and `consider_false` being `None` at the same time. But here, one of them is `None` and the other is not."
                 logger.error(msg)
                 raise exceptions.TransformerConfigError(msg)
 
             elif consider_true and consider_false:
-                if type(consider_true) != list or type(consider_false) != list:
+                if not isinstance(consider_true, list) or not isinstance(consider_false, list):
                     msg = "I can only consider both `consider_true` and `consider_false` being lists."
                     logger.error(msg)
                     raise exceptions.TransformerConfigError(msg)

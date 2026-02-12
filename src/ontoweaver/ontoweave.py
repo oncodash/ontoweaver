@@ -164,7 +164,7 @@ def main():
         help="Character used to separate the label from the type affix. [default: %(default)s]")
 
     do.add_argument("-E", "--pass-errors", action="store_true",
-        help=f"When an error occurs, log is, and then try to continue processing. If not passed, the default behavior is to raise errors immediatly and stop execution.")
+        help="When an error occurs, log is, and then try to continue processing. If not passed, the default behavior is to raise errors immediatly and stop execution.")
 
     do.add_argument("-l", "--log-level", default="WARNING",
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -180,7 +180,7 @@ def main():
         help="Character used by the Pandas module to separate values in the input file database. [default: guessed from the extension]")
 
     do.add_argument("-D", "--debug", action="store_true",
-        help=f"Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
+        help="Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
 
     asked = do.parse_args()
 
@@ -189,7 +189,7 @@ def main():
             logger.setLevel("DEBUG")
             logger.warning(f"You asked for --debug but set --log-level={asked.log_level}, I will ignore that and set --log-level=DEBUG")
         if asked.pass_errors:
-            logger.warning(f"You asked for --debug but passed --pass-errors, I will ignore that.")
+            logger.warning("You asked for --debug but passed --pass-errors, I will ignore that.")
         asked.log_level = "DEBUG"
         asked.pass_errors = False
 
@@ -233,7 +233,7 @@ def main():
     else:
         asked_mapping = asked.mapping
 
-    logger.info(f"    parsed mappings:")
+    logger.info("    parsed mappings:")
     mappings = {}
     for data_map in asked_mapping:
         if ":" not in data_map:
@@ -257,44 +257,44 @@ def main():
 
     # Validate the input data if asked.
     if asked.validate_only:
-        logger.info(f"Validating input data frame...")
+        logger.info("Validating input data frame...")
         if asked.debug:
             if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.pandas_sep, raise_errors = not asked.pass_errors):
-                logger.info(f"Input data is valid according to provided rules.")
+                logger.info("Input data is valid according to provided rules.")
                 sys.exit(0)
             else:
-                logger.error(f"Input data is INVALID according to provided rules.")
+                logger.error("Input data is INVALID according to provided rules.")
                 sys.exit(error_codes["DataValidationError"])
         else:
             try:
                 if ontoweaver.validate_input_data(filename_to_mapping=mappings, sep=asked.pandas_sep, raise_errors = not asked.pass_errors):
-                    logger.info(f"Input data is valid according to provided rules.")
+                    logger.info("Input data is valid according to provided rules.")
                     sys.exit(0)
                 else:
-                    logger.error(f"Input data is INVALID according to provided rules.")
+                    logger.error("Input data is INVALID according to provided rules.")
                     sys.exit(error_codes["DataValidationError"])
             # Manage exceptions wih specific error codes:
             except ontoweaver.exceptions.ConfigError as e:
-                logger.error(f"ERROR in configuration: "+str(e))
+                logger.error(f"ERROR in configuration: {e}")
                 sys.exit(error_codes["ConfigError"])
             except ontoweaver.exceptions.ParsingError as e:
-                logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+                logger.error(f"ERROR during parsing of the YAML mapping: {e}")
                 sys.exit(error_codes["ParsingError"])
             except ontoweaver.exceptions.DataValidationError as e:
-                logger.error(f"ERROR during data validation: "+str(e))
+                logger.error(f"ERROR during data validation: {e}")
                 sys.exit(error_codes["DataValidationError"])
             except ontoweaver.exceptions.RunError as e:
-                logger.error(f"ERROR in content: "+str(e))
+                logger.error(f"ERROR in content: {e}")
                 sys.exit(error_codes["RunError"])
             except ontoweaver.exceptions.OntoWeaverError as e:
-                logger.error(f"ERROR: "+str(e))
+                logger.error(f"ERROR: {e}")
                 sys.exit(error_codes["OntoWeaverError"])
             except networkx.exception.NetworkXError as e:
-                logger.error(f"ERROR: "+str(e))
+                logger.error(f"ERROR: {e}")
                 logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
                 sys.exit(error_codes["NetworkXError"])
             except Exception as e:
-                logger.error(f"UNKNOWN ERROR: "+str(e))
+                logger.error(f"UNKNOWN ERROR: {e}")
                 sys.exit(error_codes["Exception"])
 
     # Register all transformers existing in the given modules.
@@ -332,7 +332,6 @@ def main():
         if asked.debug:
             extended_schema_filename = ontoweaver.autoschema(
                 asked.mapping,
-                asked.biocypher_config,
                 existing_schema,
                 asked.auto_schema,
                 asked.validate_output,
@@ -342,7 +341,6 @@ def main():
             try:
                 extended_schema_filename = ontoweaver.autoschema(
                     asked.mapping,
-                    asked.biocypher_config,
                     existing_schema,
                     asked.auto_schema,
                     asked.validate_output,
@@ -350,32 +348,32 @@ def main():
                 )
             # Manage exceptions wih specific error codes:
             except ontoweaver.exceptions.AutoSchemaError as e:
-                logger.error(f"ERROR while computing the autoschema: "+str(e))
+                logger.error(f"ERROR while computing the autoschema: {e}")
                 sys.exit(error_codes["AutoSchemaError"])
             except ontoweaver.exceptions.FileAccessError as e:
-                logger.error(f"ERROR while writing the autoschema: "+str(e))
+                logger.error(f"ERROR while writing the autoschema: {e}")
                 sys.exit(error_codes["CannotAccessFile"])
             except ontoweaver.exceptions.FileOverwriteError as e:
-                logger.error(f"ERROR while writing the autoschema: "+str(e))
+                logger.error(f"ERROR while writing the autoschema: {e}")
                 sys.exit(error_codes["FileOverwriteError"])
             except ontoweaver.exceptions.ConfigError as e:
-                logger.error(f"ERROR in configuration: "+str(e))
+                logger.error(f"ERROR in configuration: {e}")
                 sys.exit(error_codes["ConfigError"])
             except ontoweaver.exceptions.ParsingError as e:
-                logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+                logger.error(f"ERROR during parsing of the YAML mapping: {e}")
                 sys.exit(error_codes["ParsingError"])
             except ontoweaver.exceptions.RunError as e:
-                logger.error(f"ERROR in content: "+str(e))
+                logger.error(f"ERROR in content: {e}")
                 sys.exit(error_codes["RunError"])
             except ontoweaver.exceptions.OntoWeaverError as e:
-                logger.error(f"ERROR: "+str(e))
+                logger.error(f"ERROR: {e}")
                 sys.exit(error_codes["OntoWeaverError"])
             except networkx.exception.NetworkXError as e:
-                logger.error(f"ERROR: "+str(e))
+                logger.error(f"ERROR: {e}")
                 logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
                 sys.exit(error_codes["NetworkXError"])
             except Exception as e:
-                logger.error(f"UNKNOWN ERROR: "+str(e))
+                logger.error(f"UNKNOWN ERROR: {e}")
                 sys.exit(error_codes["Exception"])
 
         # Replace the schema filename with the autoschema one.
@@ -436,26 +434,26 @@ def main():
                 **kw)
         # Manage exceptions wih specific error codes:
         except ontoweaver.exceptions.ConfigError as e:
-            logger.error(f"ERROR in configuration: "+str(e))
+            logger.error(f"ERROR in configuration: {e}")
             sys.exit(error_codes["ConfigError"])
         except ontoweaver.exceptions.ParsingError as e:
-            logger.error(f"ERROR during parsing of the YAML mapping: "+str(e))
+            logger.error(f"ERROR during parsing of the YAML mapping: {e}")
             sys.exit(error_codes["ParsingError"])
         except ontoweaver.exceptions.DataValidationError as e:
-            logger.error(f"ERROR during data validation: "+str(e))
+            logger.error(f"ERROR during data validation: {e}")
             sys.exit(error_codes["DataValidationError"])
         except ontoweaver.exceptions.RunError as e:
-            logger.error(f"ERROR in content: "+str(e))
+            logger.error(f"ERROR in content: {e}")
             sys.exit(error_codes["RunError"])
         except ontoweaver.exceptions.OntoWeaverError as e:
-            logger.error(f"ERROR: "+str(e))
+            logger.error(f"ERROR: {e}")
             sys.exit(error_codes["OntoWeaverError"])
         except networkx.exception.NetworkXError as e:
-            logger.error(f"ERROR: "+str(e))
+            logger.error(f"ERROR: {e}")
             logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
             sys.exit(error_codes["NetworkXError"])
         except Exception as e:
-            logger.error(f"UNKNOWN ERROR: "+str(e))
+            logger.error(f"UNKNOWN ERROR: {e}")
             sys.exit(error_codes["Exception"])
 
     # Output import file on stdout, in case the user would want to capture it.

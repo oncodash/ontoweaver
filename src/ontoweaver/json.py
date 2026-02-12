@@ -62,7 +62,7 @@ class JSONAdapter(iterative.IterativeAdapter):
 
         for q in queries:
             jpath = jmespath.search(q, self.json_data)
-            self.df.insert(loc=0, column=q, value=[e for e in jpath])
+            self.df.insert(loc=0, column=q, value=list(jpath))
 
         logger.debug(f"JMESPath-queried DataFrame:\n{self.df}")
 

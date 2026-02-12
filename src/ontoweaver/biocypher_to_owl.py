@@ -145,7 +145,7 @@ def remove_affixes_objects(graph, remove_affix, affix_sep = default.affix_sep):
 
 
 def restore_labels(graph, restoration):
-    logging.debug(f"Translate biocypherized labels back")
+    logging.debug("Translate biocypherized labels back")
     for uri,p,label in graph.triples((None, RDFS.label, None)):
         iri = str(uri)
         if iri in restoration:
@@ -172,7 +172,6 @@ def remove_root(graph, root_name = default.root_name):
     for key,ns in graph.namespaces():
         namespaces[key] = Namespace(ns)
 
-    root_name = "BioCypherRoot"
     uri_root = URIRef(namespaces["biocypher"][root_name])
     logger.info(f"Remove {root_name} label from {uri_root}")
     graph.remove( (
@@ -256,7 +255,10 @@ if __name__ == "__main__":
 
     try:
         graph.parse(source = asked.ontology)
-    except:
+    except Exception as e:
+        logger.warning("RDFlib failed to guess the ontology format:\n" \
+                       f"`{e}`\n" \
+                       f"I'm trying again with format set to: {asked.input_format}")
         graph.parse(source = asked.ontology, format = asked.input_format)
 
     logger.debug("Restore...")

@@ -112,11 +112,11 @@ class dictry:
         """
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
-            assert(type(lhs) == dict)
-            assert(type(rhs) == dict)
+            assert(isinstance(lhs, dict))
+            assert(isinstance(rhs, dict))
 
         def set(self, value: dict[str,str]) -> None:
-            assert(type(value) == dict)
+            assert(isinstance(value, dict))
             self.merged = value
 
         @abstractmethod
@@ -141,10 +141,10 @@ class dictry:
             self.merged = {}
 
         def set(self, merged) -> None:
-            assert(type(merged) == dict)
+            assert(isinstance(merged, dict))
             for k,v in merged.items():
                 e = self.merged.get(k, set())
-                if type(v) == set:
+                if isinstance(v, set):
                     e.union(v)
                     self.merged[k] = e
                 else:
@@ -154,10 +154,10 @@ class dictry:
             self.set(lhs)
             self.set(rhs)
 
-        def get(self) -> str:
+        def get(self) -> dict:
             merged = {}
             for k,v in self.merged.items():
-                assert(type(v) == set)
+                assert(isinstance(v, set))
                 # Convert sets as str.
                 merged[k] = self.reconciliate_sep.join(v)
             return merged
@@ -173,8 +173,8 @@ class string:
         """
         def precheck(self, key, lhs: str, rhs: str):
             assert(issubclass(type(key), base.Element))
-            assert(type(lhs) == str)
-            assert(type(rhs) == str)
+            assert(isinstance(lhs, str))
+            assert(isinstance(rhs, str))
 
         @abstractmethod
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -304,7 +304,7 @@ class string:
             self.merged = OrderedDict()
 
         def set(self, value) -> None:
-            if type(value) == OrderedDict:
+            if isinstance(value, OrderedDict):
                 for k in value.keys():
                     self.merged[k] = None
             else:

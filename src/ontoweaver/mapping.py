@@ -198,7 +198,7 @@ class YamlParser(base.MappingParser):
         """
         # TODO: Redundant code with the _extract_metadata function.
         if metadata_list and types:
-            if type(types) != set:
+            if not isinstance(types, set):
                 t = types
                 metadata.setdefault(t, {})
                 for item in metadata_list:
@@ -387,26 +387,26 @@ class YamlParser(base.MappingParser):
                 if any(field in field_dict for field in base.MappingParser.k_properties):
                     object_types = self.get(base.MappingParser.k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(base.MappingParser.k_properties, pconfig=field_dict)
-                    if type(property_names) != list:
+                    if not isinstance(property_names, list):
                         logger.debug(f"\tDeclared singular property")
-                        assert (type(property_names) == str)
+                        assert isinstance(property_names, str)
                         property_names = [property_names]
                     if not object_types:  # FIXME: Creates errors with branching subject types and subject final type features.
                         logger.info(
                             f"No `for_objects` defined for properties {property_names}, I will attach those properties to the row subject(s) `{possible_subject_types}`")
-                        if type(possible_subject_types) == set and len(possible_subject_types) == 1:
+                        if isinstance(possible_subject_types, set) and len(possible_subject_types) == 1:
                             object_types = list(possible_subject_types)[0]
-                        if type(possible_subject_types) == set and len(possible_subject_types) > 1:
+                        if isinstance(possible_subject_types, set) and len(possible_subject_types) > 1:
                             object_types = list(possible_subject_types)
-                    if type(object_types) != list:
+                    if not isinstance(object_types, list):
                         logger.debug(f"\tDeclared singular for_object: `{object_types}`")
-                        assert (type(object_types) == str)
+                        assert (isinstance(object_types, str))
                         object_types = [object_types]
 
                     column_names = self.get(base.MappingParser.k_columns, pconfig=field_dict)
-                    if column_names != None and type(column_names) != list:
+                    if column_names != None and not isinstance(column_names, list):
                         logger.debug(f"\tDeclared singular column `{column_names}`")
-                        assert (type(column_names) == str)
+                        assert (isinstance(column_names, str))
                         column_names = [column_names]
                     gen_data = self.get_not(base.MappingParser.k_target + base.MappingParser.k_edge + base.MappingParser.k_columns, pconfig=field_dict)
 
@@ -438,7 +438,7 @@ class YamlParser(base.MappingParser):
         Parse the subject transformer and its properties from the YAML mapping.
         """
 
-        logger.debug(f"Declare subject type...")
+        logger.debug("Declare subject type...")
         subject_transformer_dict = self.get(base.MappingParser.k_row)
         if not subject_transformer_dict:
             msg = f"There is no `{'`, `'.join(base.MappingParser.k_row)}` key in your mapping."
@@ -450,9 +450,9 @@ class YamlParser(base.MappingParser):
             subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
         subject_columns = self.get(base.MappingParser.k_columns, subject_transformer_dict[subject_transformer_class])
         subject_final_type = self.get(base.MappingParser.k_final_type, subject_transformer_dict[subject_transformer_class])
-        if subject_columns != None and type(subject_columns) != list:
+        if subject_columns != None and not isinstance(subject_columns, list):
             logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
-            assert (type(subject_columns) == str)
+            assert (isinstance(subject_columns, str))
             subject_columns = [subject_columns]
 
         # Parse the validation rules for the output of the subject transformer.
@@ -488,7 +488,7 @@ class YamlParser(base.MappingParser):
 
                 source_t = None # Subject_type declared None because the subject transformer is a branching transformer.
                 subject_type = None
-                logger.debug(f"Parse subject transformer...")
+                logger.debug("Parse subject transformer...")
 
                 if any(key in subject_kwargs for key in base.MappingParser.k_match_type_from):
                     s_label_maker = make_labels.MultiTypeOnColumnLabelMaker(
@@ -600,42 +600,42 @@ class YamlParser(base.MappingParser):
                            f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
                            transformer_index, exception=exceptions.CardinalityError)
 
-        elif type(transformer_keyword_dict) != dict:
+        elif not isinstance(transformer_keyword_dict, dict):
             self.error(str(transformer_keyword_dict) + " is not a dictionary",
                        exception=exceptions.ParsingDeclarationsError)
 
         else:
             columns = self.get(base.MappingParser.k_columns, pconfig=transformer_keyword_dict)
-            if type(columns) != list:
-                logger.debug(f"\tDeclared singular column")
+            if not isinstance(columns, list):
+                logger.debug("\tDeclared singular column")
                 # The rowIndex transformer is a special case, where the column does not need to be defined in the mapping.
                 # FIXME: In next refactoring do not assert `rowIndex` transformer name, in order to have a generic implementation. (ref: https://github.com/oncodash/ontoweaver/pull/153)
                 if not columns:
                     columns = []
                 elif transformer_type != "rowIndex":
-                    assert (type(columns) == str)
+                    assert (isinstance(columns, str))
                     columns = [columns]
 
             target = self.get(base.MappingParser.k_target, pconfig=transformer_keyword_dict)
-            if type(target) == list:
+            if isinstance(target, list):
                 self.error(
                     f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
 
             subject = self.get(base.MappingParser.k_subject, pconfig=transformer_keyword_dict)
-            if type(subject) == list:
+            if isinstance(subject, list):
                 self.error(
                     f"You cannot declare multiple subjects in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
 
             edge = self.get(base.MappingParser.k_edge, pconfig=transformer_keyword_dict)
-            if type(edge) == list:
+            if isinstance(edge, list):
                 self.error(
                     f"You cannot declare multiple relations in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
 
             reverse_relation = self.get(base.MappingParser.k_reverse_edge, pconfig=transformer_keyword_dict)
-            if type(reverse_relation) == list:
+            if isinstance(reverse_relation, list):
                 self.error(
                     f"You cannot declare multiple reverse relations in transformers. For transformer `{transformer_type}`.",
                     section="transformers", index=transformer_index, indent=1, exception=exceptions.CardinalityError)
@@ -688,7 +688,7 @@ class YamlParser(base.MappingParser):
         possible_target_types = set()
         possible_edge_types = set()
 
-        logger.debug(f"Declare types...")
+        logger.debug("Declare types...")
         # Iterate through the list of target transformers and extract the information needed to create the
         # corresponding classes.
         for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
@@ -703,6 +703,7 @@ class YamlParser(base.MappingParser):
                     continue
                 # Transformer passed sanity check, unpack the returned elements.
                 else:
+                    # FIXME double-check why subject is unused here.
                     columns, target, edge, subject, reverse_relation = elements
 
                 gen_data = self.get_not(base.MappingParser.k_target + base.MappingParser.k_edge + base.MappingParser.k_columns + base.MappingParser.k_final_type + base.MappingParser.k_reverse_edge, pconfig=transformer_keyword_dict)
@@ -720,18 +721,26 @@ class YamlParser(base.MappingParser):
 
                 multi_type_dictionary = {}
 
-                #The target transformer is a simple transformer if it does not have a `match` clause. We create a simple multi_type_dictionary,
-                #with a "None" key, to indicate that no branching is needed.
+                # The target transformer is a simple transformer
+                # if it does not have a `match` clause.
+                # We create a simple multi_type_dictionary,
+                # with a "None" key, to indicate that no branching is needed.
                 if target and edge:
+                    # FIXME double-check why edge_t is unused here.
                     edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, reverse_relation, possible_target_types, possible_edge_types, multi_type_dictionary)
-                    # Parse the validation rules for the output of the transformer. Each transformer gets its own
-                    # instance of the OutputValidator with (at least) the default output validation rules.
+                    # Parse the validation rules for the output of the transformer.
+                    # Each transformer gets its own
+                    # instance of the OutputValidator with (at least) the
+                    # default output validation rules.
                     output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=transformer_keyword_dict)
-                    output_validator = self._make_output_validator(output_validation_rules)
+                    # output_validator = self._make_output_validator(output_validation_rules)
                     logger.debug(f"\tDeclare transformer `{transformer_type}`...")
 
-                #The target transformer is a branching transformer if it has a `match` clause. We create a branching dictionary.
-                #The keys of the dictionary are the regex patterns to be matched against the extracted value of the column.
+                # The target transformer is a branching transformer
+                # if it has a `match` clause.
+                # We create a branching dictionary.
+                # The keys of the dictionary are the regex patterns to be matched
+                # against the extracted value of the column.
 
                 if "match" in gen_data:
 
@@ -787,7 +796,7 @@ class YamlParser(base.MappingParser):
         Returns:
             tuple: The subject transformer and a list of transformers.
         """
-        logger.debug(f"Parse mapping...")
+        logger.debug("Parse mapping...")
 
         properties_of = {}
         metadata = {}
@@ -797,8 +806,9 @@ class YamlParser(base.MappingParser):
         # Extract transformer list and metadata list from the config.
         transformers_list = self.get(base.MappingParser.k_transformer)
         if not transformers_list:
-            self.error(f"I cannot find the `transformers' section or it is empty,"
-            f"check syntax for a typo (forgotten `s'?) or declare at leaset one transformer.`",
+            self.error("I cannot find the `transformers' section or it is empty," \
+                        " check syntax for a typo (forgotten `s'?)" \
+                        " or declare at least one transformer.`",
             exception = exceptions.ParsingDeclarationsError)
 
         metadata_list = self.get(base.MappingParser.k_metadata)
@@ -811,34 +821,35 @@ class YamlParser(base.MappingParser):
 
         validator = self._get_input_validation_rules()
 
-        if not validator or type(validator) == validate.SkipValidator:
+        if not validator or isinstance(validator, validate.SkipValidator):
             logger.warning(f"Input validation will be skipped.")
 
         skipped_columns = []
         for t in transformers:
-            if type(t.output_validator) == validate.SkipValidator:
+            if isinstance(t.output_validator, validate.SkipValidator):
                 skipped_columns += t.columns
 
         if skipped_columns:
-            logger.warning(f"Skip output validation for columns: `{'`, `'.join(skipped_columns)}`. This could result in some empty or `nan` nodes."
-                           f" To enable output validation set `validate_output` to `True`.")
+            logger.warning(f"Skip output validation for columns: `{'`, `'.join(skipped_columns)}`." \
+                           " This could result in some empty or `nan` nodes." \
+                           " To enable output validation set `validate_output` to `True`.")
 
         if source_t:
             logger.debug(f"source class: {source_t}")
         elif possible_edge_types:
             logger.debug(f"possible_source_types: {possible_subject_types}")
 
-        logger.debug(f"properties_of:")
+        logger.debug("properties_of:")
         for kind in properties_of:
             for k in properties_of[kind]:
                 logger.debug(f"\t{kind}: {k} {properties_of[kind][k]}>")
 
-        logger.debug(f"transformers:")
+        logger.debug("transformers:")
         for t in transformers:
             logger.debug(f"\t{t}")
 
         if len(metadata) > 0:
-            logger.debug(f"metadata:")
+            logger.debug("metadata:")
             for k in metadata:
                 logger.debug(f"\t{metadata[k]}")
         else:

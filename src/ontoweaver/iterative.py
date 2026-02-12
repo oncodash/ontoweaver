@@ -45,8 +45,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         self.validator = validator
 
-        if not type_affix in base.TypeAffixes:
-            self.error(f"`type_affix`={type_affix} is not one of the allowed values ({[t for t in base.TypeAffixes]})", exception = exceptions.ConfigError)
+        if type_affix not in base.TypeAffixes:
+            self.error(f"`type_affix`={type_affix} is not one of the allowed values ({list(base.TypeAffixes)})", exception = exceptions.ConfigError)
         else:
             self.type_affix = type_affix
 
@@ -82,7 +82,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
     def make_id(self, entry_type, entry_name):
         """
-        LabelMaker a unique id for the given cell consisting of the entry name and type,
+        LabelMaker a unique ID for the given cell consisting of the entry name and type,
         taking into account affix and separator configuration.
 
         Args:
@@ -95,21 +95,21 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Raises:
             ValueError: If the ID creation fails.
         """
-        assert(type(entry_type) == str)
-        if type(entry_name) != str:
+        assert(isinstance(entry_type, str))
+        if not isinstance(entry_name, str):
             logger.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
             entry_name = str(entry_name)
 
         if self.type_affix == base.TypeAffixes.prefix:
-            id = f'{entry_type}{self.type_affix_sep}{entry_name}'
+            idt = f'{entry_type}{self.type_affix_sep}{entry_name}'
         elif self.type_affix == base.TypeAffixes.suffix:
-            id = f'{entry_name}{self.type_affix_sep}{entry_type}'
+            idt = f'{entry_name}{self.type_affix_sep}{entry_type}'
         elif self.type_affix == base.TypeAffixes.none:
-            id = f'{entry_name}'
+            idt = f'{entry_name}'
 
-        if id:
-            logger.debug(f"\t\tFormatted ID `{id}` for cell value `{entry_name}` of type: `{entry_type}`")
-            return id
+        if idt:
+            logger.debug(f"\t\tFormatted ID `{idt}` for cell value `{entry_name}` of type: `{entry_type}`")
+            return idt
         else:
             self.error(f"Failed to format ID for cell value: `{entry_name}` of type: `{entry_type}`", exception = exceptions.DeclarationError)
 
@@ -160,7 +160,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
                     else:
                         self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
-                        continue
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
@@ -228,12 +227,12 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         elif len(subject_generator_list) == 0:
             local_errors.append(self.error(
-                f"The subject transformer did not produce any valid ID,"
-                f" I'll try to skip this entry.",
+                "The subject transformer did not produce any valid ID,"
+                " I'll try to skip this entry.",
                 indent=2, exception=exceptions.TransformerDataError))
             return None
 
-        source_id, subject_edge, subject_node, subject_reverse_relation = subject_generator_list[0]
+        source_id, subject_edge, subject_node, _ = subject_generator_list[0]
 
         if self.subject_transformer.final_type:
             # If a final_type attribute is present in the transformer, use it as the source node type, instead
@@ -321,7 +320,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             f"by {transformer} with `from_subject` attribute.",
                             indent=7, section="transformers", index=j,
                             exception=exceptions.TransformerDataError))
-                        continue
 
             else:
                 # The transformer instance type does not match the type in the `from_subject` attribute.
@@ -355,7 +353,9 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 results = list(executor.map(process_row, self.iterate() ))
 
             # Append the results in a thread-safe manner after all rows have been processed
+            i = 0
             for local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes in results:
+                i += 1
                 if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
                     logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
                     continue
@@ -375,7 +375,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             assert len(self.nodes) > 0
 
         elif self.parallel_mapping == 0:
-            logger.debug(f"Processing data sequentially...")
+            logger.debug("Processing data sequentially...")
             for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):

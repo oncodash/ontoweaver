@@ -106,7 +106,7 @@ def remap_edges(edges, ID_mapping):
         yield edge.as_tuple()
 
 
-def reconciliate_nodes(nodes, reconciliate_sep = "|"):
+def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -127,7 +127,7 @@ def reconciliate_nodes(nodes, reconciliate_sep = "|"):
     Returns:
         the list of fused nodes and the ID mapping dictionary
     """
-    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
 
@@ -161,7 +161,7 @@ def reconciliate_nodes(nodes, reconciliate_sep = "|"):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, reconciliate_sep = "|"):
+def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -181,7 +181,7 @@ def reconciliate_edges(edges, reconciliate_sep = "|"):
     Returns:
         the list of fused edges
     """
-    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     # EDGES FUSION
@@ -218,7 +218,7 @@ def reconciliate_edges(edges, reconciliate_sep = "|"):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, reconciliate_sep = "|"):
+def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
@@ -234,13 +234,13 @@ def reconciliate(nodes, edges, reconciliate_sep = "|"):
 
     See reconciliate_nodes and reconciliate_edges for details.
     """
-    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
-    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
-    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep)
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
 
     # EDGES REMAP
     # If we use on_ID/use_key,
@@ -257,7 +257,7 @@ def reconciliate(nodes, edges, reconciliate_sep = "|"):
     else:
         remaped_edges = edges
 
-    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep)
+    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]

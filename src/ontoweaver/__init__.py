@@ -48,43 +48,24 @@ __all__ = ['tabular',
            'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'make_value', 'make_labels', 'iterative', 'xml',
            'owl', 'mapping', 'base']
 
-def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, extended_schema_filename = "extended_schema.yaml", validate_output = False, raise_errors = True, overwrite = False):
+def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filename = "extended_schema.yaml", validate_output = False, raise_errors = True, overwrite = False):
 
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
     supported = []
     for f2m in filename_to_mappings:
-        f,map = f2m.split(':')
-        if map == "automap":
+        _,with_mapping = f2m.split(':')
+        if with_mapping == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
             logger.error(msg)
             raise exceptions.ConfigError(msg)
         else:
-            supported.append(map)
+            supported.append(with_mapping)
 
-        # TODO replace with those in the base class when merged.
-        class Vocab:
-            pass
-        vocab = Vocab()
-        vocab.k_row = ["row", "entry", "line", "subject", "source"]
-        vocab.k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
-        vocab.k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element"]
-        vocab.k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
-        vocab.k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
-        vocab.k_edge = ["via_edge", "via_relation", "via_predicate"]
-        vocab.k_properties = ["to_properties", "to_property"]
-        vocab.k_prop_to_object = ["for_objects", "for_object"]
-        vocab.k_transformer = ["transformers"]
-        vocab.k_metadata = ["metadata"]
-        vocab.k_metadata_column = ["add_source_column_names_as"]
-        vocab.k_validate_output = ["validate_output"]
-        vocab.k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
-        vocab.k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
-        vocab.k_match_type_from = ["match_type_from_column", "match_type_from_element"]
-
+    vocab = base.MappingParser
     auto_schema = copy.deepcopy(existing_schema)
-    for map in supported:
-        logger.debug(f"\twith user file map: `{map}`")
-        with open(map) as fd:
+    for with_mapping in supported:
+        logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
+        with open(with_mapping) as fd:
             config = yaml.full_load(fd)
 
         parser = mapping.YamlParser(
@@ -92,9 +73,9 @@ def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, ext
             validate_output=validate_output,
             raise_errors = raise_errors,
         )
-        subject_transformer, transformers, metadata, validator = parser()
+        _ = parser()
 
-        logger.debug(f"Parse schema from mapping `{map}`")
+        logger.debug(f"Parse schema from mapping `{with_mapping}`")
         for item in parser.declared:
             logger.debug(f"\tParsing: {item}")
             if isinstance(item, base.Transformer):
@@ -191,10 +172,10 @@ def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, ext
             else:
                 if not val:
                     logger.error(f"\tEmpty {pred}: {val}")
-                    continue
-                elif type(val) != list:
+
+                elif not isinstance(val, list):
                     logger.debug(f"\tTarget already set in previous schema with value: `{val}`, skipping.")
-                    continue
+
                 else:
                     assert len(val) > 0
                     # logger.debug(f"{len(val)} : {val}")
@@ -216,7 +197,7 @@ def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, ext
         msg = f"Cannot write into file `{extended_schema_filename}`."
         raise exceptions.FileAccessError(msg)
 
-    elif file_exists and overwrite and file_writable:
+    elif (file_exists and overwrite and file_writable) or (not file_exists):
         with open(extended_schema_filename, 'w') as fd:
             fd.write(yaml.dump(auto_schema))
 
@@ -224,70 +205,7 @@ def autoschema(filename_to_mappings, biocypher_config, existing_schema = {}, ext
         msg = f"You asked not to overwrite `{extended_schema_filename}`, but this file exists."
         raise exceptions.FileOverwriteError(msg)
 
-    elif not file_exists:
-        with open(extended_schema_filename, 'w') as fd:
-            fd.write(yaml.dump(auto_schema))
-
     return extended_schema_filename
-
-    # # BioCypher is responsible for handling the ontologies.
-    # bc = biocypher.BioCypher(
-    #     biocypher_config_path = biocypher_config,
-    #     schema_config_path = extended_schema_filename )
-
-    # try:
-    #     # Gets the assembled ontologies RDF graph.
-    #     # Note: BioCypher assembles them on the fly on request.
-    #     ontology = bc._get_ontology()
-    # except ValueError as e:
-    #     logger.error(e)
-    #     msg = "I cannot find the types of your schema in the assembled ontology." \
-    #           " Check that you maps onto the exact same type labels" \
-    #           " that can be found in the ontologies' taxonomies," \
-    #           " or else I will not be able to compute a valid schema."
-    #     logger.error(msg)
-    #     raise exceptions.AutoSchemaError(msg)
-
-    # # Fusion operators used to find the common ancestor of a set of types.
-    # cst = merge.string.CommonSuperType(ontology)
-
-    # # Collapse target multi-types into their common super-type.
-    # sch = copy.deepcopy(auto_schema)
-    # for t,section in sch.items():
-    #     for pred,val in section.items():
-    #         # logger.debug(f"{pred}: {val} {type(val)}")
-    #         if pred != "target":
-    #             continue
-    #         else:
-    #             if not val:
-    #                 logger.error(f"\tEmpty {pred}: {val}")
-    #                 continue
-    #             elif type(val) != list:
-    #                 logger.debug(f"\tTarget already set in previous schema with value: `{val}`, skipping.")
-    #                 continue
-    #             else:
-    #                 assert len(val) > 0
-    #                 # logger.debug(f"{len(val)} : {val}")
-    #                 if len(val) == 1:
-    #                     logger.debug(f"\tThere is only one {pred}:{val}, collapsing.")
-    #                     auto_schema[t][pred] = val[0]
-    #                 else:
-    #                     logger.debug(f"\tSearch the common ancestor in the assembled ontology for all: `{val}`")
-    #                     try:
-    #                         ancestor = functools.reduce(cst, val)
-    #                     except Exception as e:
-    #                         logger.error(e)
-    #                         msg =  "I couldn't find a common ancestor to the following target" \
-    #                               f" types: {val}. Please double-check that" \
-    #                                " your mapping is consistent with the assembled ontology."
-    #                         logger.error(msg)
-    #                         raise exceptions.AutoSchemaError(msg)
-
-    #                     logger.debug(f"\t\tCommon ancestor: {ancestor}")
-    #                     auto_schema[t][pred] = ancestor
-
-    # print(yaml.dump(auto_schema, indent=4))
-
 
 
 def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
@@ -380,11 +298,11 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         mapper = {}
         mapping_options = {"automap": True}
     else:
-        if type(with_mapping) == dict:
+        if isinstance(with_mapping, dict):
             logger.debug(f"\twith explicit user mapping: `{with_mapping}`")
             config = with_mapping
         else:
-            assert type(with_mapping) == str, "I was expecting a file name as value for the data in the data_to_mapping dictionary"
+            assert isinstance(with_mapping, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
             logger.debug(f"\twith user file mapping: `{with_mapping}`")
             with open(with_mapping) as fd:
                 config = yaml.full_load(fd)
@@ -396,7 +314,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         )
         mapper = parser()
 
-    logger.debug(f"Instantiate the adapter...")
+    logger.debug("Instantiate the adapter...")
     adapter = with_loader.adapter(**mapping_options)(
         data,
         *mapper,
@@ -416,7 +334,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         for ln,le in adapter():
             nodes += ln
             edges += le
-    logger.debug(f"OK — adapter ran.")
+    logger.debug("OK — adapter ran.")
 
     return nodes, edges
 
@@ -448,7 +366,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lrg = loader.LoadOWLGraph()
 
     def pairs(iterable):
-        if type(iterable) == dict:
+        if isinstance(iterable, dict):
             return iterable.items()
         else:
             return iterable
@@ -459,14 +377,14 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         for with_loader in [lpf, lpd, lrf, lrg]:
             logger.debug(f"Trying loader: {type(with_loader).__name__}")
             if with_loader.allows([data]):
-                logger.debug(f"  Loader allows this data type")
+                logger.debug("  Loader allows this data type")
                 found_loader = True
                 ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
                 nodes += ln
                 edges += le
                 break
             else:
-                logger.debug(f"  Loader does not allow this data type")
+                logger.debug("  Loader does not allow this data type")
 
         if not found_loader:
             msg = f"I found no loader able to load `{data}`"
@@ -558,7 +476,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     return import_file
 
 
-def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = None, raise_errors = True) -> str:
+def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = None, raise_errors = True) -> Tuple[str]:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -571,14 +489,14 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
     Returns:
         str: The path to the import file.
     """
-    assert all(type(n) == tuple for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
-    assert all(type(e) == tuple for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logging.info("Fuse duplicated nodes and edges...")
-    fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep)
+    fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
     logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
     return fnodes,fedges
@@ -633,7 +551,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         bool: True if the data is valid, False otherwise.
     """
 
-    assert(type(filename_to_mapping) == dict) # data_file => mapping_file
+    assert isinstance(filename_to_mapping, dict) # data_file => mapping_file
 
     for data_file, mapping_file in filename_to_mapping.items():
         table = read_table_file(data_file, **kwargs)

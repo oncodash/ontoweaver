@@ -193,7 +193,6 @@ class OWLAdapter(iterative.IterativeAdapter):
 
                 if obj == OWL.NamedIndividual:
                     logger.debug("\t\t= pass")
-                    continue
 
                 else:
                     t = self.get.label_of(rel)

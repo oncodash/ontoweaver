@@ -750,7 +750,7 @@ class Transformer(errormanager.ErrorManager):
                     columns = []
 
                 for c in columns:
-                    if type(c) != str:
+                    if not isinstance(c, str):
                         self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
 
                 representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")
@@ -997,7 +997,7 @@ class Transformer(errormanager.ErrorManager):
                     columns = []
 
                 for c in columns:
-                    if type(c) != str:
+                    if not isinstance(c, str):
                         self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
 
                 representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")

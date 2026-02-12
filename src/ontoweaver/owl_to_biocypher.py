@@ -126,8 +126,6 @@ def translate_labels(ontology_file, json_f=None, output_format="rdfxml"):
             c.label = []
             c.label.append(new_label)
 
-            labels = c.label
-
             # If there is no obvious translation.
             if len(old_labels) == 0:
                 logger.debug(f"There was no label for {new_label}, I will add it to the ontology, but not to the restoration for {c.iri}.")
@@ -165,12 +163,11 @@ def translate_labels(ontology_file, json_f=None, output_format="rdfxml"):
 
 
 def harden_labels(text):
-    # Replace "<label…</label>" by "<rdfs:label</rdfs:label>"
+    # Replace "<label>…</label>" by "<rdfs:label>…</rdfs:label>"
     # Because Biocypher needs rdfs:label, or else it does not found any class.
     # Because OwlReady2 does not allow label with prefixes,
-    # we rely on regexp substitution.
-    text = re.sub(r"<label", "<rdfs:label", text)
-    text = re.sub(r"</label>", "</rdfs:label>", text)
+    text = text.replace("<label", "<rdfs:label")
+    text = text.replace("</label>", "</rdfs:label>")
 
     return text
 
