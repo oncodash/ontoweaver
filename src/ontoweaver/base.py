@@ -563,7 +563,7 @@ class MappingParser(Declare):
     # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
     k_row = ["row", "entry", "line", "subject", "source"]
     k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
-    k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element"]
+    k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element", "key", "keys"]
     k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
     k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
     k_edge = ["via_edge", "via_relation", "via_predicate"]

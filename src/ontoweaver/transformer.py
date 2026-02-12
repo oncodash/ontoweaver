@@ -1,6 +1,7 @@
-import math
 import re
+import math
 import sys
+import json
 import logging
 from abc import abstractmethod
 
@@ -258,7 +259,7 @@ class map(base.Transformer):
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
         if not self.columns:
-            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
+            self.error(f"No column declared for the `{type(self).__name__}` transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
 
     def __call__(self, row, i):
@@ -275,6 +276,64 @@ class map(base.Transformer):
         Raises:
             Warning: If the cell value is invalid.
         """
+        for item in super().__call__(row, i):
+            yield item
+
+
+class get(base.Transformer):
+    """Transformer subclass used for accessing a value within
+       nested dictionaries or dataframes."""
+
+    class ValueMaker(make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, keys, dic, i):
+            value = self.get(keys, dic, i)
+            return [value]
+
+        def get(self, keys, dic, i, depth = " "):
+            depth += "| "
+            logger.debug(f"{depth}Received: {type(dic)}[{keys}]")
+
+            if isinstance(dic, str) and not keys:
+                # Break recursivity.
+                logger.debug(f"{depth}Ended with: `{dic}`")
+                return dic
+
+            if not isinstance(keys, str):
+                logger.debug(f"{depth}I can iterate over keys")
+                if isinstance(dic, str):
+                    if ':' in dic and '{' in dic and '}' in dic:
+                        # Probably a Python/JSON dictionary.
+                        logger.debug(f"{depth}I'm parsing a JSON dictionary string.")
+                        dic = json.loads(dic)
+                        logger.debug(f"{depth}{dic}")
+                    assert not isinstance(dic, str)
+
+                # Consider it an object with bracket access, we just pass it.
+                if keys[0] not in dic:
+                    self.error(f"Key '{keys[0]}' not found in data", section="get.call",
+                               exception=exceptions.TransformerDataError)
+                else:
+                    # Recursive call until exhaustion.
+                    logger.debug(f"{depth}Get: {type(dic)}[{keys[0]}]")
+                    return self.get( keys[1:], dic[keys[0]], i, depth )
+
+
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
+                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+        logger.debug(f"keys: {self.keys}")
+        if not self.keys:
+            self.error(f"No key declared for the `{type(self).__name__}` transformer, did you forgot to add a `keys` keyword?", section="get.call", exception = exceptions.TransformerInputError)
+        else:
+            # We use self.columns to reuse super::call as is.
+            self.columns = self.keys
+
+    def __call__(self, row, i):
         for item in super().__call__(row, i):
             yield item
 

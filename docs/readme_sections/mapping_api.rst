@@ -627,6 +627,46 @@ Is equivalent to:
         raise exceptions.TransformerConfigError("Unknown value")
 
 
+get
+^^^
+
+The *get* transformer can access values in nested key-value store.
+For instance, if your table cells contains a Python dictionary,
+or a Pandas one-dimensional DataFrame, or a flat JSON object string,
+*get* will be able to access a value into it.
+
+For instance, if your table looks like:
+
++------+----------------------+
+| LINE | WORDS                |
++======+======================+
+|   0  | {"en": "good"}       |
++------+----------------------+
+|   1  | {"en": "awesome"}    |
++------+----------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+transformers:
+    - get:
+        keys:
+            - WORDS
+            - en
+        to_object: word  # The usual.
+        via_relation has_word
+
+.. note::
+   The *get* transformer can detect and parse JSON object notation, but if the
+   nested cell value is not a string, it will try to access it with the bracket
+   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
+   number of data structures.
+
 
 Multi-type Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~
