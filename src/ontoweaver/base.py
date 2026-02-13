@@ -1,4 +1,5 @@
 import logging
+import math
 
 import types as pytypes
 import pandas as pd
@@ -17,6 +18,28 @@ from . import validate
 from . import types as owtypes
 
 logger = logging.getLogger("ontoweaver")
+
+
+def is_not_null(val):
+    """
+    Checks if cell value is not empty nor 'null', 'nan'...
+
+    Args:
+        val: The value to check.
+
+    Returns:
+        bool: True if the value is valid, False otherwise.
+    """
+    if pd.api.types.is_numeric_dtype(type(val)):
+        if (math.isnan(val) or val == float("nan")):
+            return False
+    elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
+        return False
+    elif str(val) == "":
+        return False
+    elif str(val) == 'None':
+        return False
+    return True
 
 
 class MetaEnum(EnumMeta):
@@ -638,30 +661,9 @@ class Transformer(errormanager.ErrorManager):
        """
         for value in self.value_maker(self.columns, row, i):
             value, edge_type, node_type, reverse_edge = self.create(value, row)
-            if self.is_not_null(value):
+            if is_not_null(value):
                 yield value, edge_type, node_type, reverse_edge
 
-
-    def is_not_null(self, val):
-        """
-        Checks if cell value is not empty nor 'null', 'nan'...
-
-        Args:
-            val: The value to check.
-
-        Returns:
-            bool: True if the value is valid, False otherwise.
-        """
-        if pd.api.types.is_numeric_dtype(type(val)):
-            if (math.isnan(val) or val == float("nan")):
-                return False
-        elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
-            return False
-        elif str(val) == "":
-            return False
-        elif str(val) == 'None':
-            return False
-        return True
 
     #FIXME: The functions below are never implemented.
     @abstractmethod
@@ -885,30 +887,9 @@ class Transformer(errormanager.ErrorManager):
        """
         for value in self.value_maker(self.columns, row, i):
             value, edge_type, node_type, reverse_edge = self.create(value, row)
-            if self.is_not_null(value):
+            if is_not_null(value):
                 yield value, edge_type, node_type, reverse_edge
 
-
-    def is_not_null(self, val):
-        """
-        Checks if cell value is not empty nor 'null', 'nan'...
-
-        Args:
-            val: The value to check.
-
-        Returns:
-            bool: True if the value is valid, False otherwise.
-        """
-        if pd.api.types.is_numeric_dtype(type(val)):
-            if (math.isnan(val) or val == float("nan")):
-                return False
-        elif str(val).lower() == "nan":  # Conversion from Pandas' `object` needs to be explicit.
-            return False
-        elif str(val) == "":
-            return False
-        elif str(val) == 'None':
-            return False
-        return True
 
     #FIXME: The functions below are never implemented.
     @abstractmethod

@@ -67,11 +67,25 @@ class split(base.Transformer):
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
-
             for key in columns:
-                items = str(row[key]).split(self.separator)
-                for item in items:
-                    yield item
+                val = row[key]
+                if isinstance(val, str):
+                    items = val.split(self.separator)
+                    for item in items:
+                        yield item
+
+                elif not base.is_not_null(val):
+                    logger.debug(f"Value is null, I'll let my caller skip it.")
+                    yield val  # Will be passed by super.__call__
+
+                else:
+                    try:  # Try generic access.
+                        for item in val:
+                            yield item
+                    except Exception as e:
+                        msg = f"Cannot skip or iterate over {type(val)}: `{val}`. {e}"
+                        logger.error(msg)
+                        raise exceptions.TransformerDataError(msg)
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = None, **kwargs):
         """
@@ -356,6 +370,46 @@ class capitalize(map):
         """
         for item in super().__call__(row, i):
             yield item.capitalize()
+
+
+class lower(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with all letters in lowercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.lower()
+
+
+class upper(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with all letters in uppercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.lower()
 
 
 class lower_capitalize(map):

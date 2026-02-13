@@ -325,8 +325,14 @@ and edges. For example:
 split
 ^^^^^
 
-The *split* transformer separates a string on a separator, into several
+The *split* transformer separates a cell value into several
 items, and then inserts a node for each element of the list.
+
+If the cell value is a string, it uses the ``separator`` parameter to split
+it.
+
+If the cell value is any other type, it tries to iterate over it.
+In this case, any iterable object can be in the cell.
 
 For example, if you have a list of treatments separated by a semicolon,
 you may write:
@@ -367,6 +373,7 @@ you may write:
    ╰──────┬─────╯   ║╰────┬───┬╯║       ╰  ╯ ╰─┬╯    ║
           │         ╚═════╪═══╪═╩══════════════╪═════╝
           ╰───────────────╯   ╰────────────────╯
+
 
 cat
 ^^^
@@ -666,6 +673,18 @@ transformers:
    nested cell value is not a string, it will try to access it with the bracket
    syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
    number of data structures.
+
+
+Case manipulation transformers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following transformers can change the case of the string within the cells:
+
+- ``lower``: change all letters to lowercase,
+- ``upper``: change all letters to uppercase,
+- ``capitalize``: change the first letter to uppercase,
+- ``lower_capitalize``: change all letters to lowercase, then the first letter
+  to uppercase.
 
 
 Multi-type Transformers
