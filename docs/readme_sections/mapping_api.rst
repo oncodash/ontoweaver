@@ -325,8 +325,14 @@ and edges. For example:
 split
 ^^^^^
 
-The *split* transformer separates a string on a separator, into several
+The *split* transformer separates a cell value into several
 items, and then inserts a node for each element of the list.
+
+If the cell value is a string, it uses the ``separator`` parameter to split
+it.
+
+If the cell value is any other type, it tries to iterate over it.
+In this case, any iterable object can be in the cell.
 
 For example, if you have a list of treatments separated by a semicolon,
 you may write:
@@ -367,6 +373,7 @@ you may write:
    ╰──────┬─────╯   ║╰────┬───┬╯║       ╰  ╯ ╰─┬╯    ║
           │         ╚═════╪═══╪═╩══════════════╪═════╝
           ╰───────────────╯   ╰────────────────╯
+
 
 cat
 ^^^
@@ -626,6 +633,58 @@ Is equivalent to:
     else:
         raise exceptions.TransformerConfigError("Unknown value")
 
+
+get
+^^^
+
+The *get* transformer can access values in nested key-value store.
+For instance, if your table cells contains a Python dictionary,
+or a Pandas one-dimensional DataFrame, or a flat JSON object string,
+*get* will be able to access a value into it.
+
+For instance, if your table looks like:
+
++------+----------------------+
+| LINE | WORDS                |
++======+======================+
+|   0  | {"en": "good"}       |
++------+----------------------+
+|   1  | {"en": "awesome"}    |
++------+----------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+transformers:
+    - get:
+        keys:
+            - WORDS
+            - en
+        to_object: word  # The usual.
+        via_relation has_word
+
+.. note::
+   The *get* transformer can detect and parse JSON object notation, but if the
+   nested cell value is not a string, it will try to access it with the bracket
+   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
+   number of data structures.
+
+
+Case manipulation transformers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following transformers can change the case of the string within the cells:
+
+- ``lower``: change all letters to lowercase,
+- ``upper``: change all letters to uppercase,
+- ``capitalize``: change the first letter to uppercase,
+- ``lower_capitalize``: change all letters to lowercase, then the first letter
+  to uppercase.
 
 
 Multi-type Transformers

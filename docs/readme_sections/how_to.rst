@@ -502,3 +502,44 @@ How to load multiple Parquet files?
 
 .. include:: glob.rst
 
+
+How to access several keys in nested dictionaries?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The *get* transformer allows you ta access a value nested in nested key-stores.
+But it can only access *one* value.
+
+If you want to access several different keys in the same cell, then you will
+have to call the *get* transformer again, with the same first key, but with
+ different sequence of keys:
+
++------+-------------------------------------+
+| LINE | WORDS                               |
++======+=====================================+
+|   0  | {"en": "good", "fr": "ça va"}       |
++------+-------------------------------------+
+|   1  | {"en": "awesome", "fr": "pas mal"}  |
++------+-------------------------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+transformers:
+    - get:
+        keys:
+            - WORDS
+            - en
+        to_object: word  # The usual.
+        via_relation has_en_translation
+    - get:
+        keys:
+            - WORDS
+            - fr
+        to_object: word  # The usual.
+        via_relation has_fr_translation
+

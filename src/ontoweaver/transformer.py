@@ -1,6 +1,7 @@
-import math
 import re
+import math
 import sys
+import json
 import logging
 from abc import abstractmethod
 
@@ -66,11 +67,25 @@ class split(base.Transformer):
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
-
             for key in columns:
-                items = str(row[key]).split(self.separator)
-                for item in items:
-                    yield item
+                val = row[key]
+                if isinstance(val, str):
+                    items = val.split(self.separator)
+                    for item in items:
+                        yield item
+
+                elif not base.is_not_null(val):
+                    logger.debug(f"Value is null, I'll let my caller skip it.")
+                    yield val  # Will be passed by super.__call__
+
+                else:
+                    try:  # Try generic access.
+                        for item in val:
+                            yield item
+                    except Exception as e:
+                        msg = f"Cannot skip or iterate over {type(val)}: `{val}`. {e}"
+                        logger.error(msg)
+                        raise exceptions.TransformerDataError(msg)
 
     def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = None, **kwargs):
         """
@@ -258,7 +273,7 @@ class map(base.Transformer):
                          multi_type_dict, raise_errors=raise_errors, **kwargs)
 
         if not self.columns:
-            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
+            self.error(f"No column declared for the `{type(self).__name__}` transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
 
 
     def __call__(self, row, i):
@@ -275,6 +290,64 @@ class map(base.Transformer):
         Raises:
             Warning: If the cell value is invalid.
         """
+        for item in super().__call__(row, i):
+            yield item
+
+
+class get(base.Transformer):
+    """Transformer subclass used for accessing a value within
+       nested dictionaries or dataframes."""
+
+    class ValueMaker(make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, keys, dic, i):
+            value = self.get(keys, dic, i)
+            return [value]
+
+        def get(self, keys, dic, i, depth = " "):
+            depth += "| "
+            logger.debug(f"{depth}Received: {type(dic)}[{keys}]")
+
+            if isinstance(dic, str) and not keys:
+                # Break recursivity.
+                logger.debug(f"{depth}Ended with: `{dic}`")
+                return dic
+
+            if not isinstance(keys, str):
+                logger.debug(f"{depth}I can iterate over keys")
+                if isinstance(dic, str):
+                    if ':' in dic and '{' in dic and '}' in dic:
+                        # Probably a Python/JSON dictionary.
+                        logger.debug(f"{depth}I'm parsing a JSON dictionary string.")
+                        dic = json.loads(dic)
+                        logger.debug(f"{depth}{dic}")
+                    assert not isinstance(dic, str)
+
+                # Consider it an object with bracket access, we just pass it.
+                if keys[0] not in dic:
+                    self.error(f"Key '{keys[0]}' not found in data", section="get.call",
+                               exception=exceptions.TransformerDataError)
+                else:
+                    # Recursive call until exhaustion.
+                    logger.debug(f"{depth}Get: {type(dic)}[{keys[0]}]")
+                    return self.get( keys[1:], dic[keys[0]], i, depth )
+
+
+    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
+                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+
+        logger.debug(f"keys: {self.keys}")
+        if not self.keys:
+            self.error(f"No key declared for the `{type(self).__name__}` transformer, did you forgot to add a `keys` keyword?", section="get.call", exception = exceptions.TransformerInputError)
+        else:
+            # We use self.columns to reuse super::call as is.
+            self.columns = self.keys
+
+    def __call__(self, row, i):
         for item in super().__call__(row, i):
             yield item
 
@@ -297,6 +370,46 @@ class capitalize(map):
         """
         for item in super().__call__(row, i):
             yield item.capitalize()
+
+
+class lower(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with all letters in lowercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.lower()
+
+
+class upper(map):
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs,
+        with all letters in uppercase.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The capitalized cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item.lower()
 
 
 class lower_capitalize(map):

@@ -476,7 +476,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     return import_file
 
 
-def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = None, raise_errors = True) -> Tuple[str]:
+def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = "|", raise_errors = True) -> Tuple[str]:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
