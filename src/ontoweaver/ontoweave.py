@@ -114,7 +114,7 @@ def main():
 
     do = jsonargparse.ArgumentParser(
         description = "A command line tool to run OntoWeaver mapping adapters on a set of tabular data, and call the created BioCypher export scripts.",
-        epilog = f"Example usage:\n  {appname} table.csv:mapping.yaml\n  {appname} --biocypher-config biocypher_config.yaml --biocypher-schema schema.yaml table1.csv:mapping1.yaml table2.tsv:mapping1.yaml table3.parquet:mapping2.yaml --import-script-run",
+        epilog = f"Example usage:\n  {appname} table.csv:mapping.yaml\n  {appname} --biocypher-config config.yaml --auto-schema xschema.yaml table1.csv:mapping1.yaml table2.tsv:mapping1.yaml table3-part*.parquet:mapping2.yaml --import-script-run",
         default_config_files = config_files,
         env_prefix="ONTOWEAVE",
         default_env = True, # By default jsonargparse does not check environment, so one enables it explicitly.
