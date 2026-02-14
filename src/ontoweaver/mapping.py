@@ -380,7 +380,8 @@ class YamlParser(base.MappingParser):
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
                     logger.warning(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
-                               f" did you forget an indentation?")
+                               f" did you forget an indentation?"
+                               f" If it is a User defined trasnformer, please disregard this warning. ")
 
                     continue
 
