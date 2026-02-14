@@ -75,7 +75,8 @@ class ErrorManager:
     def __init__(self, raise_errors = True):
         self.raise_errors = raise_errors
 
-    def error(self, msg, section = None, index = None, exception = RuntimeError, indent = 0):
+    def error(self, msg, section = None, index = None, exception = exceptions.OntoWeaverError, indent = 0):
+
         location = ""
         if section:
             location = f" [for {section}"
@@ -87,10 +88,10 @@ class ErrorManager:
         err += msg
         err += location
 
-        logger.error(err)
-
         if self.raise_errors:
             raise exception(err)
+        else:
+            logger.error(err)
 
         return err
 
