@@ -31,7 +31,7 @@ class Reduce(Fusioner):
 
     This processes the given Congregater hosting the list of duplicates by
     iterating over each list of duplicates.
-    Each merge processes by iterating over them as pairs of candidate `base.Element`s,
+    Each merge processes by iterating over them as pairs of candidate ``base.Element``,
     like a classical "reduce" function.
 
     The given functor called to operate the fusion on a pair of Elements

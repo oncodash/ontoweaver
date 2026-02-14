@@ -66,11 +66,11 @@ class Members(Fuser):
 
          Args:
              cls: either a base.Node or a base.Edge subclass
-             merge_ID: the merger used to merge `id`(s)
-             merge_label: the merger used to merge `label`(s)
-             merge_prop: the merger used to merge `property`(s)
-             merge_source: the merger used to merge `id_source`(s)
-             merge_target: the merger used to merge `id_target`(s)
+             merge_ID: the merger used to merge id(s)
+             merge_label: the merger used to merge label(s)
+             merge_prop: the merger used to merge property(s)
+             merge_source: the merger used to merge id_source(s)
+             merge_target: the merger used to merge id_target(s)
         """
 
         super().__init__(cls)

@@ -696,6 +696,8 @@ class boolean(base.Transformer):
 
     For instance:
 
+    .. code:: yaml
+
         - boolean:
             column: my_column
             via_relation: my_relation
@@ -711,10 +713,14 @@ class boolean(base.Transformer):
             output_false: my_falsehood
 
     Is equivalent to:
+
+    .. code:: python
+
         if value in ["Y", "Yes", "yes"]:
             yield "my_truth"
         if value in ["N", "No", no"]:
             yield "my_falsehood"
+
     """
 
     class ValueMaker(make_value.ValueMaker):

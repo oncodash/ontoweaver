@@ -101,7 +101,7 @@ options:
 Multiple data files at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. include:: ./readme_sections/glob.rst
+.. include:: ./glob.rst
 
 
 Run the data importer

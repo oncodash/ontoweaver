@@ -6,10 +6,11 @@ files often come as a set of files.
 To do so, you can use the "globbing" syntax that you may know from your command
 line shell.
 
-For instance, if you want to select all the files ending with the `.parquet`
-extension in the `my_dir` directory:
+For instance, if you want to select all the files ending with the ``.parquet``
+extension in the ``my_dir`` directory:
 
 .. code:: sh
+
    ontoweave 'my_dir/*.parquet:my_mapping.yaml'
 
 .. warning::

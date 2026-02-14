@@ -20,21 +20,28 @@
 '''
 Pre-processing of ontologies in order to be compatible with the requirements of Biocypher.
 
-python3 -m preprocess_ontology <ontology_to_be_transformed>[.owl] > <new_ontology>
->> creates 
-    - a new Biocypher compatible ontology, in <ontology_directory> named bc_<ontology_to_be_transformed>.owl
-    - a 'bc_classes_mapping.json' file containing the mapping 
-        between classes from <ontology_to_be_transformed>.owl and classes from bc_<ontology_to_be_transformed>.owl
+.. code:: sh
+
+    python3 -m preprocess_ontology <ontology_to_be_transformed>[.owl] > <new_ontology>
+
+This creates:
+
+    - a new Biocypher compatible ontology, in <ontology_directory> named
+      bc_<ontology_to_be_transformed>.owl
+    - a 'bc_classes_mapping.json' file containing the mapping
+      between classes from <ontology_to_be_transformed>.owl and classes from
+      bc_<ontology_to_be_transformed>.owl
 
 Each element of bc_classes_mapping.json file is a json input with the folloging information:
 
-<initial_classe_IRI in ontology>: {
-    "labels": [
-        <list of the labels in the initial ontology>
-        ],
-    "bc_label": "<label in bc_ontology>"
-}
+.. code::
 
+    <initial_classe_IRI in ontology>: {
+        "labels": [
+            <list of the labels in the initial ontology>
+            ],
+        "bc_label": "<label in bc_ontology>"
+    }
 
 '''
 import os

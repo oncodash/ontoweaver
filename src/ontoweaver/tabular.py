@@ -22,17 +22,19 @@ class PandasAdapter(iterative.IterativeAdapter):
     Some other columns may also be mapped to properties of either a node or an edge.
 
     The class expect a configuration formed by three objects:
-        - the type of the source node mapped for each row.
-        - a dictionary mapping each column name to the type of the edge (which contains the type of both the source and target node),
-        - a dictionary mapping each (node or edge) type to another dictionary listing which column is extracted to which property.
+
+    - the type of the source node mapped for each row.
+    - a dictionary mapping each column name to the type of the edge (which contains the type of both the source and target node),
+    - a dictionary mapping each (node or edge) type to another dictionary listing which column is extracted to which property.
 
     Note that, when using the `configure` mapping,
     types are created by default in the `ontoweaver.types` module,
     so that you may access the list of all declared types by using:
-        - `ontoweaver.types.all.nodes()`,
-        - `ontoweaver.types.all.node_fields()`,
-        - `ontoweaver.types.all.edges()`,
-        - `ontoweaver.types.all.edge_fields()`.
+
+    - `ontoweaver.types.all.nodes()`,
+    - `ontoweaver.types.all.node_fields()`,
+    - `ontoweaver.types.all.edges()`,
+    - `ontoweaver.types.all.edge_fields()`.
     """
 
     def __init__(self,

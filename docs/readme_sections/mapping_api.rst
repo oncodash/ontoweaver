@@ -421,12 +421,12 @@ It only needs the string *value*, and then a regular property mapping:
 
 .. code:: yaml
 
-       - string:
-           value: "This may be useful"
-           to_property: comment
-           for_objects:
-               - patient
-               - variant
+   - string:
+       value: "This may be useful"
+       to_property: comment
+       for_objects:
+           - patient
+           - variant
 
 translate
 ^^^^^^^^^
@@ -462,11 +462,11 @@ would do:
 
 .. code:: yaml
 
-       - translate:
-           column: Gene
-           to_object: gene
-           translations:
-               ENSG00000139618: BRCA2
+   - translate:
+       column: Gene
+       to_object: gene
+       translations:
+           ENSG00000139618: BRCA2
 
 Of course, there could be hundreds of thousands of translations to
 declare, and you don’t want to declare them by hand in the mapping file.
@@ -483,12 +483,12 @@ Then, to declare a translation using this table, you would do:
 
 .. code:: yaml
 
-       - translate:
-           column: Gene
-           to_object: gene
-           translations_file: my_tabular_file.ext
-           translate_from: Ensembl
-           translate_to: HGCN
+   - translate:
+       column: Gene
+       to_object: gene
+       translations_file: my_tabular_file.ext
+       translate_from: Ensembl
+       translate_to: HGCN
 
 .. note::
 
@@ -500,16 +500,16 @@ Then, to declare a translation using this table, you would do:
 
 .. code:: yaml
 
-       - translate:
-           column: Gene
-           to_object: gene
-           translations_file: myfile.csv.zip
-           translate_from: Ensembl
-           translate_to: HGCN
-           sep: ";"
-           compression: zip
-           decimal: ","
-           encoding: latin-1
+   - translate:
+       column: Gene
+       to_object: gene
+       translations_file: myfile.csv.zip
+       translate_from: Ensembl
+       translate_to: HGCN
+       sep: ";"
+       compression: zip
+       decimal: ","
+       encoding: latin-1
 
 .. note::
    
@@ -527,15 +527,15 @@ to the transformer as a regular expression. For example:
 
 .. code:: yaml
 
-       - replace:
-           columns:
-               - treatment
-           to_object: drug
-           via_relation: alteration_biomarker_for_drug
-           forbidden: '[^0-9]' # Pattern matching all characters that are not numeric.
-           # Therefore, you only allow numeric characters.
-           substitute: "_" # Substitute all removed characters with an underscore, in case they are
-           # located inbetween allowed_characters.
+   - replace:
+       columns:
+           - treatment
+       to_object: drug
+       via_relation: alteration_biomarker_for_drug
+       forbidden: '[^0-9]' # Pattern matching all characters that are not numeric.
+       # Therefore, you only allow numeric characters.
+       substitute: "_" # Substitute all removed characters with an underscore, in case they are
+       # located inbetween allowed_characters.
 
 Here we define that the transformer should only allow numeric characters
 in the values extracted from the *treatment* column. All other
@@ -549,11 +549,11 @@ default settings, you can write:
 
 .. code:: yaml
 
-       - replace:
-           columns:
-               - treatment
-           to_object: drug
-           via_relation: alteration_biomarker_for_drug
+   - replace:
+       columns:
+           - treatment
+       to_object: drug
+       via_relation: alteration_biomarker_for_drug
 
 Let’s assume we want to map a table consisting of contact IDs and phone
 numbers.
@@ -634,6 +634,7 @@ Is equivalent to:
         raise exceptions.TransformerConfigError("Unknown value")
 
 
+<<<<<<< Updated upstream
 get
 ^^^
 
@@ -686,6 +687,118 @@ The following transformers can change the case of the string within the cells:
 - ``lower_capitalize``: change all letters to lowercase, then the first letter
   to uppercase.
 
+||||||| Stash base
+=======
+<<<<<<< Updated upstream
+||||||| Stash base
+get
+^^^
+
+The *get* transformer can access values in nested key-value store.
+For instance, if your table cells contains a Python dictionary,
+or a Pandas one-dimensional DataFrame, or a flat JSON object string,
+*get* will be able to access a value into it.
+
+For instance, if your table looks like:
+
++------+----------------------+
+| LINE | WORDS                |
++======+======================+
+|   0  | {"en": "good"}       |
++------+----------------------+
+|   1  | {"en": "awesome"}    |
++------+----------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+transformers:
+    - get:
+        keys:
+            - WORDS
+            - en
+        to_object: word  # The usual.
+        via_relation has_word
+
+.. note::
+   The *get* transformer can detect and parse JSON object notation, but if the
+   nested cell value is not a string, it will try to access it with the bracket
+   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
+   number of data structures.
+
+
+Case manipulation transformers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following transformers can change the case of the string within the cells:
+
+- ``lower``: change all letters to lowercase,
+- ``upper``: change all letters to uppercase,
+- ``capitalize``: change the first letter to uppercase,
+- ``lower_capitalize``: change all letters to lowercase, then the first letter
+  to uppercase.
+
+=======
+get
+^^^
+
+The *get* transformer can access values in nested key-value store.
+For instance, if your table cells contains a Python dictionary,
+or a Pandas one-dimensional DataFrame, or a flat JSON object string,
+*get* will be able to access a value into it.
+
+For instance, if your table looks like:
+
++------+----------------------+
+| LINE | WORDS                |
++======+======================+
+|   0  | {"en": "good"}       |
++------+----------------------+
+|   1  | {"en": "awesome"}    |
++------+----------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+    transformers:
+        - get:
+            keys:
+                - WORDS
+                - en
+            to_object: word  # The usual.
+            via_relation has_word
+
+.. note::
+
+   The *get* transformer can detect and parse JSON object notation, but if the
+   nested cell value is not a string, it will try to access it with the bracket
+   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
+   number of data structures.
+
+
+Case manipulation transformers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following transformers can change the case of the string within the cells:
+
+- ``lower``: change all letters to lowercase,
+- ``upper``: change all letters to uppercase,
+- ``capitalize``: change the first letter to uppercase,
+- ``lower_capitalize``: change all letters to lowercase, then the first letter
+  to uppercase.
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 Multi-type Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~

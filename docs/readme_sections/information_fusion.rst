@@ -120,7 +120,7 @@ Detecting duplicates
 For step 1, OntoWeaver provides the ``serialize`` module, which allows to extract
 the part of a node (or an edge) that should be used when checking equality.
 
-To produce such a *key* from an element, OntoWeaver provides ``Serializer``s.
+To produce such a *key* from an element, OntoWeaver provides ``Serializer``.
 A serializer object takes the element as an input, and returns the string key
 representing it. For instance, it can return the concatenation of a node's ID
 and label, or the concatenation of an edge's source, target and the value of a

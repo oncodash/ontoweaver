@@ -20,24 +20,24 @@ class YamlParser(base.MappingParser):
 
     .. code-block:: yaml
 
-            row:
-               map:
-                  columns:
+        row:
+           map:
+              columns:
+                - <MY_COLUMN_NAME>
+              to_subject: <MY_SUBJECT_TYPE>
+        transformers:
+            - map:
+                columns:
                     - <MY_COLUMN_NAME>
-                  to_subject: <MY_SUBJECT_TYPE>
-            transformers:
-                - map:
-                    columns:
-                        - <MY_COLUMN_NAME>
-                    to_object: <MY_OBJECT_TYPE>
-                    via_relation: <MY_RELATION_TYPE>
-                - map:
-                    columns:
-                        - <MY_OTHER_COLUMN>
-                    to_property:
-                        - <MY_PROPERTY>
-                    for_objects:
-                        - <MY_OBJECT_TYPE>
+                to_object: <MY_OBJECT_TYPE>
+                via_relation: <MY_RELATION_TYPE>
+            - map:
+                columns:
+                    - <MY_OTHER_COLUMN>
+                to_property:
+                    - <MY_PROPERTY>
+                for_objects:
+                    - <MY_OBJECT_TYPE>
 
     This maps the table row to a MY_SUBJECT_TYPE node type, adding an edge of type MY_RELATION_TYPE,
     between the MY_SUBJECT_TYPE node and another MY_OBJECT_TYPE node. The data in MY_OTHER_COLUMN is mapped
@@ -46,6 +46,7 @@ class YamlParser(base.MappingParser):
 
     In order to allow the user to write mappings configurations using their preferred vocabulary, the following
     keywords are interchangeable:
+
         - subject = row = entry = line,
         - columns = fields,
         - to_target = to_object = to_node

@@ -25,21 +25,23 @@ an existing node, use the ``to_property`` predicate, for example:
 This will add a “patient_age” property to nodes of type “case”.
 
 .. note::
+
    Note that you can add the same property value to several property fields
    of several node types:
 
 .. code:: yaml
 
-       - map:
-           column: age
-           to_properties:
-               - patient_age
-               - age_patient
-           for_object:
-               - case
-               - phenotype
+   - map:
+       column: age
+       to_properties:
+           - patient_age
+           - age_patient
+       for_object:
+           - case
+           - phenotype
 
 .. note::
+
    Note that the properties declared in the BioCypher ``schema_config.yaml`` must match the properties declared in the mapping configuration file.
    Furthermore, when declaring the properties in the schema configuration file, take care that the property must always be a
    string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
@@ -90,11 +92,11 @@ following section to the transformers in the mapping configuration:
 
 .. code:: yaml
 
-       - map:
-           column: patient
-           from_subject: sample
-           to_object: patient
-           via_relation: sample_to_patient
+   - map:
+       column: patient
+       from_subject: sample
+       to_object: patient
+       via_relation: sample_to_patient
 
 How to add the same metadata properties to all nodes and edges
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +126,7 @@ the column name in which the data was found, as a property to each
 *node*.
 
 .. note::
+
    Note that this is not added to *edges*, because they are not
    mapped from a column *per se*.
 
@@ -136,11 +139,11 @@ This can be added to the metadata section as follows:
 .. code:: yaml
 
    metadata:
-           - name: oncokb
-           - url: https://oncokb.org/
-           - license: CC BY-NC 4.0
-           - version: 0.1
-           - add_source_column_names_as: sources
+       - name: oncokb
+       - url: https://oncokb.org/
+       - license: CC BY-NC 4.0
+       - version: 0.1
+       - add_source_column_names_as: sources
 
 Now each of the nodes contains a property ``sources`` that contains the
 names of the source columns from which it was extracted. Be sure to
@@ -238,20 +241,20 @@ different properties to different nodes of the same type.
 For example:
 
 .. code:: yaml
-
+   
    row:
        map:
            column: SOURCE
            to_subject: protein_source # Temporary type.
            final_type: protein # The final type of the node.
-
+   
    transformers:
        - map:
            column: TARGET
            to_object: protein_target # Temporary type.
            via_relation: protein_protein_interaction
            final_type: protein # The final type of the node.
-           
+   
        # Properties of for the node type 'source'
        - map:
            column: UNIPROT_ID_SOURCE
@@ -264,6 +267,7 @@ For example:
            for_object: protein_target # Temporary node type to which the property will be linked.
 
 .. note::
+
    Notice how in this way, we avoid mapping the ``source`` properties to
    the ``target`` node types, and instead map then to the ``source`` node type.
    We also avoid mapping the ``target`` properties to the ``source`` node
@@ -273,6 +277,7 @@ The mapping thus results in the creation of three nodes: ``A``,
 ``B``, and ``C``, all having the type ``protein``, and the property ``uniprot_id``.
 
 .. note::
+
    Note that node ``A`` have now been instantiated twice, with different
    properties attached to each instance. However, the expected result would
    be to have a single instance, with all the properties combined. To solve
@@ -282,6 +287,7 @@ The mapping thus results in the creation of three nodes: ``A``,
 
 An edge of type ``protein_protein_interaction``, will be created from
 node ``A`` to node ``B``, as well as from node ``C`` to node ``A``.
+
 
 How to Extract Reverse Relations For Declared Edges
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -329,7 +335,6 @@ method to concatenate the values of the desired columns before yielding the resu
 
 .. code:: python
 
-
     from ontoweaver import transformer, validate
     from ontoweaver import types as owtypes
 
@@ -376,7 +381,6 @@ method to concatenate the values of the desired columns before yielding the resu
                                                                    "final_type": None,
                                                                    "reverse_relation": None}},
                                         label_maker=make_labels.SimpleLabelMaker())
-
 
         def __call__(self, row, i):
 
@@ -457,7 +461,6 @@ You can declare a property transformer on-the-fly within your custom transformer
 
             self.declare_types.make_edge_class("my_edge_class", getattr(owtypes, "my_source_node_class"), getattr(owtypes, "my_target_node_class"), self.branching_properties.get("my_edge_class", {}))
 
-
         def __call__(self, row, i):
 
             # Initialize final type and properties_of member variables to ``None`` for each row processed. This is beacuase
@@ -502,6 +505,7 @@ How to load multiple Parquet files?
 
 .. include:: glob.rst
 
+<<<<<<< Updated upstream
 
 How to access several keys in nested dictionaries?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -543,3 +547,92 @@ transformers:
         to_object: word  # The usual.
         via_relation has_fr_translation
 
+||||||| Stash base
+=======
+<<<<<<< Updated upstream
+||||||| Stash base
+
+How to access several keys in nested dictionaries?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The *get* transformer allows you ta access a value nested in nested key-stores.
+But it can only access *one* value.
+
+If you want to access several different keys in the same cell, then you will
+have to call the *get* transformer again, with the same first key, but with
+ different sequence of keys:
+
++------+-------------------------------------+
+| LINE | WORDS                               |
++======+=====================================+
+|   0  | {"en": "good", "fr": "ça va"}       |
++------+-------------------------------------+
+|   1  | {"en": "awesome", "fr": "pas mal"}  |
++------+-------------------------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+transformers:
+    - get:
+        keys:
+            - WORDS
+            - en
+        to_object: word  # The usual.
+        via_relation has_en_translation
+    - get:
+        keys:
+            - WORDS
+            - fr
+        to_object: word  # The usual.
+        via_relation has_fr_translation
+
+=======
+
+How to access several keys in nested dictionaries?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The *get* transformer allows you ta access a value nested in nested key-stores.
+But it can only access *one* value.
+
+If you want to access several different keys in the same cell, then you will
+have to call the *get* transformer again, with the same first key, but with
+different sequence of keys:
+
++------+-------------------------------------+
+| LINE | WORDS                               |
++======+=====================================+
+|   0  | {"en": "good", "fr": "ça va"}       |
++------+-------------------------------------+
+|   1  | {"en": "awesome", "fr": "pas mal"}  |
++------+-------------------------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+    transformers:
+        - get:
+            keys:
+                - WORDS
+                - en
+            to_object: word  # The usual.
+            via_relation has_en_translation
+        - get:
+            keys:
+                - WORDS
+                - fr
+            to_object: word  # The usual.
+            via_relation has_fr_translation
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
