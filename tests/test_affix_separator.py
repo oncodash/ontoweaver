@@ -1,56 +1,44 @@
-
 def test_affix_separator():
-    import yaml
-    import logging
-    import pandas as pd
-    import biocypher
-    import shutil
     from . import testing_functions
-
+    import logging
     import ontoweaver
 
-    logging.debug("Load ontology...")
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "affix_separator"
 
-    bc = biocypher.BioCypher(
-        biocypher_config_path="tests/" + directory_name + "/biocypher_config.yaml",
-        schema_config_path="tests/" + directory_name + "/schema_config.yaml"
-    )
+    assert_nodes = [('patient___A', 'patient', {}),
+                    ('patient___B', 'patient', {}),
+                    ('patient___C', 'patient', {}),
+                    ('publication___publicationA', 'publication', {}),
+                    ('publication___publicationB', 'publication', {}),
+                    ('publication___publicationC', 'publication', {}),
+                    ('variant___0', 'variant', {}),
+                    ('variant___1', 'variant', {}),
+                    ('variant___2', 'variant', {}),
+                    ]
 
-    logging.debug("Load data...")
-    csv_file = "tests/" + directory_name + "/data.csv"
-    table = pd.read_csv(csv_file)
+    assert_edges = [('', 'variant___0', 'patient___A', 'patient_has_variant', {}),
+                    ('', 'variant___0', 'publication___publicationA', 'publication_to_variant', {}),
+                    ('', 'variant___1', 'patient___B', 'patient_has_variant', {}),
+                    ('', 'variant___1', 'publication___publicationB', 'publication_to_variant', {}),
+                    ('', 'variant___2', 'patient___C', 'patient_has_variant', {}),
+                    ('', 'variant___2', 'publication___publicationC', 'publication_to_variant', {}),
+                    ]
 
-    logging.debug("Load mapping...")
-    mapping_file = "tests/" + directory_name + "/mapping.yaml"
-    with open(mapping_file) as fd:
-        mapping = yaml.full_load(fd)
+    data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="prefix", type_affix_sep="___")
 
-    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges))
 
-    assert (adapter)
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
+    logging.debug(f_node_set)
 
-    logging.debug("Write nodes...")
-    assert (adapter.nodes)
-    bc.write_nodes(adapter.nodes)
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-    logging.debug("Write edges...")
-    assert (adapter.edges)
-    bc.write_edges(adapter.edges)
-
-    logging.debug("Write import script...")
-    bc.write_import_call()
-
-    output_dir = testing_functions.get_latest_directory("biocypher-out")
-
-    assert_output_path = "tests/" + directory_name + "/assert_output"
-
-    testing_functions.compare_csv_files(assert_output_path, output_dir)
-
-    shutil.rmtree(output_dir)
+    testing_functions.assert_edges(fedges, assert_edges)
 
 
 if __name__ == "__main__":

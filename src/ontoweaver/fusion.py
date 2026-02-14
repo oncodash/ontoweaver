@@ -44,7 +44,7 @@ class Reduce(Fusioner):
         self.fuser = fuser
 
     def __call__(self, congregater: congregate.Congregater) -> set[base.Element]:
-        fusioned = set()
+        # fusioned = set()
         for key, elem_list in congregater.duplicates.items():
             self.fuser.reset()
             logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
@@ -54,9 +54,12 @@ class Reduce(Fusioner):
             # Manual functools.reduce without initial state.
             it = iter(elem_list)
             lhs = next(it)
-            logger.debug(f"  Fuse element with key `{lhs}`...")
+            logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
             logger.debug(f"    with itself: {repr(lhs)}")
             self.fuser(key, lhs, lhs)
+            logger.debug(f"lhs: {lhs}")
+            logger.debug(f"fuser.get: {self.fuser.get()}")
+            logger.debug(f"repr: {repr(self.fuser.get())}")
             logger.debug(f"      = {repr(self.fuser.get())}")
             for rhs in it:
                 logger.debug(f"    with `{rhs}`: {repr(rhs)}")
@@ -67,9 +70,10 @@ class Reduce(Fusioner):
             f = self.fuser.get()
             logger.debug(f"  Fused: {repr(f)}")
             assert(issubclass(type(f), base.Element))
-            fusioned.add(f)
-        logger.debug(f"Fusioned {len(fusioned)} elements.")
-        return fusioned
+            # fusioned.add(f)
+            yield f
+
+        logger.debug(f"Fusioned {len(congregater)} elements.")
 
 
 def remap_edges(edges, ID_mapping):
@@ -88,7 +92,6 @@ def remap_edges(edges, ID_mapping):
         the list of remaped edges tuples
     """
 
-    remaped_edges = []
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
 
@@ -100,12 +103,10 @@ def remap_edges(edges, ID_mapping):
         if t:
             edge.id_target = t
 
-        remaped_edges.append(edge.as_tuple())
-
-    return remaped_edges
+        yield edge.as_tuple()
 
 
-def reconciliate_nodes(nodes, separator = None):
+def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -126,17 +127,22 @@ def reconciliate_nodes(nodes, separator = None):
     Returns:
         the list of fused nodes and the ID mapping dictionary
     """
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
+
 
     # NODES FUSION
     # Find duplicates
     on_ID = serialize.ID()
     nodes_congregater = congregate.Nodes(on_ID)
-    nodes_congregater(nodes)
+
+    for n in nodes_congregater(nodes):
+        pass
 
     # Fuse them
     use_key    = merge.string.UseKey()
     identicals = merge.string.EnsureIdentical()
-    in_lists   = merge.dictry.Append(separator)
+    in_lists   = merge.dictry.Append(reconciliate_sep)
     node_fuser = fuse.Members(base.Node,
             merge_ID    = use_key,
             merge_label = identicals,
@@ -144,7 +150,10 @@ def reconciliate_nodes(nodes, separator = None):
         )
 
     nodes_fusioner = Reduce(node_fuser)
-    fusioned_nodes = nodes_fusioner(nodes_congregater)
+    fusioned_nodes = set()
+    for n in nodes_fusioner(nodes_congregater):
+        fusioned_nodes.add(n)
+
     # logger.debug("Fusioned nodes:")
     # for n in fusioned_nodes:
     #     logger.debug("\t"+repr(n))
@@ -152,7 +161,7 @@ def reconciliate_nodes(nodes, separator = None):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, separator = None):
+def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -172,17 +181,21 @@ def reconciliate_edges(edges, separator = None):
     Returns:
         the list of fused edges
     """
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     # EDGES FUSION
     # Find duplicates
     on_STL = serialize.edge.SourceTargetLabel()
     edges_congregater = congregate.Edges(on_STL)
-    edges_congregater(edges)
+
+    for e in edges_congregater(edges):
+        pass
 
     # Fuse them
-    set_of_ID       = merge.string.OrderedSet(separator)
+    set_of_ID       = merge.string.OrderedSet(reconciliate_sep)
     identicals      = merge.string.EnsureIdentical()
-    in_lists        = merge.dictry.Append(separator)
+    in_lists        = merge.dictry.Append(reconciliate_sep)
     use_last_source = merge.string.UseLast()
     use_last_target = merge.string.UseLast()
     edge_fuser = fuse.Members(base.GenericEdge,
@@ -194,7 +207,10 @@ def reconciliate_edges(edges, separator = None):
         )
 
     edges_fusioner = Reduce(edge_fuser)
-    fusioned_edges = edges_fusioner(edges_congregater)
+    fusioned_edges = set()
+    for e in edges_fusioner(edges_congregater):
+        fusioned_edges.add(e)
+
     # logger.debug("Fusioned edges:")
     # for n in fusioned_edges:
     #     logger.debug("\t"+repr(n))
@@ -202,7 +218,7 @@ def reconciliate_edges(edges, separator = None):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, separator = None):
+def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
@@ -218,8 +234,13 @@ def reconciliate(nodes, edges, separator = None):
 
     See reconciliate_nodes and reconciliate_edges for details.
     """
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
-    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, separator = separator)
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
+
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
 
     # EDGES REMAP
     # If we use on_ID/use_key,
@@ -227,14 +248,16 @@ def reconciliate(nodes, edges, separator = None):
     assert(len(ID_mapping) == 0)
     # If one change this, you may want to remap like this:
     if len(ID_mapping) > 0:
-        remaped_edges = remap_edges(edges, ID_mapping)
+        remaped_edges = []
+        for e in remap_edges(edges, ID_mapping):
+            remaped_edges.append(e)
         # logger.debug("Remaped edges:")
         # for n in remaped_edges:
         #     logger.debug("\t"+repr(n))
     else:
         remaped_edges = edges
 
-    fusioned_edges = reconciliate_edges(remaped_edges, separator = separator)
+    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]

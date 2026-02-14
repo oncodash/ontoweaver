@@ -1,0 +1,41 @@
+row:
+   map:
+      id_from_column: furniture
+      match_type_from_column: localisation
+      final_type: aaaaaa
+      match:
+        - kitchen:
+            to_subject: kitchen_furniture
+            final_type: bbbbbb # Not supposed to appear on the node because overwritten by the transformer wide final_type
+        - ^(?!kitchen$).*:
+            to_subject: rest_of_house_furniture
+transformers:
+    - map:
+        id_from_column: name
+        match_type_from_column: will_sit?
+        match:
+            - y:
+                to_object: person
+                via_relation: will_sit
+                final_type: cccccc
+            - n:
+                to_object: person
+                via_relation: will_not_sit
+                final_type: dddddd
+
+    - map:
+        column: localisation
+        to_object: localisation
+        final_type: eeeeee
+        via_relation: has_localisation
+
+    - cat:
+        columns:
+            - name
+            - localisation
+        to_property: localisation
+
+
+metadata:
+  - blabla: blabla
+  - add_source_column_names_as: source_columns

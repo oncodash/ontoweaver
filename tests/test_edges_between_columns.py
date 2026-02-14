@@ -1,58 +1,53 @@
-
-
 def test_edges_between_columns():
-    import yaml
-    import logging
     from . import testing_functions
-    from tests.edges_between_columns import types
-    import shutil
-    import pandas as pd
-    import biocypher
+    import logging
     import ontoweaver
 
-    logging.debug("Load ontology...")
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "edges_between_columns"
 
-    bc = biocypher.BioCypher(
-        biocypher_config_path="tests/" + directory_name + "/biocypher_config.yaml",
-        schema_config_path="tests/" + directory_name + "/schema_config.yaml"
-    )
-    # bc.show_ontology_structure()
+    assert_nodes = [('0:variant', 'variant', {}),
+                    ('1:variant', 'variant', {}),
+                    ('2:variant', 'variant', {}),
+                    ('3:variant', 'variant', {}),
+                    ('patient1:patient', 'patient', {}),
+                    ('patient2:patient', 'patient', {}),
+                    ('patient3:patient', 'patient', {}),
+                    ('patient4:patient', 'patient', {}),
+                    ('sample1:sample', 'sample', {}),
+                    ('sample2:sample', 'sample', {}),
+                    ('sample3:sample', 'sample', {}),
+                    ('sample4:sample', 'sample', {})
+                    ]
 
-    logging.debug("Load data...")
-    csv_file = "tests/" + directory_name + "/data.csv"
-    table = pd.read_csv(csv_file)
+    assert_edges = [('', '0:variant', 'patient1:patient', 'patient_has_variant', {}),
+                    ('', '0:variant', 'sample1:sample', 'variant_in_sample', {}),
+                    ('', '1:variant', 'patient2:patient', 'patient_has_variant', {}),
+                    ('', '1:variant', 'sample2:sample', 'variant_in_sample', {}),
+                    ('', '2:variant', 'patient3:patient', 'patient_has_variant', {}),
+                    ('', '2:variant', 'sample3:sample', 'variant_in_sample', {}),
+                    ('', '3:variant', 'patient4:patient', 'patient_has_variant', {}),
+                    ('', '3:variant', 'sample4:sample', 'variant_in_sample', {}),
+                    ('', 'sample1:sample', 'patient1:patient', 'sample_to_patient', {}),
+                    ('', 'sample2:sample', 'patient2:patient', 'sample_to_patient', {}),
+                    ('', 'sample3:sample', 'patient3:patient', 'sample_to_patient', {}),
+                    ('', 'sample4:sample', 'patient4:patient', 'sample_to_patient', {})
+                    ]
 
-    logging.debug("Load mapping...")
-    mapping_file = "tests/" + directory_name + "/mapping.yaml"
-    with open(mapping_file) as fd:
-        mapping = yaml.full_load(fd)
 
-    logging.debug("Run the adapter...")
+    data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
-    adapter = ontoweaver.tabular.extract_table(table, mapping)
+    nodes, edges = ontoweaver.extract(data_mapping, affix="suffix")
 
-    assert (adapter)
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-    logging.debug("Write nodes...")
-    assert (adapter.nodes)
-    bc.write_nodes(adapter.nodes)
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-    logging.debug("Write edges...")
-    assert (adapter.edges)
-    bc.write_edges(adapter.edges)
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-    logging.debug("Write import script...")
-    bc.write_import_call()
-
-    output_dir = testing_functions.get_latest_directory("biocypher-out")
-
-    assert_output_path = "tests/" + directory_name + "/assert_output"
-
-    testing_functions.compare_csv_files(assert_output_path, output_dir)
-
-    shutil.rmtree(output_dir)
+    testing_functions.assert_edges(fedges, assert_edges)
 
 
 if __name__ == "__main__":

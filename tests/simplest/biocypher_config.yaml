@@ -1,11 +1,12 @@
 biocypher:
     debug: true
     offline: true
-    schema_config_path: config/schema_config.yaml
+    schema_config_path: schema_config.yaml
+    dbms: neo4j
 
     # Ontology configuration
     head_ontology:
-        url: https://github.com/biolink/biolink-model/raw/v3.2.1/biolink-model.owl.ttl
+        url: tests/simplest/biolink-model.owl.ttl
         root_node: entity
 
 neo4j:

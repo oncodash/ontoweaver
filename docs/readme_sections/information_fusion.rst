@@ -15,6 +15,7 @@ adapter, the only way to solve this problem is to implement a single
 adapter, which reconciliate the data before producing nodes, which makes
 the task difficult and the adapter code even harder to understand.
 
+
 Reconciliation
 ~~~~~~~~~~~~~~
 
@@ -39,9 +40,10 @@ edges:
    edges = adapter_A.edges + adapter_B.edges
 
    # Reconciliate:
-   fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, separator=";")
+   fused_nodes, fused_edges = ontoweaver.fusion.reconciliate(nodes, edges, reconciliate_sep=";")
 
    # Then you can pass those to biocypher.write_nodes and biocypher.write_edges...
+
 
 High-level Interface
 ^^^^^^^^^^^^^^^^^^^^
@@ -68,8 +70,37 @@ Then, the result of the reconciliation step above would be:
 
 .. code:: python
 
-   # Note how "x" and "z" are separated by separator=";".
+   # Note how "x" and "z" are separated by reconciliate_sep=";".
    ("id_1", "type_A", {"prop_1": "x;z", "prop_2": "y"})
+
+
+Generic fusion
+~~~~~~~~~~~~~~
+
+OntoWeaver brings a set of features that also help solving fusion problems
+that goes beyond properties reconciliation.
+
+To do so, it is allows to manage two problems:
+
+1. How to detect that two elements are duplicates?
+2. How to fuse duplicated element in a single one?
+
+The first problem is handled by the ``Congregater`` interface, which needs to
+construct a dictionary associating a *key* with a list of duplicated elements.
+The *key* is a representation of the elements in the form of a string. If two
+elements have the same *key* then they are considered duplicates and put in the
+same list, and will be fused together in the second step.
+
+For the second problem, OntoWeaver provides three layers, depending on what one
+wants to fuse. For fusing:
+
+1. a whole *list of duplicated elements*, use objects implementing the low-level
+   interface ``fusion.Fusioner``,
+2. two duplicated elements, use objects implementing the low-level interface
+   ``fuse.Fuser``,
+3. two member variables (e.g. ID, label, properties, source or target) of two
+   duplicated elements, use the mid-level interface ``merge.Merger``.
+
 
 Mid-level Interfaces
 ^^^^^^^^^^^^^^^^^^^^
@@ -81,6 +112,65 @@ The simplest approach to fusion is to define how to:
 3. fuse two type labels, and
 4. fuse two properties dictionaries, and then
 5. let OntoWeaver browse the nodes by pairs, until everything is fused.
+
+
+Detecting duplicates
+""""""""""""""""""""
+
+For step 1, OntoWeaver provides the ``serialize`` module, which allows to extract
+the part of a node (or an edge) that should be used when checking equality.
+
+To produce such a *key* from an element, OntoWeaver provides ``Serializer``s.
+A serializer object takes the element as an input, and returns the string key
+representing it. For instance, it can return the concatenation of a node's ID
+and label, or the concatenation of an edge's source, target and the value of a
+specific property.
+
+For example, with 4 nodes all having the same label, using the ``IDLabel``
+serializer, the ``Node`` congregater will detect three duplicated nodes:
+
+::
+
+    nodes ==
+    ⎡ ┌node1───────┐  ┌node2───────┐  ┌node3───────┐  ┌node4───────┐  ⎤
+    ⎢ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ │   ID: BRCA2┼┐ ⎥
+    ⎢ │Label: gene ┼┤ │Label: gene ┼┤ │Label: prot ┼┤ │Label: gene ┼┤ ⎥
+    ⎢ │Props:      ││,│Props:      ││,│Props:      ││,│Props:      ││ ⎥
+    ⎢ │⎧ source: A⎫││ │⎧ source: B⎫││ │⎧ source: B⎫││ │⎧ source: B⎫││ ⎥
+    ⎢ │⎨version: 1⎬││ │⎨version: 2⎬││ │⎨version: 2⎬││ │⎨version: 3⎬││ ⎥
+    ⎢ │⎩  level: I⎭││ │⎩  level: I⎭││ │⎩  level:II⎭││ │⎩  level: I⎭││ ⎥
+    ⎣ └────────────┘│ └────────────┘│ └────────────┘│ └────────────┘│ ⎦
+                    │               │               │               │
+            >>> on_IDLabel = ontoweaver.serialize.IDLabel()         │
+            >>> for n in nodes:     │               │               │
+            >>>     on_IDLabel(n)   │               │               │
+                    │               │               │               │
+                    ▼               ▼               ▼               ▼
+       keys = ["BRCA2gene"  ,  "BRCA2gene"  ,  "BRCA2prot"  ,  "BRCA2gene"]
+      └───┬────────────────────────────────────────────────────────────────┘
+          │                          
+          │ >>> congregate = ontoweaver.congregate.Nodes(on_IDlabel)
+          │ >>> congregate(nodes)     
+          │                          
+          ▼                          
+    congregate.duplicates() ==
+    ⎧             ⎡ ┌node1───────┐ ┌node2───────┐ ┌node4───────┐ ⎤ ⎫
+    ⎪             ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥ ⎪
+    ⎪             ⎢ │Label: gene │ │Label: gene │ │Label: gene │ ⎥ ⎪
+    ⎪"BRCA2gene": ⎢ │Props:      │,│Props:      │,│Props:      │ ⎥ ⎪
+    ⎪             ⎢ │⎧ source: A⎫│ │⎧ source: B⎫│ │⎧ source: B⎫│ ⎥ ⎪
+    ⎪             ⎢ │⎨version: 1⎬│ │⎨version: 2⎬│ │⎨version: 3⎬│ ⎥ ⎪
+    ⎪             ⎢ │⎩  level: I⎭│ │⎩  level: I⎭│ │⎩  level: I⎭│ ⎥ ⎪
+    ⎪             ⎣ └────────────┘ └────────────┘ └────────────┘ ⎦ ⎪
+    ⎨ ,                                                            ⎬
+    ⎪             ⎡ ┌node3───────┐ ⎤                               ⎪
+    ⎪             ⎢ │   ID: BRCA2│ ⎥                               ⎪
+    ⎪             ⎢ │Label: prot │ ⎥                               ⎪
+    ⎪"BRCA2prot": ⎢ │Props:      │ ⎥                               ⎪
+    ⎪             ⎢ │⎧ source: B⎫│ ⎥                               ⎪
+    ⎪             ⎢ │⎨version: 2⎬│ ⎥                               ⎪
+    ⎪             ⎢ │⎩  level:II⎭│ ⎥                               ⎪
+    ⎩             ⎣ └────────────┘ ⎦                               ⎭
 
 For step 1, OntoWeaver provides the ``serialize`` module, which allows
 to extract the part of a node or an edge) that should be used when
@@ -104,6 +194,10 @@ For example:
    congregater = congregate.Nodes(on_ID) # Instantiation.
    congregater(my_nodes) # Actual processing call.
    # congregarter now holds a dictionary of duplicated nodes.
+
+
+Fuse duplicates
+"""""""""""""""
 
 For steps 2 to 4, OntoWeaver provides the ``merge`` module, which
 provides ways to merge two nodes’ components into a single one. It is
@@ -136,14 +230,14 @@ For example, to fuse “congregated” nodes, one can do:
 .. code:: python
 
        # How to merge two components:
-       use_key    = merge.string.UseKey() # Instantiation.
+       use_first  = merge.string.UseFirst() # Instantiation.
        identicals = merge.string.EnsureIdentical()
-       in_lists   = merge.dictry.Append(separator)
+       in_lists   = merge.dictry.Append(reconciliate_sep)
 
        # Assemble those function objects in an object that knows
-       # how to apply them members by members:
+       # how to apply them member by member:
        fuser = fuse.Members(base.Node,
-               merge_ID    = use_key,    # How to merge two identifiers.
+               merge_ID    = use_first,  # How to merge two identifiers.
                merge_label = identicals, # How to merge two type labels.
                merge_prop  = in_lists,   # How to merge two properties dictionaries.
            )
@@ -151,6 +245,46 @@ For example, to fuse “congregated” nodes, one can do:
        # Apply a "reduce" step (browsing pairs of nodes, until exhaustion):
        fusioner = Reduce(fuser) # Instantiation.
        fusioned_nodes = fusioner(congregater) # Call on the previously found duplicates.
+
+For example, the three duplicated nodes shown in the previous section would be
+merged into a single node in two steps:
+
+::
+
+    congregate.duplicates() ==
+    ⎧             ⎡ ┌node1───────┐ ┌node2───────┐ ┌node4───────┐ ⎤ ⎫
+    ⎪             ⎢ │   ID: BRCA2│ │   ID: BRCA2│ │   ID: BRCA2│ ⎥ ⎪
+    ⎪             ⎢ │Label: gene │ │Label: gene │ │Label: gene │ ⎥ ⎪
+    ⎨"BRCA2gene": ⎢ │Props:      │,│Props:      │,│Props:      │ ⎥ ⎬
+    ⎪             ⎢ │⎧ source: A⎫│ │⎧ source: B⎫│ │⎧ source: B⎫│ ⎥ ⎪
+    ⎪             ⎢ │⎨version: 1⎬│ │⎨version: 2⎬│ │⎨version: 3⎬│ ⎥ ⎪
+    ⎪             ⎢ │⎩  level: I⎭│ │⎩  level: I⎭│ │⎩  level: I⎭│ ⎥ ⎪
+    ⎩             ⎣ └────────────┘ └────────────┘ └────────────┘ ⎦ ⎭
+                           ▲              ▲              │
+                           │              └──────────────┘
+                           │              FIRST Reduce step:
+                           │              merge node2 and node3 into node2.
+                           │              │
+                           └──────────────┘
+                         SECOND Reduce step:
+                         merge node1 and node2,
+                         one now have a single node.
+
+Each ``Reduce`` step would consists in calling ``Members`` mergers on each variable
+members, for example, for the second step:
+
+::
+
+    fuse.Members.merge \
+      ⎛            ┌node1───────┐ ┌node2─────────┐ ⎞                     ┌node────────────┐
+      ⎜            │   ID: BRCA2│ │   ID: BRCA2  │ ⎟ ──────UseFirst─────▶│   ID: BRCA2    │
+      ⎜┌key──────┐ │Label: gene │ │Label: gene   │ ⎟ ──EnsureIdenticals─▶│Label: gene     │
+      ⎜│BRCA2gene│,│Props:      │,│Props:        │ ⎟ ───────Append──────▶│Props:          │
+      ⎜└─────────┘ │⎧ source: A⎫│ │⎧ source: B  ⎫│ ⎟   ┄┄┄┄{A}+{B}┄┄┄┄▷  │⎧ source: A,B  ⎫│
+      ⎜            │⎨version: 1⎬│ │⎨version: 2,3⎬│ ⎟   ┄┄┄┄{1}+{2,3}┄┄▷  │⎨version: 1,2,3⎬│
+      ⎜            │⎩  level: I⎭│ │⎩  level: I  ⎭│ ⎟   ┄┄┄┄{I}+{I}┄┄┄┄▷  │⎩  level: I    ⎭│
+      ⎝            └────────────┘ └──────────────┘ ⎠                     └────────────────┘
+
 
 Once this fusion step is done, is it possible that the edges that were
 defined by the initial adapters refer to node IDs that do not exist
@@ -173,9 +307,9 @@ of which are now duplicates, because they were remapped):
        edges_congregater(edges)
 
        # How to fuse them:
-       set_of_ID       = merge.string.OrderedSet(separator)
+       set_of_ID       = merge.string.OrderedSet(reconciliate_sep)
        identicals      = merge.string.EnsureIdentical()
-       in_lists        = merge.dictry.Append(separator)
+       in_lists        = merge.dictry.Append(reconciliate_sep)
        use_last_source = merge.string.UseLast()
        use_last_target = merge.string.UseLast()
        edge_fuser = fuse.Members(base.GenericEdge,
@@ -196,6 +330,7 @@ classes, they need to be converted back to Biocypher’s tuples:
 .. code:: python
 
        return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
+
 
 Low-level Interfaces
 ^^^^^^^^^^^^^^^^^^^^

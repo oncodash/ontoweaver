@@ -1,0 +1,22 @@
+person:
+    represented_as: node
+    label_in_input: person
+
+childOf:
+    represented_as: edge
+    label_in_input: childOf
+    source: person
+    target: person
+
+parentOf:
+    represented_as: edge
+    label_in_input: parentOf
+    source: person
+    target: person
+
+role:
+    represented_as: edge
+    label_in_input: role
+    source: person
+    target: person
+

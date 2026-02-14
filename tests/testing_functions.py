@@ -1,13 +1,6 @@
 import os
 import glob
 import pandas as pd
-import time
-def get_latest_directory(parent_dir):
-    """Get the latest directory in the given parent directory."""
-    all_dirs = [os.path.join(parent_dir, d) for d in os.listdir(parent_dir) if
-                os.path.isdir(os.path.join(parent_dir, d))]
-    latest_dir = max(all_dirs, key=os.path.getmtime)
-    return latest_dir
 
 def get_csv_files(directory):
     """Get all CSV files in the directory."""
@@ -29,3 +22,29 @@ def compare_csv_files(expected_dir, output_dir):
         output_df = pd.read_csv(output_file, on_bad_lines='skip')
 
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+def convert_to_set(tuple_output):
+    """Convert the OntoWeaver tuple output to a set."""
+
+    return set([
+    tuple([
+        node[0],
+        node[1],
+        tuple(sorted(node[2].items()))
+    ]) if len(node) == 3 else tuple([
+        node[0],
+        node[1],
+        node[2],
+        node[3],
+        tuple(sorted(node[4].items()))
+    ]) for node in tuple_output
+    ])
+
+
+def assert_edges(lhs, rhs):
+    assert_edge_set = set([e[1:2] for e in rhs])
+    f_edge_set = set([e[1:2] for e in lhs])
+    assert len(f_edge_set) == len(assert_edge_set)
+    for edge in assert_edge_set:
+        assert edge in f_edge_set, f"Edges {edge} should exists."
+

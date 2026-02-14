@@ -1,0 +1,11 @@
+
+biocypher:
+    debug: true
+    offline: true
+    dbms: csv
+
+    # Ontology configuration
+    head_ontology:
+        url: tests/family_automap/reasoned.ttl
+        root_node: Biocypherroot
+

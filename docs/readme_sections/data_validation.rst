@@ -7,22 +7,25 @@ outputs of your mapping fulfill a set of predefined expectations. The
 data validation feature uses the functionalities provided by the
 `Pandera
 package <(https://pandera.readthedocs.io/en/stable/index.html)>`__, as
-well as its yaml configuration to validate the data. These yaml
+well as its YAML configuration to validate the data. These YAML
 configurations enable you to write some basic definitions of types and
 domains expected for each of the columns of your input data, as well as
 type and domain expectations for the output of your mapping, with some
 preset rules for outputs, ensuring that the output of any mapping will
 not result in an empty value and will be a string.
 
-Here’s an example of what a yaml configuration file for a simple
+Here’s an example of what a YAML configuration file for a simple
 database would look like:
 
-::
-
-   variant_id  patient
-       0           A
-       1           B
-       2           C
++------------+---------+
+| variant_id | patient |
++============+=========+
+|      0     |    A    |
++------------+---------+
+|      1     |    B    |
++------------+---------+
+|      2     |    C    |
++------------+---------+
 
 Let’s first define a simple mapping configuration for the above data. In
 the example below we are mapping the column ``patient`` to a ``patient``
@@ -44,9 +47,9 @@ connected via the ``patient_has_variant`` edge.
 Input Data Validation
 ~~~~~~~~~~~~~~~~~~~~~
 
-Now, let’s define a yaml configuration file for input data validation.
+Now, let’s define a YAML configuration file for input data validation.
 The configuration is part of the ``yaml`` file used to configure the
-mapping. We start off by defining a ``validate`` section in the yaml
+mapping. We start off by defining a ``validate`` section in the YAML
 file, followed by a section defining the ``columns``. For each column in
 our database, we define a ``type`` (``dtype: int64`` for the
 ``variant_id`` column and ``dtype: str`` for the ``patient`` column),
@@ -92,9 +95,13 @@ return an error if the data does not meet the expectations.
 
    ontoweave my_data.csv:my_mapping.yaml --validate-only
 
-If you want to know more about the rules you can use to validate your
-data, you can check the `Pandera
-documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
+.. note::
+      If you want to know more about the rules you can use to validate your
+
+.. note::
+      data, you can check the `Pandera
+      documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
+
 
 Output Data Validation
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -141,7 +148,7 @@ values ``0``, ``1``, ``2``, or ``3``.
                                  - B
                                  - C
 
-The whole yaml file, with both data mapping, input data validation, and
+The whole YAML file, with both data mapping, input data validation, and
 output data validation, would look like this:
 
 .. code:: yaml
@@ -194,6 +201,7 @@ You can find a test based on this example in the
 test there is configured to fail, due to the presence of a forbidden
 ``E`` character in the input data.
 
-If you want to know more about the rules you can use to validate your
-data, you can check the `Pandera
-documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
+.. note::
+   If you want to know more about the rules you can use to validate your
+   data, you can check the `Pandera
+   documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.

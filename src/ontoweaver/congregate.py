@@ -23,6 +23,9 @@ class Congregater(metaclass=ABCMeta):
         self._serializer = serializer
         self._duplicates = {}
 
+    def __len__(self):
+        return len(self._duplicates)
+
     @property
     def serializer(self):
         return self._serializer
@@ -62,11 +65,13 @@ class Congregate(Congregater):
         Args:
             biocypher_tuples: a list of tuples in the BioCypher format for nodes xor edges.
         """
-        logger.debug(f"Call Congregate...")
+        logger.debug("Call Congregate...")
         for t in biocypher_tuples:
             elem = self._elem_cls.from_tuple(t, serializer = self.serializer)
             self._duplicates[elem] = self._duplicates.get(elem, []) + [elem]
-        if __debug__:
+            yield elem
+
+        if logger.level == "DEBUG":
             logger.debug(f"Congregated in {len(self._duplicates)} keys:")
             for k,l in self._duplicates.items():
                 logger.debug(f"  Key `{k}` => {len(l)} elements")

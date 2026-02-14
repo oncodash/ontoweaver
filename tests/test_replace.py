@@ -1,61 +1,35 @@
-import time
-
-
 def test_replace():
-    import yaml
-    import logging
-    import pandas as pd
-    import biocypher
-    import shutil
     from . import testing_functions
-
+    import logging
     import ontoweaver
 
-    logging.debug("Load ontology...")
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "replace"
 
-    bc = biocypher.BioCypher(
-        biocypher_config_path="tests/" + directory_name + "/biocypher_config.yaml",
-        schema_config_path="tests/" + directory_name + "/schema_config.yaml"
-    )
+    assert_nodes = [('gene_hugo___123<<_>><<_>>123', 'gene_hugo', {}),
+                    ('variant___2', 'variant', {}),
+                    ('variant___aAB.()C0w', 'variant', {}),
+                    ]
 
-    logging.debug("Load data...")
-    csv_file = "tests/" + directory_name + "/data.csv"
-    table = pd.read_csv(csv_file)
+    assert_edges = [('', 'variant___aAB.()C0w', 'gene_hugo___123<<_>><<_>>123', 'variant_in_gene', {})
+                    ]
 
-    logging.debug("Load mapping...")
-    mapping_file = "tests/" + directory_name + "/mapping.yaml"
-    with open(mapping_file) as fd:
-        mapping = yaml.full_load(fd)
 
-    logging.debug("Run the adapter...")
+    data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
-    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="prefix", separator="___")
+    nodes, edges = ontoweaver.extract(data_mapping, affix="prefix", type_affix_sep='___', raise_errors=False)
 
-    time.sleep(1) # Sleep for 1 second to allow the previous csv outputs to be removed. Test otherwise fails because
-                  # the directory contains the BioCypher output of previous tests.
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-    assert (adapter)
 
-    logging.debug("Write nodes...")
-    assert (adapter.nodes)
-    bc.write_nodes(adapter.nodes)
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-    logging.debug("Write edges...")
-    assert (adapter.edges)
-    bc.write_edges(adapter.edges)
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-    logging.debug("Write import script...")
-    bc.write_import_call()
+    testing_functions.assert_edges(fedges, assert_edges)
 
-    output_dir = testing_functions.get_latest_directory("biocypher-out")
-
-    assert_output_path = "tests/" + directory_name + "/assert_output"
-
-    testing_functions.compare_csv_files(assert_output_path, output_dir)
-
-    shutil.rmtree(output_dir)
 
 if __name__ == "__main__":
     test_replace()

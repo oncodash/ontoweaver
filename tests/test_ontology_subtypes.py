@@ -1,56 +1,54 @@
-
 def test_ontology_subtypes():
-    import yaml
-    import logging
     from . import testing_functions
-    import shutil
-    import pandas as pd
-    import biocypher
+    import logging
     import ontoweaver
 
+    logging.basicConfig(level=logging.DEBUG)
 
     directory_name = "ontology_subtypes"
 
-    logging.debug("Load ontology...")
+    assert_nodes = [('0:variant', 'variant', {}),
+                    ('1:variant', 'variant', {}),
+                    ('2:variant', 'variant', {}),
+                    ('3:variant', 'variant', {}),
+                    ('fda1:fda_evidence_level', 'fda_evidence_level', {}),
+                    ('fda2:fda_evidence_level', 'fda_evidence_level', {}),
+                    ('fda3:fda_evidence_level', 'fda_evidence_level', {}),
+                    ('oncokb1:oncokb_evidence_level', 'oncokb_evidence_level', {}),
+                    ('oncokb2:oncokb_evidence_level', 'oncokb_evidence_level', {}),
+                    ('oncokb3:oncokb_evidence_level', 'oncokb_evidence_level', {}),
+                    ('patient1:patient', 'patient', {}),
+                    ('patient2:patient', 'patient', {}),
+                    ('patient3:patient', 'patient', {}),
+                    ('patient4:patient', 'patient', {}),
+                    ]
 
-    bc = biocypher.BioCypher(
-        biocypher_config_path="tests/" + directory_name + "/biocypher_config.yaml",
-        schema_config_path="tests/" + directory_name + "/schema_config.yaml"
-    )
+    assert_edges = [('', '0:variant', 'fda1:fda_evidence_level', 'variant_to_evidence', {}),
+                    ('', '0:variant', 'oncokb1:oncokb_evidence_level', 'variant_to_evidence', {}),
+                    ('', '0:variant', 'patient1:patient', 'patient_has_variant', {}),
+                    ('', '1:variant', 'fda2:fda_evidence_level', 'variant_to_evidence', {}),
+                    ('', '1:variant', 'oncokb2:oncokb_evidence_level', 'variant_to_evidence', {}),
+                    ('', '1:variant', 'patient2:patient', 'patient_has_variant', {}),
+                    ('', '2:variant', 'fda3:fda_evidence_level', 'variant_to_evidence', {}),
+                    ('', '2:variant', 'oncokb3:oncokb_evidence_level', 'variant_to_evidence', {}),
+                    ('', '2:variant', 'patient3:patient', 'patient_has_variant', {}),
+                    ('', '3:variant', 'fda3:fda_evidence_level', 'variant_to_evidence', {}),
+                    ('', '3:variant', 'oncokb3:oncokb_evidence_level', 'variant_to_evidence', {}),
+                    ('', '3:variant', 'patient4:patient', 'patient_has_variant', {}),
+                    ]
 
-    logging.debug("Load data...")
-    csv_file = "tests/" + directory_name + "/data.csv"
-    table = pd.read_csv(csv_file)
+    data_mapping = {f"tests/{directory_name}/data.csv": f"tests/{directory_name}/mapping.yaml"}
 
-    logging.debug("Load mapping...")
-    mapping_file = "tests/" + directory_name + "/mapping.yaml"
-    with open(mapping_file) as fd:
-        mapping = yaml.full_load(fd)
+    nodes, edges = ontoweaver.extract(data_mapping, affix="suffix")
 
-    logging.debug("Run the adapter...")
+    fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-    adapter = ontoweaver.tabular.extract_table(table, mapping)
+    assert_node_set = testing_functions.convert_to_set(assert_nodes)
+    f_node_set = testing_functions.convert_to_set(fnodes)
 
-    assert (adapter)
+    assert assert_node_set == f_node_set, "Nodes are not equal."
 
-    logging.debug("Write nodes...")
-    assert (adapter.nodes)
-    bc.write_nodes(adapter.nodes)
-
-    logging.debug("Write edges...")
-    assert (adapter.edges)
-    bc.write_edges(adapter.edges)
-
-    logging.debug("Write import script...")
-    bc.write_import_call()
-
-    output_dir = testing_functions.get_latest_directory("biocypher-out")
-
-    assert_output_path = "tests/" + directory_name + "/assert_output"
-
-    testing_functions.compare_csv_files(assert_output_path, output_dir)
-
-    shutil.rmtree(output_dir)
+    testing_functions.assert_edges(fedges, assert_edges)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,26 @@
+row:
+   rowIndex:
+      to_subject: variant
+      validate_output:
+        checks:
+          isin:
+            value:
+              - '1'
+              - '2'
+              - '3'
+transformers:
+    - map:
+        columns:
+            - patient
+        to_object: patient
+        via_relation: patient_has_variant
+        validate_output:
+            checks:
+              ne: .
+    - map:
+        column: property
+        to_property: version
+        for_objects: patient
+        validate_output:
+            checks:
+              ne: Cor@#$ect

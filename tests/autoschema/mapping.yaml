@@ -1,0 +1,10 @@
+row:
+    map:
+        column: id
+        to_subject: individual
+transformers:
+    - split:
+        column: children
+        separator: ";"
+        to_object: individual
+        via_relation: parentOf

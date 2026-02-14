@@ -1,0 +1,8 @@
+{
+    "data": [
+        {"variant": 0, "patient": "A", "age": 12 },
+        {"variant": 1, "patient": "B", "age": 23 },
+        {"variant": 2, "patient": "C", "age": 34 }
+    ]
+}
+

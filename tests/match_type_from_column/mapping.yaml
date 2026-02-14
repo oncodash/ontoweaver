@@ -1,0 +1,31 @@
+row:
+   map:
+      id_from_column: furniture
+      match_type_from_column: localisation
+      match:
+        - kitchen:
+            to_subject: kitchen_furniture
+        - ^(?!kitchen$).*:
+            to_subject: rest_of_house_furniture
+transformers:
+    - map:
+        id_from_column: name
+        match_type_from_column: will_sit?
+        match:
+            - y:
+                to_object: person
+                via_relation: will_sit
+            - n:
+                to_object: person
+                via_relation: will_not_sit
+
+    - cat:
+        columns:
+            - name
+            - localisation
+        to_property: localisation
+
+
+metadata:
+  - blabla: blabla
+  - add_source_column_names_as: source_columns

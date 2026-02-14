@@ -1,0 +1,19 @@
+# add your settings here (overriding the defaults)
+
+biocypher:
+  offline: true
+  debug: false
+  schema_config_path: config/schema_config.yaml
+  # cache_directory: .cache
+
+  # Ontology configuration
+  head_ontology:
+      url: https://github.com/biolink/biolink-model/raw/v3.2.1/biolink-model.owl.ttl
+      root_node: entity
+
+neo4j:
+  delimiter: '\t'
+  array_delimiter: "|"
+  skip_duplicate_nodes: true
+  skip_bad_relationships: true
+  import_call_bin_prefix: ''  # path to "neo4j-admin"

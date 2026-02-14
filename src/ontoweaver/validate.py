@@ -1,13 +1,12 @@
-import logging
 import math
-from abc import ABCMeta
+import logging
+import warnings
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera import Column, Check
 
 from . import errormanager
-from . import base
 from . import exceptions
 
 logger = logging.getLogger("ontoweaver")
@@ -26,14 +25,24 @@ class Validator(errormanager.ErrorManager):
 
         self.validation_rules: pa.DataFrameSchema = validation_rules
 
+        if self.validation_rules:
+            self.make_raise_warnings(self.validation_rules.columns)
+
         # Repeated validation error messages.
         self.messages = {}
+
+        self.dtypes = {
+            'int64': int,
+            'float64': float
+        }
+
 
     def error(self, msg, section = None):
         super().error(msg, section = section, exception = exceptions.DataValidationError)
         err = self.messages.get(msg, {"count": 0, "section": section})
         err["count"] += 1
         self.messages[msg] = err
+
 
     def __call__(self, df, section = None):
         """
@@ -46,15 +55,47 @@ class Validator(errormanager.ErrorManager):
             bool: True if the data frame is valid, Otherwise raise an pa.errors.SchemaError.
         """
         if self.validation_rules:
-            # May raise a pa.errors.SchemaError which will be catched in caller.
-            # Generally base.Transformer.create(...), so that
-            # we know which transformer deals the issue.
-            self.validation_rules.validate(df)
-            return True
+            logger.debug(f"Input validation rules: on {len(self.validation_rules.columns)} columns:")
+            for col in self.validation_rules.columns:
+                dtype = self.validation_rules.columns[col].dtype
+                logger.debug(f"\t{col}: {dtype}")
+                if str(dtype) in self.dtypes:
+                    logger.debug(f"\t\tConvert to {self.dtypes[str(dtype)]}")
+                    df[col] = df[col].astype(self.dtypes[str(dtype)])
 
+            # May raise a pa.errors.SchemaError which will be catched in caller.
+            # Generally base.Transformer.label_maker(...), so that
+            # we know which transformer deals the issue.
+            # try:
+            #     self.validation_rules.validate(df)
+            #     return True
+            # except pa.errors.SchemaError as e:
+            #     self.error(str(e), section = section)
+            #     return False
+            with warnings.catch_warnings(record = True) as caught:
+                warnings.simplefilter("always")
+                self.validation_rules.validate(df)
+                for warn in caught:
+                    self.error(str(warn.message), section = section)
+
+                if caught:
+                    return False
+                else:
+                    return True
         else:
             logger.warning("No schema provided for data validation.")
             return True
+
+
+    def make_raise_warnings(self, rules = None):
+        if not rules:
+            rules = self.validation_rules.columns
+
+        # Add the raise_warning predicate for all rules.
+        for k in rules:
+            for i,c in enumerate(rules[k].checks):
+                rules[k].checks[i].raise_warning = True
+
 
 class InputValidator(Validator):
     """Class used for input data validation against a schema. The class uses the Pandera package to validate the data frame."""
@@ -78,6 +119,7 @@ class InputValidator(Validator):
         Returns:
             bool: True if the data frame is valid, False otherwise.
         """
+
         return super().__call__(df, section = self.__class__.__name__)
 
 
@@ -98,7 +140,8 @@ default_validation_rules: pa.DataFrameSchema = pa.DataFrameSchema({
                                                 and str(x).lower() != "nan"
                                                 and x != "")
                         ),
-                        error="Invalid value detected"
+                        error="Invalid value detected",
+                        raise_warning = True,
                     )
                 ],
 
@@ -106,6 +149,7 @@ default_validation_rules: pa.DataFrameSchema = pa.DataFrameSchema({
                 nullable=False
             )
     })
+
 
 class OutputValidator(Validator):
     """Class used for transformer output data validation against a schema.
@@ -122,7 +166,6 @@ class OutputValidator(Validator):
             validation_rules: The schema used for validation.
         """
         super().__init__(validation_rules, raise_errors)
-
 
 
     def __call__(self, df):
@@ -147,9 +190,59 @@ class OutputValidator(Validator):
         if not isinstance(new_rules, pa.DataFrameSchema):
             self.error("new_rules must be a Pandera DataFrameSchema instance.", section = self.__class__.__name__)
 
+
         # Merge the existing rules with the new ones
         merged_rules = self.validation_rules.columns.copy() if self.validation_rules else {}
+
         merged_rules.update(new_rules.columns)
+
+        self.make_raise_warnings(merged_rules)
 
         # Update the validation rules
         self.validation_rules = pa.DataFrameSchema(merged_rules)
+
+
+class SimpleOutputValidator(Validator):
+
+    def __init__(self, validation_rules = None, raise_errors = True):
+        """Constructor for the SimpleValidator class. This class is used in case of absence of any validation rules outside
+        of checking for none-types and empty strings. The class is used to bypass the use of the Pandera package for validation,
+        which saves a lot of computational time when big datasets are used.
+
+        Args:
+            validation_rules: The schema used for validation.
+        """
+        super().__init__(validation_rules, raise_errors)
+
+
+    def __call__(self, val):
+        if pd.api.types.is_numeric_dtype(type(val)):
+            if math.isnan(val) or val == float("nan"):
+                return False
+
+        elif str(val).lower() == "nan" or val == "":
+            return False
+
+        return True
+
+
+class SkipValidator(Validator):
+    """Class used for skipping validation. This class is used to skip validation for specific transformers.
+    We implement the SkipValidator class in order to keep the validation logic in the same place as the other validators,
+    and keep the code in base.py uniform for all validation options."""
+
+    def __init__(self, validation_rules = None, raise_errors = True):
+        """Constructor for the SkipValidator class.
+
+        Args:
+            validation_rules: The schema used for validation.
+        """
+        super().__init__(validation_rules, raise_errors)
+        logger.debug("Instantiate a `SkipValidator`, some output validation will be skipped." \
+                     " This could result in some empty or `nan` nodes in your knowledge graph." \
+                     " To enable output validation set validate_output to True.")
+
+
+    def __call__(self, val):
+        return True
+

@@ -1,0 +1,52 @@
+row:
+    map:
+        id_from_column: id
+        match_type_from_column: genre
+        match:
+          - male:
+              to_subject: person
+          - female:
+              to_subject: person
+transformers:
+    - split:
+        column: children
+        separator: ";"
+        to_object: person
+        via_relation: parentOf
+    - map:
+        column: pets
+        to_object: animal
+        via_relation: hasPet
+    - map:
+        column: partner
+        to_object: person
+        via_relation: hasPartner
+    - map:
+        column: first_name
+        to_properties:
+            - first_name
+            - given_name
+        for_object: person
+    - map:
+        columns:
+            - last_name
+        to_properties:
+            - last_name
+            - family_name
+        for_object: person
+    - map:
+        columns:
+            - age
+        to_property: age
+        for_object: person
+    - map:
+        columns:
+            - tenant
+        to_property: rents_home
+        for_object: person
+    - map:
+        columns:
+            - owner
+        to_property: possess_home
+        for_object: person
+

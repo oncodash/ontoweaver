@@ -1,33 +1,59 @@
-[tool.poetry]
-name = "ontoweaver"
-version = "0.1.0"
-description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
-authors = ["Johann Dreo <johann.dro@pasteur.fr>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.13"
-biocypher = "^0.6.1"
-pooch = "^1.7.0" # Dep of biocypher
-pandas = "^2.0.1"
-numpy = "^2.1.3"
-owlready2 = "^0.47"
-jsonargparse = "^4.35"
-xdg-base-dirs = "^6.0.2"
-pandera = { version = "^0.22.1", extras = ["io"] }
-
-[tool.poetry.dev-dependencies]
-pytest = "^8.3.4"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pyaml>=25.7.0",
+    "pytest",
+    "sphinx-rtd-theme<4.0.0,>=3.0.2",
+]
 
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
 ]
-pythonpath = "src"
+pythonpath = ["src"]
 testpaths = [
     "tests",
 ]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+ontoweave = "ontoweaver.ontoweave:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ontoweaver*"]
+
+[project]
+authors = [
+    { name = "Johann Dreo", email = "johann.dreo@pasteur.fr" },
+    { name = "Marko Baric", email = "marko.baric@pasteur.fr" },
+    { name = "Claire Laudy", email = "claire.laudy@thalesgroup.com" },
+    { name = "Matthieu Najm", email = "matthieu.najm@pasteur.fr" },
+    { name = "Benno Schwikowski", email = "benno.schwikowski@pasteur.fr" },
+]
+requires-python = "<4.0,>=3.10"
+dependencies = [
+    "biocypher<1.0.0,>=0.11.0",
+    "pooch<2.0.0,>=1.7.0",
+    "pandas<3.0.0,>=2.3.1",
+    "numpy<3.0.0,>=2.2.4",
+    "owlready2<1.0,>=0.49",
+    "jsonargparse<5.0,>=4.39",
+    "xdg-base-dirs<7.0.0,>=6.0.2",
+    "pandera[io]<1.0.0,>=0.27.0",
+    "alive-progress<4.0,>=3.2",
+    "fsspec<2026.0.0,>=2025.10.0",
+    "natsort>5.0.0",
+    "lxml>6.0.0",
+    "jmespath>=1.0.1",
+    "pyaml>=25.7.0",
+    "pytest",
+    "sphinx-rtd-theme<4.0.0,>=3.0.2",
+    "fastparquet>=2025.12.0",
+]
+name = "ontoweaver"
+version = "1.2.0"
+description = "Exports from tables to Semantic Knowledge Graphs, with a simple declarative mapping."
+readme = "README.md"

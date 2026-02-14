@@ -1,0 +1,10 @@
+row:
+   map:
+      column: Stuff
+      to_subject: thing
+transformers:
+    - map:
+        column: Gizmo
+        to_object: my_mapped_node
+        via_relation: myedge
+

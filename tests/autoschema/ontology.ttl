@@ -1,0 +1,197 @@
+@prefix : <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3/> .
+
+<http://www.semanticweb.org/claudy/ontologies/2025/10/untitled-ontology-3> rdf:type owl:Ontology .
+
+:Biocypherroot rdf:type owl:Class ;
+                rdfs:label "Biocypherroot" .
+
+:DatatypeProperty rdf:type owl:Class ;
+                rdfs:subClassOf :Biocypherroot ;
+                rdfs:label "DatatypeProperty" .
+
+#################################################################
+#    Object Properties
+#################################################################
+
+:hasPet rdf:type owl:ObjectProperty ;
+         rdfs:label "hasPet" ;
+         rdfs:subClassOf :Biocypherroot ;
+         rdfs:domain :Person ;
+         rdfs:range :Animal .
+
+
+:childOf rdf:type owl:ObjectProperty ;
+          rdfs:label "childOf" ;
+          rdfs:subPropertyOf :isRelative ;
+          owl:inverseOf :parentOf ;
+          rdfs:domain :Person ;
+          rdfs:range :Person .
+
+
+:daugtherOf rdf:type owl:ObjectProperty ;
+             rdfs:label "daugtherOf" ;
+             rdfs:subPropertyOf :childOf ;
+             rdfs:domain :Female ;
+             rdfs:range :Person .
+
+
+:hasPartner rdf:type owl:ObjectProperty ;
+             rdfs:label "hasPartner" ;
+             rdfs:subPropertyOf :isRelative ;
+             rdf:type owl:SymmetricProperty ;
+             rdfs:domain :Person ;
+             rdfs:range :Person .
+
+
+:isRelative rdf:type owl:ObjectProperty ;
+             rdfs:label "isRelative" ;
+             rdfs:subClassOf :Biocypherroot ;
+             rdfs:domain :Person ;
+             rdfs:range :Person .
+
+
+:parentOf rdf:type owl:ObjectProperty ;
+           rdfs:label "parentOf" ;
+           rdfs:subPropertyOf :isRelative ;
+           rdfs:domain :Person ;
+           rdfs:range :Person .
+
+
+:sonOf rdf:type owl:ObjectProperty ;
+        rdfs:label "sonOf" ;
+        rdfs:subPropertyOf :childOf ;
+        rdfs:domain :Male ;
+        rdfs:range :Person .
+
+:hasRole rdf:type owl:ObjectProperty ;
+            rdfs:label "hasRole" ;
+            rdfs:domain :Person ;
+            rdfs:range :Role ;
+            rdfs:subClassOf :Biocypherroot .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+:age rdf:type owl:DatatypeProperty ;
+     rdfs:label "age" ;
+     rdfs:domain :Animal ,
+                 :Person ;
+     rdfs:range xsd:int .
+
+
+:firstName rdf:type owl:DatatypeProperty ;
+      rdfs:label "firstName" ;
+      rdfs:domain :Animal ,
+                  :Person ;
+      rdfs:range xsd:string .
+
+:lastName rdf:type owl:DatatypeProperty ;
+      rdfs:label "lastName" ;
+      rdfs:domain :Animal ,
+                  :Person ;
+      rdfs:range xsd:string .
+
+
+:possessHome rdf:type owl:DatatypeProperty ;
+              rdfs:label "possessHome" ;
+              rdfs:subPropertyOf owl:topDataProperty ;
+              rdfs:domain :Person ;
+              rdfs:range xsd:boolean .
+
+
+:rentsHome rdf:type owl:DatatypeProperty ;
+            rdfs:label "rentsHome" ;
+            rdfs:domain :Person ;
+            rdfs:range xsd:boolean .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+:Animal rdf:type owl:Class ;
+        rdfs:label "animal" ;
+        rdfs:subClassOf :Biocypherroot .
+
+
+:Cat rdf:type owl:Class ;
+     rdfs:label "cat" ;
+     rdfs:subClassOf :Animal .
+
+
+:Dog rdf:type owl:Class ;
+     rdfs:label "dog" ;
+     rdfs:subClassOf :Animal .
+
+
+:Role rdf:type owl:Class ;
+      rdfs:label "role" ;
+      rdfs:subClassOf :Biocypherroot .
+
+
+:Female rdf:type owl:Class ;
+        rdfs:label "female" ;
+        rdfs:subClassOf :Person .
+
+
+:Male rdf:type owl:Class ;
+      rdfs:label "male" ;
+      rdfs:subClassOf :Person .
+
+
+:Person rdf:type owl:Class ;
+        rdfs:label "person" ;
+        rdfs:subClassOf :Biocypherroot .
+
+#################################################################
+#    Individuals
+#################################################################
+
+:parent rdf:type owl:NamedIndividual ;
+            rdf:type :Role . 
+
+
+#################################################################
+#    Rules
+#################################################################
+
+:p rdf:type <http://www.w3.org/2003/11/swrl#Variable> .
+
+:c rdf:type <http://www.w3.org/2003/11/swrl#Variable> .
+
+[ <http://swrl.stanford.edu/ontologies/3.3/swrla.owl#isRuleEnabled> "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "parent" ;
+   rdf:type <http://www.w3.org/2003/11/swrl#Imp> ;
+   <http://www.w3.org/2003/11/swrl#body> [ rdf:type <http://www.w3.org/2003/11/swrl#AtomList> ;
+                                           rdf:first [ rdf:type <http://www.w3.org/2003/11/swrl#ClassAtom> ;
+                                                       <http://www.w3.org/2003/11/swrl#classPredicate> :Person ;
+                                                       <http://www.w3.org/2003/11/swrl#argument1> :p
+                                                     ] ;
+                                           rdf:rest [ rdf:type <http://www.w3.org/2003/11/swrl#AtomList> ;
+                                                      rdf:first [ rdf:type <http://www.w3.org/2003/11/swrl#IndividualPropertyAtom> ;
+                                                                  <http://www.w3.org/2003/11/swrl#propertyPredicate> :parentOf ;
+                                                                  <http://www.w3.org/2003/11/swrl#argument1> :p ;
+                                                                  <http://www.w3.org/2003/11/swrl#argument2> :c
+                                                                ] ;
+                                                      rdf:rest rdf:nil
+                                                    ]
+                                         ] ;
+   <http://www.w3.org/2003/11/swrl#head> [ rdf:type <http://www.w3.org/2003/11/swrl#AtomList> ;
+                                           rdf:first [ rdf:type <http://www.w3.org/2003/11/swrl#IndividualPropertyAtom> ;
+                                                       <http://www.w3.org/2003/11/swrl#propertyPredicate> :hasRole ;
+                                                       <http://www.w3.org/2003/11/swrl#argument1> :p ;
+                                                       <http://www.w3.org/2003/11/swrl#argument2> :parent
+                                                     ] ;
+                                           rdf:rest rdf:nil
+                                         ]
+ ] .
+

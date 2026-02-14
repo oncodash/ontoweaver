@@ -1,0 +1,20 @@
+individual:
+    is_a: person
+    label_in_input: individual
+
+childOf:
+    represented_as: edge
+    label_in_input: childOf
+
+parentOf:
+    represented_as: edge
+    label_in_input: parentOf
+    source: person
+    target: person
+
+role:
+    represented_as: edge
+    label_in_input: role
+    source: person
+    target: person
+

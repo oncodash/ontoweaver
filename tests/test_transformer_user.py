@@ -1,16 +1,30 @@
 import logging
 import yaml
 import pandas as pd
-
 import ontoweaver
+from ontoweaver import exceptions
 
 class user_transformer(ontoweaver.base.Transformer):
-    def __init__(self, target, properties_of, edge=None, columns=None, **kwargs):
-        super().__init__(target, properties_of, edge, columns, **kwargs)
+
+    class ValueMaker(ontoweaver.make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            for key in columns:
+                if key not in row:
+                    self.error(f"Column '{key}' not found in data", section="map.call",
+                               exception=exceptions.TransformerDataError)
+                yield row[key]
+
+    def __init__(self, properties_of, value_maker = ValueMaker(), label_maker = None, branching_properties=None, columns=None, **kwargs):
+        super().__init__(properties_of, value_maker, label_maker, branching_properties, columns, **kwargs)
 
     def __call__(self, row, i):
-        for key in self.columns:
-            yield str(row[key])
+
+        for value in self.value_maker(self.columns, row, i):
+            yield self.create(value, row)
+
 
 def test_transformer_user():
     # Add the passed transformer to the list available to OntoWeaver.
@@ -38,7 +52,7 @@ def test_transformer_user():
     table = pd.read_csv(csv_file)
 
     logging.debug("Run the adapter...")
-    adapter = ontoweaver.tabular.extract_table(table, mapping, affix="none")
+    nodes, edges = ontoweaver.extract_table(table, mapping, affix="none")
 
 
 if __name__ == "__main__":

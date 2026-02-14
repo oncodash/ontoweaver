@@ -3,6 +3,10 @@ import logging
 import copy
 from collections import OrderedDict
 
+import networkx as nx;
+import rdflib
+from rdflib.extras.external_graph_libs import rdflib_to_networkx_digraph
+
 from . import base
 
 logger = logging.getLogger("ontoweaver")
@@ -97,7 +101,6 @@ class Merger(metaclass=ABCMeta):
         # logger.debug(f"Get Merger `{type(self).__name__}`")
         return self.merged
 
-
 class dictry:
     """Mergers operating on dictionaries."""
 
@@ -109,11 +112,11 @@ class dictry:
         """
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
-            assert(type(lhs) == dict)
-            assert(type(rhs) == dict)
+            assert(isinstance(lhs, dict))
+            assert(isinstance(rhs, dict))
 
         def set(self, value: dict[str,str]) -> None:
-            assert(type(value) == dict)
+            assert(isinstance(value, dict))
             self.merged = value
 
         @abstractmethod
@@ -123,28 +126,25 @@ class dictry:
         def get(self) -> dict[str,str]:
             return self.merged
 
-
     class Append(DictryMerger):
         """Merge dictionaries by removing duplicated values
         and aggregating values that are different in a list.
 
-        If a separator is given at instantiation,
         returns a string, where all values are joined.
-        Else, returns a string formated as a Python list.
         """
 
-        def __init__(self, sep = None):
-            self.sep = sep
+        def __init__(self, reconciliate_sep = "|"):
+            self.reconciliate_sep = reconciliate_sep
             self.merged = {}
 
         def reset(self):
             self.merged = {}
 
         def set(self, merged) -> None:
-            assert(type(merged) == dict)
+            assert(isinstance(merged, dict))
             for k,v in merged.items():
                 e = self.merged.get(k, set())
-                if type(v) == set:
+                if isinstance(v, set):
                     e.union(v)
                     self.merged[k] = e
                 else:
@@ -154,24 +154,13 @@ class dictry:
             self.set(lhs)
             self.set(rhs)
 
-        def get(self) -> str:
+        def get(self) -> dict:
             merged = {}
             for k,v in self.merged.items():
-                assert(type(v) == set)
+                assert(isinstance(v, set))
                 # Convert sets as str.
-                if self.sep:
-                    merged[k] = self.sep.join(v)
-                else:
-                    if len(v) == 0:
-                        merged[k] = ''
-                    elif len(v) == 1:
-                        # We don't want to alter v by reference.
-                        e = copy.copy(v).pop()
-                        merged[k] = str(e)
-                    else:
-                        merged[k] = str(list(v))
+                merged[k] = self.reconciliate_sep.join(v)
             return merged
-
 
 class string:
     """Mergers operating on strings."""
@@ -184,8 +173,8 @@ class string:
         """
         def precheck(self, key, lhs: str, rhs: str):
             assert(issubclass(type(key), base.Element))
-            assert(type(lhs) == str)
-            assert(type(rhs) == str)
+            assert(isinstance(lhs, str))
+            assert(isinstance(rhs, str))
 
         @abstractmethod
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -194,24 +183,20 @@ class string:
         def get(self) -> str:
             return str(self.merged)
 
-
     class UseKey(StringMerger):
         """Use the key when merging"""
         def merge(self, key, lhs: str, rhs: str) -> str:
             self.set(key)
-
 
     class UseFirst(StringMerger):
         """Use the first (leftmost) seen object when merging"""
         def merge(self, key, lhs: str, rhs: str) -> str:
             self.set(lhs)
 
-
     class UseLast(StringMerger):
         """Use the last (rightmost) seen object when merging"""
         def merge(self, key, lhs: str, rhs: str) -> str:
             self.set(rhs)
-
 
     class EnsureIdentical(StringMerger):
         """If the merged values are not all identical, raise a ValueError.
@@ -227,21 +212,99 @@ class string:
             self.set(lhs) # Should be equal to rhs.
 
 
+    class CommonSubType(StringMerger):
+        """If the merged values are not all identical, sets the most generic common subtype
+        in the ontology hierarchy as the value."""
+
+        def __init__(self, ontology):
+            self.ontology = ontology
+
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            logger.debug(f"Merge of `{lhs}` and` `{rhs}`")
+
+            graph_hierarchy = copy.copy(self.ontology._head_ontology.get_nx_graph())
+            if self.ontology._tail_ontologies:
+                for onto in self.ontology._tail_ontologies.values():
+                    tail_graph = copy.copy(onto.get_nx_graph())
+                    graph_hierarchy = nx.compose(tail_graph, graph_hierarchy)
+
+            if self.merged:
+                merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, lhs)
+                if merge is None:
+                    raise ValueError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+
+                merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, rhs)
+                if merge is None:
+                    raise ValueError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+
+            else :
+                merge = nx.lowest_common_ancestor(graph_hierarchy, lhs, rhs)
+                if merge is None:
+                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
+                self.merged = merge
+                self.set(merge)
+                logger.debug(f"`{merge}`")
+
+
+    class CommonSuperType(StringMerger):
+        """If the merged values are not all identical, sets the most specific common supertype
+        in the ontology hierarchy as the value."""
+
+        def __init__(self, ontology):
+            self.ontology = ontology
+
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            logger.debug(f"Merge of `{lhs}` and` `{rhs}`")
+
+            graph_hierarchy = copy.copy(self.ontology._head_ontology.get_nx_graph())
+            if self.ontology._tail_ontologies:
+                for onto in self.ontology._tail_ontologies.values():
+                    tail_graph = copy.copy(onto.get_nx_graph())
+                    graph_hierarchy = nx.compose(tail_graph, graph_hierarchy)
+
+            if self.merged:
+                merge = nx.lowest_common_ancestor(nx.reverse(graph_hierarchy), self.merged, lhs)
+                if merge is None:
+                    raise ValueError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+
+                merge = nx.lowest_common_ancestor(nx.reverse(graph_hierarchy), self.merged, rhs)
+                if merge is None:
+                    raise ValueError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                self.set(merge)
+                self.merged = merge
+                logger.debug(f"`{merge}`")
+
+            else :
+                merge = nx.lowest_common_ancestor(graph_hierarchy, lhs, rhs)
+                if merge is None:
+                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
+                self.merged = merge
+                self.set(merge)
+                logger.debug(f"`{merge}`")
+
+
     class OrderedSet(StringMerger):
         """Aggregate all seen values, ordered lexicographically.
 
-        If a separator is given at instantiation,
         returns a string, where all values are joined.
-        Else, returns a string formated as a Python list.
         """
-        def __init__(self, sep = None):
-            self.sep = sep
+        def __init__(self, reconciliate_sep = "|"):
+            self.reconciliate_sep = reconciliate_sep
 
         def reset(self):
             self.merged = OrderedDict()
 
         def set(self, value) -> None:
-            if type(value) == OrderedDict:
+            if isinstance(value, OrderedDict):
                 for k in value.keys():
                     self.merged[k] = None
             else:
@@ -252,8 +315,4 @@ class string:
             self.set(rhs)
 
         def get(self) -> str:
-            if self.sep:
-                return self.sep.join(self.merged.keys())
-            else:
-                return str(list(self.merged.keys()))
-
+            return self.reconciliate_sep.join(self.merged.keys())

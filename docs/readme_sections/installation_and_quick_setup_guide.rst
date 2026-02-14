@@ -4,27 +4,30 @@ Installation and quick setup guide
 Python Module
 ~~~~~~~~~~~~~
 
-The project is written in Python and uses
-`Poetry <https://python-poetry.org>`__. You can install the necessary
-dependencies in a virtual environment like this:
+The project is written in Python and has been tested with the
+`UV <https://docs.astral.sh/uv/>`__ environment manager.
+You can install the necessary dependencies in a virtual environment like this:
 
 ::
 
    git clone https://github.com/oncodash/ontoweaver.git
    cd ontoweaver
-   poetry install
+   uv build
 
-Poetry will create a virtual environment according to your configuration
-(either centrally or in the project folder). You can activate it by
-running ``poetry shell`` inside the project directory.
+UV will create a virtual environment according to your configuration
+(either centrally or in the project folder).
+You can then run any script or command using ``uv run``.
+For isntance, to run the ontoweave command: ``uv run ontoweave``.
+
 
 Output Database
 ~~~~~~~~~~~~~~~
 
-Theoretically, the graph can be imported in any [graph] database
+OntoWeaver can export the created knowledge graph in any format
 supported by BioCypher (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite,
 NetworkX, … see `BioCypher’s
 documentation <https://biocypher.org/output/index.html>`__).
+
 
 Graph visualization with Neo4j
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,6 +52,11 @@ after importing your results via the neo4j import sequence provided in
 the ``./biocypher-out/`` directory. Use ``neo4j-admin server stop`` to
 disconnect the local server.
 
+By default, Neo4j Community Edition (CE) and Neo4j Enterprise Edition
+(EE) report a small amount of usage data. If necessary, reporting can be
+turned off with the configuration setting ``dbms.usage_report.enabled=false``.
+
+
 Tests
 ~~~~~
 
@@ -61,11 +69,5 @@ To run tests, use ``pytest``:
 
 ::
 
-   poetry run pytest
+   uv run pytest
 
-or, alternatively:
-
-::
-
-   poetry shell
-   pytest
