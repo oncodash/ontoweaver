@@ -8,3 +8,4 @@ pooch
 numpy
 pandera
 sphinx_rtd_theme
+pygments_csv_lexer

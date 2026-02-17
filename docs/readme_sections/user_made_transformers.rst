@@ -1,3 +1,6 @@
+User-defined transformers
+-------------------------
+
 Simple Ad-hoc Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

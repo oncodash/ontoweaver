@@ -67,6 +67,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
         logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
         with open(with_mapping) as fd:
             config = yaml.full_load(fd)
+            assert config, "I must have a YAML config."
 
         parser = mapping.YamlParser(
             config,
@@ -75,9 +76,9 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
         )
         _ = parser()
 
-        logger.debug(f"Parse schema from mapping `{with_mapping}`")
+        logger.debug(f"Serializing schema from mapping computed from `{with_mapping}`")
         for item in parser.declared:
-            logger.debug(f"\tParsing: {item}")
+            logger.debug(f"\tResolve: {item}")
             if isinstance(item, base.Transformer):
                 if item.multi_type_dict:
                     # This is a type mapping.
@@ -101,7 +102,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                 elif hasattr(item, "to_property"):
                     # This is a mono-property mapping.
                     t = item.for_object
-                    logger.debug(f"\t\tto property: {t}")
+                    logger.debug(f"\t\tproperty: {t}")
                     st = auto_schema.get(t, {})
                     st["properties"] = st.get("properties", {})
                     st["properties"][item.to_property] = "str"
@@ -115,7 +116,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                     st = auto_schema.get(t, {})
                     st["properties"] = st.get("properties", {})
                     for p in item.to_properties:
-                        logger.debug(f"\t\tto property: {p}")
+                        logger.debug(f"\t\tproperty: {p}")
                         st["properties"][p] = "str"
 
             elif issubclass(item, base.Node):
@@ -128,6 +129,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                 for p in item.fields():
                     if p not in auto_schema[t]["properties"]:
                         auto_schema[t]["properties"][p] = "str"
+                        logger.debug(f"\t\t\tproperty: {p}")
 
             elif issubclass(item, base.Edge):
                 t = item.__name__
@@ -135,7 +137,8 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                 auto_schema[t] = auto_schema.get(t, {})
                 auto_schema[t]["represented_as"] = "edge"
                 auto_schema[t]["label_in_input"] = t
-                if item.source_type():
+
+                if item.source_type(): # FIXME no source for edges in extended schema.
                     auto_schema[t]["source"] = item.source_type().__name__
 
                 auto_schema[t]["target"] = []
@@ -145,10 +148,24 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                 auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
                 for p in item.fields():
                     if p not in auto_schema[t]["properties"]:
-                        auto_schema[t]["properties"][p] = "str"
+                        # FIXME properties does not seem to be attached to edges.
+                        # if isinstance(p, base.Transformer):
+                        #    p = p.properties_of[t]
+                        # auto_schema[t]["properties"][p] = "str"
+                        # logger.debug(f"\t\t\tproperty: {p}")
+                        pass
 
             else:
                 logger.warning(f"\t\tUnknown type `{item}`, I'll just ignore it, but you may want to double-check.")
+
+    # def prettyprint(d, indent=2):
+    #    for key, value in d.items():
+    #       print('\t' * indent + str(key))
+    #       if isinstance(value, dict):
+    #          prettyprint(value, indent+1)
+    #       else:
+    #          print('\t' * (indent+1) + str(value))
+    # prettyprint(auto_schema)
 
     # Filter out empty keys.
     sch = copy.deepcopy(auto_schema)

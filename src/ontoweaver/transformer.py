@@ -369,7 +369,9 @@ class capitalize(map):
             Warning: If the cell value is invalid.
         """
         for item in super().__call__(row, i):
-            yield item.capitalize()
+            value, edge_type, node_type, reverse_edge = item
+            val = value.capitalize()
+            yield val, edge_type, node_type, reverse_edge
 
 
 class lower(map):
@@ -389,7 +391,9 @@ class lower(map):
             Warning: If the cell value is invalid.
         """
         for item in super().__call__(row, i):
-            yield item.lower()
+            value, edge_type, node_type, reverse_edge = item
+            val = value.lower()
+            yield val, edge_type, node_type, reverse_edge
 
 
 class upper(map):
@@ -409,7 +413,9 @@ class upper(map):
             Warning: If the cell value is invalid.
         """
         for item in super().__call__(row, i):
-            yield item.lower()
+            value, edge_type, node_type, reverse_edge = item
+            val = value.lower()
+            yield val, edge_type, node_type, reverse_edge
 
 
 class lower_capitalize(map):
@@ -429,7 +435,9 @@ class lower_capitalize(map):
             Warning: If the cell value is invalid.
         """
         for item in super().__call__(row, i):
-            yield item.lower().capitalize()
+            value, edge_type, node_type, reverse_edge = item
+            val = value.lower().capitalize()
+            yield val, edge_type, node_type, reverse_edge
 
 
 class translate(base.Transformer):

@@ -173,6 +173,7 @@ class YamlParser(base.MappingParser):
         """
         if not pconfig:
             pconfig = self.config
+            assert pconfig, "I must have a configuration dictionary."
         for k in keys:
             if k in pconfig:
                 return pconfig[k]

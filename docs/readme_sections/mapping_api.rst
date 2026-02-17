@@ -11,187 +11,6 @@ file indicates:
 - with which (edge) types to map relationships between nodes.
 
 
-Simplest possible full example
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Introduction
-^^^^^^^^^^^^
-
-To build up a SKG from scratch, you will need at least five files:
-
-1. some data, for instance in a table: ``data.csv``,
-2. An ontology file, containing the taxonomy of types you want
-   to use: ``ontology.ttl``.
-3. a BioCypher configuration indicating what ontologies to use, and what
-   database to export to: ``config.yaml``,
-4. a schema configuration, indicating the graph structure that
-   you want: ``schema.yaml``,
-5. a mapping, indicating what column of the table to map on which type of the
-   ontology: ``mapping.yaml``.
-
-.. image:: ../OntoWeaver__simple-example.svg
-   :alt: A diagram showcasing the various files needed to configure an OntoWeaver run.
-
-Files
-^^^^^
-
-Let' say we want to extract a graph of 4 nodes and 3 edges from a table
-with 3 rows and 2 columns, those files would look like the following.
-
-
-.. code-block:: csv
-   :caption: The ``data.csv`` file:
-   
-   Stuff,Gizmo
-   S1,GA
-   S1,GO
-   S2,GA
-
-
-.. code-block:: ttl
-   :caption: The ``ontology.ttl`` file.
-   
-   @prefix : <https://my.domain.tld/ontology#> .
-   @prefix owl: <http://www.w3.org/2002/07/owl#> .
-   @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-   @prefix biocypher: <https://biocypher.org/biocypher#> .
-   
-   biocypher:BioCypherRoot a rdfs:Class ;
-        rdfs:label "BioCypherRoot" .
-   
-   owl:Thing a rdfs:Class ;
-       rdfs:label "Thing" ; # Note how labels are uppercased.
-       rdfs:subClassOf biocypher:BioCypherRoot .
-   
-   :Node a rdfs:Class ;
-       rdfs:label "Mynode" ;
-       rdfs:subClassOf owl:Thing .
-   
-   :Edge a owl:ObjectProperty ;
-       rdfs:label "Myedge" ;
-       rdfs:subPropertyOf biocypher:BioCypherRoot .
-
-
-.. code-block:: yaml
-   :caption: The ``config.yaml`` file.
-   
-   biocypher:
-       dbms: owl # For example, here, we output in an OWL file.
-   
-   head_ontology:
-       url: my_ontology.ttl
-       root_node: BioCypherRoot
-   
-   owl: # Options for the chosen OWL DBMS.
-       rdf_format: turtle
-       edge_model: ObjectProperty
-
-
-.. code-block:: yaml
-   :caption: The ``mapping.yaml`` file.
-   
-   row:
-       map:
-           column: Stuff     # Columns are uppercased.
-           to_subject: thing # But types are converted to lowercase.
-   transformers:
-       - map:
-           column: Gizmo
-           # You can map to any label,
-           # as the schema will have the
-           # last word on the actual type.
-           to_object: my_mapped_node
-           # But convention dictates to just
-           # use the type, as seen by BioCypher,
-           # because this is simpler to understand.
-           via_relation: myedge
-
-
-.. code-block:: yaml
-   :caption: The ``schema.yaml`` file.
-
-   # Note how BioCypher interprets
-   # uppercased labels as lowercased
-   # in this schenma file.
-   thing:
-       represented_as: node
-       label_in_input: thing
-   
-   mynode:
-       represented_as: node
-       # The label in input can be anything
-       # that comes from the mapping...
-       label_in_input: my_mapped_node
-   
-   myedge:
-       represented_as: edge
-       # ... or just the same than the type.
-       label_in_input: myedge
-
-Result
-^^^^^^
-
-Now, you have to run OntoWeaver, using all those files::
-   
-   location=$(ontoweave -C config.yaml -s schema.yaml data.csv:mapping.yaml)
-
-And now, ``echo $(dirname $location)`` will show you  in which directory is the populated OWL file.
-
-The output file should look like a populated OWL file:
-
-.. code-block:: ttl
-   :caption: The ``ontology.ttl`` file.
-   
-   # This part is the same as the input ontology:
-   @prefix : <https://my.domain.tld/ontology#> .
-   @prefix biocypher: <https://biocypher.org/biocypher#> .
-   @prefix owl: <http://www.w3.org/2002/07/owl#> .
-   @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-
-   owl:Thing a rdfs:Class ;
-       rdfs:label "Thing" ;
-       rdfs:subClassOf biocypher:BioCypherRoot .
-
-   biocypher:BioCypherRoot a rdfs:Class ;
-       rdfs:label "BioCypherRoot" .
-
-   :Node a rdfs:Class ;
-       rdfs:label "Mynode" ;
-       rdfs:subClassOf owl:Thing .
-
-   :Edge a owl:ObjectProperty ;
-       rdfs:label "Myedge" ;
-       rdfs:subPropertyOf biocypher:BioCypherRoot .
-
-   # This part contains the actual graph data:
-   :S1 a owl:NamedIndividual,
-           owl:Thing ;
-       rdfs:label "S1" ;
-       biocypher:id "S1" ;
-       biocypher:preferred_id "id" ;
-       :myedge :GA,
-           :GO .
-
-   :S2 a owl:NamedIndividual,
-           owl:Thing ;
-       rdfs:label "S2" ;
-       biocypher:id "S2" ;
-       biocypher:preferred_id "id" ;
-       :myedge :GO .
-
-   :GA a owl:NamedIndividual,
-           biocypher:Mynode ;
-       rdfs:label "GA" ;
-       biocypher:id "GA" ;
-       biocypher:preferred_id "id" .
-
-   :GO a owl:NamedIndividual,
-           biocypher:Mynode ;
-       rdfs:label "GO" ;
-       biocypher:id "GO" ;
-       biocypher:preferred_id "id" .
-
-
 How are config files related?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -289,13 +108,14 @@ node for each patient, and an edge for each phenotype-patient pair:
               ╰───────────────────╯
 
 Available Transformers
-~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to transform a data cell before exporting it as one or
 several nodes, you will use other *transformers* than the “map” one.
 
+
 map
-^^^
+~~~
 
 The *map* transformer simply extracts the value of the cell defined, and
 is the most common way of mapping cell values.
@@ -322,8 +142,9 @@ and edges. For example:
                - variant
                - patient_has_variant # Edge type.
 
+
 split
-^^^^^
+~~~~~
 
 The *split* transformer separates a cell value into several
 items, and then inserts a node for each element of the list.
@@ -376,7 +197,7 @@ you may write:
 
 
 cat
-^^^
+~~~
 
 The *cat* transformer concatenates the values cells of the defined
 columns and then inserts a single node. For example, the mapping below
@@ -393,8 +214,9 @@ values are concatenated in the order written in the ``columns`` section.
            - disease
          to_subject: variant # The ontology type to map to
 
+
 cat_format
-^^^^^^^^^^
+~~~~~~~~~~
 
 The user can also define the order and format of concatenation by
 creating a ``format_string`` field, which defines the format of the
@@ -411,8 +233,51 @@ concatenation. For example:
          # Enclose column names in brackets where you want their content to be:
          format_string: "{disease}_____{variant_id}"
 
+
+get
+~~~
+
+The *get* transformer can access values in nested key-value store.
+For instance, if your table cells contains a Python dictionary,
+or a Pandas one-dimensional DataFrame, or a flat JSON object string,
+*get* will be able to access a value into it.
+
+For instance, if your table looks like:
+
++------+----------------------+
+| LINE | WORDS                |
++======+======================+
+|   0  | {"en": "good"}       |
++------+----------------------+
+|   1  | {"en": "awesome"}    |
++------+----------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "en" in the nested JSON object.
+
+To do so with *get*, you need to indicate the *sequence* of keys, in the order
+of the nesting. For instance:
+
+.. code:: yaml
+
+    transformers:
+        - get:
+            keys:
+                - WORDS
+                - en
+            to_object: word  # The usual.
+            via_relation has_word
+
+.. note::
+
+   The *get* transformer can detect and parse JSON object notation, but if the
+   nested cell value is not a string, it will try to access it with the bracket
+   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
+   number of data structures.
+
+
 string
-^^^^^^
+~~~~~~
 
 The *string* transformer allows mapping the same pre-defined static
 string to properties of *some* nodes or edge types.
@@ -428,8 +293,9 @@ It only needs the string *value*, and then a regular property mapping:
            - patient
            - variant
 
+
 translate
-^^^^^^^^^
+~~~~~~~~~
 
 The *translate* transformer changes the targeted cell value from the one
 contained in the input table to another one, as configured through
@@ -518,7 +384,7 @@ Then, to declare a translation using this table, you would do:
 
 
 replace
-^^^^^^^
+~~~~~~~
 
 The *replace* transformer allows the removal of forbidden characters
 from the values extracted from cells of the data frame. The pattern
@@ -590,7 +456,7 @@ with the id of the node being ``01234567``, connected to a node of type
 
 
 boolean
-^^^^^^^
+~~~~~~~
 
 The *boolean* transformer can map any set of values onto a boolean pair.
 
@@ -634,48 +500,6 @@ Is equivalent to:
         raise exceptions.TransformerConfigError("Unknown value")
 
 
-<<<<<<< Updated upstream
-get
-^^^
-
-The *get* transformer can access values in nested key-value store.
-For instance, if your table cells contains a Python dictionary,
-or a Pandas one-dimensional DataFrame, or a flat JSON object string,
-*get* will be able to access a value into it.
-
-For instance, if your table looks like:
-
-+------+----------------------+
-| LINE | WORDS                |
-+======+======================+
-|   0  | {"en": "good"}       |
-+------+----------------------+
-|   1  | {"en": "awesome"}    |
-+------+----------------------+
-
-Then, you will want to access first the column named "WORDS", and the key
-named "en" in the nested JSON object.
-
-To do so with *get*, you need to indicate the *sequence* of keys, in the order
-of the nesting. For instance:
-
-.. code:: yaml
-
-transformers:
-    - get:
-        keys:
-            - WORDS
-            - en
-        to_object: word  # The usual.
-        via_relation has_word
-
-.. note::
-   The *get* transformer can detect and parse JSON object notation, but if the
-   nested cell value is not a string, it will try to access it with the bracket
-   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
-   number of data structures.
-
-
 Case manipulation transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -687,118 +511,6 @@ The following transformers can change the case of the string within the cells:
 - ``lower_capitalize``: change all letters to lowercase, then the first letter
   to uppercase.
 
-||||||| Stash base
-=======
-<<<<<<< Updated upstream
-||||||| Stash base
-get
-^^^
-
-The *get* transformer can access values in nested key-value store.
-For instance, if your table cells contains a Python dictionary,
-or a Pandas one-dimensional DataFrame, or a flat JSON object string,
-*get* will be able to access a value into it.
-
-For instance, if your table looks like:
-
-+------+----------------------+
-| LINE | WORDS                |
-+======+======================+
-|   0  | {"en": "good"}       |
-+------+----------------------+
-|   1  | {"en": "awesome"}    |
-+------+----------------------+
-
-Then, you will want to access first the column named "WORDS", and the key
-named "en" in the nested JSON object.
-
-To do so with *get*, you need to indicate the *sequence* of keys, in the order
-of the nesting. For instance:
-
-.. code:: yaml
-
-transformers:
-    - get:
-        keys:
-            - WORDS
-            - en
-        to_object: word  # The usual.
-        via_relation has_word
-
-.. note::
-   The *get* transformer can detect and parse JSON object notation, but if the
-   nested cell value is not a string, it will try to access it with the bracket
-   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
-   number of data structures.
-
-
-Case manipulation transformers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following transformers can change the case of the string within the cells:
-
-- ``lower``: change all letters to lowercase,
-- ``upper``: change all letters to uppercase,
-- ``capitalize``: change the first letter to uppercase,
-- ``lower_capitalize``: change all letters to lowercase, then the first letter
-  to uppercase.
-
-=======
-get
-^^^
-
-The *get* transformer can access values in nested key-value store.
-For instance, if your table cells contains a Python dictionary,
-or a Pandas one-dimensional DataFrame, or a flat JSON object string,
-*get* will be able to access a value into it.
-
-For instance, if your table looks like:
-
-+------+----------------------+
-| LINE | WORDS                |
-+======+======================+
-|   0  | {"en": "good"}       |
-+------+----------------------+
-|   1  | {"en": "awesome"}    |
-+------+----------------------+
-
-Then, you will want to access first the column named "WORDS", and the key
-named "en" in the nested JSON object.
-
-To do so with *get*, you need to indicate the *sequence* of keys, in the order
-of the nesting. For instance:
-
-.. code:: yaml
-
-    transformers:
-        - get:
-            keys:
-                - WORDS
-                - en
-            to_object: word  # The usual.
-            via_relation has_word
-
-.. note::
-
-   The *get* transformer can detect and parse JSON object notation, but if the
-   nested cell value is not a string, it will try to access it with the bracket
-   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
-   number of data structures.
-
-
-Case manipulation transformers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following transformers can change the case of the string within the cells:
-
-- ``lower``: change all letters to lowercase,
-- ``upper``: change all letters to uppercase,
-- ``capitalize``: change the first letter to uppercase,
-- ``lower_capitalize``: change all letters to lowercase, then the first letter
-  to uppercase.
-
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 
 Multi-type Transformers
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -854,8 +566,9 @@ subject type ``line`` with different edge types. The cell values
 values ``sensitivity`` and ``productivity`` would be mapped to the node
 type ``noun`` via the edge type ``line_is_noun``.
 
-Type branching based on value from another column
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Type selection based on cell value
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In some cases the type of the node or edge you would like to assign to a value extracted from the current column depends on the
 value extracted from another column. For example, lets look at the following table:
@@ -921,7 +634,7 @@ nodes of type ``person`` would be connected to the nodes of type ``kitchen_furni
 
 
 Keyword Synonyms
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Because several communities gathered around semantic knowledge graphs,
 several terms can be used (more or less) interchangeably.

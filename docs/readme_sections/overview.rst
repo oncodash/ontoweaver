@@ -1,12 +1,21 @@
 
-OntoWeaver is a tool that automatize the creation of graphs from iterable data.
+OntoWeaver is a tool that automatize the creation of knowledge graphs
+from iterable data.
+
+.. image:: OntoWeaver__very-simple-summary.svg
+    :alt: OntoWeaver allows you to create Semantic Knowledge Graphs from
+          either tabular data or data that can be queried in a document.
 
 We provide three different introductions, with three different level of details
-and specialized vocabulary:
+and vocabulary:
 
 1) `Introduction for beginners`_
 2) `Introduction for skilled users`_
 3) `Introduction for experts`_
+
+In a hurry? We suggest you jump to :ref:`fully_fledged_demo` and :ref:`how_to`.
+But be warned that you'd better know the difference between a knowledge graph
+and an ontology.
 
 
 Introduction for beginners
@@ -142,6 +151,9 @@ The mappings can be applied to several iterable data structure: either any kind
 of table that can be loaded with Pandas (CSV, spreadsheets, etc.), or structure
 documents that can be queried (XML dialects, JSON, or OWL, for instance).
 
+Note that OntoWeaver delegates filtering to query languages (e.g. XPath,
+JMESPath or regular expressions).
+
 The mapping references leaf types of the assembled ontology, and the engine will
 project all the ancestors in the assembled taxonomy onto the nodes and edges.
 We support several output backends, not just labelled knowledge graphs.
@@ -150,8 +162,8 @@ some will project only the set of ancestors (NetworkX),
 some will only use the leaf type (Neo4j, on its edges).
 
 Each element of the graph can carry key-value pairs, named "properties", which
-are semantically similar ---albeit technically different--- to OWL's
-DataProperties.
+are semantically similar ---albeit technically different for several backends---
+to OWL's DataProperties.
 
 Technically, OntoWeaver provides a simple layer of abstraction on top of
 `BioCypher <https://biocypher.org>`__, which remains responsible for
@@ -166,4 +178,11 @@ However, with OntoWeaver, you can design adapters that:
 
 To combine independent adapters, OntoWeaver uses a high-level information
 fusion engine which can be configured to your needs.
+Our fusion engine is one of our killer feature, as it allows you to call
+adapters made by third parties, and integrate their data in a single database,
+without much configuration.
+
+.. image:: OntoWeaver_and_BioCypher__summary.svg
+    :alt: Detailled summary of how various data sources ov various types can
+          be integrated in a single SKG, thanks to the fusion engine.
 

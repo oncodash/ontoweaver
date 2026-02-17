@@ -26,7 +26,7 @@ The following sections show the available input data adapters.
 Tabular data
 ~~~~~~~~~~~~
 
-Tables being the most ubiquituous data structure, they is used as the main
+Tables being the most ubiquituous data structure, they are used as the main
 example across OntoWeaver documentation, as you may have seen in the previous
 sections.
 

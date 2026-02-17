@@ -3,6 +3,7 @@ dev = [
     "pyaml>=25.7.0",
     "pytest",
     "sphinx-rtd-theme<4.0.0,>=3.0.2",
+    "pygments-csv-lexer",
 ]
 
 [tool.pytest.ini_options]
@@ -49,8 +50,6 @@ dependencies = [
     "lxml>6.0.0",
     "jmespath>=1.0.1",
     "pyaml>=25.7.0",
-    "pytest",
-    "sphinx-rtd-theme<4.0.0,>=3.0.2",
     "fastparquet>=2025.12.0",
 ]
 name = "ontoweaver"
