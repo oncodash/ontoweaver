@@ -31,7 +31,7 @@ import networkx
 
 import ontoweaver
 
-# Additional error codes not handled by exceptions.* classes.
+# Additional error codes not handled by ontoweaver.exceptions.* classes.
 error_codes = {
     "NetworkXError"   : 129,
     "Exception"       : 255,
@@ -81,11 +81,13 @@ def check_file(filename):
     """Exit if the given filename does not exists or is not readable."""
     if not os.path.isfile(filename):
         logging.error(f"File `{filename}` not found.")
-        sys.exit(error_codes["FileError"])
+        # FIXME raise without exit if asked.debug
+        sys.exit(ontoweaver.exceptions.FileError.code)
 
     if not os.access(filename, os.R_OK):
         logging.error(f"Cannot access file `{filename}`.")
-        sys.exit(error_codes["CannotAccessFile"])
+        # FIXME raise without exit if asked.debug
+        sys.exit(ontoweaver.exceptions.FileAccessError)
 
 
 def config_directories(appname = "ontoweave"):
@@ -218,12 +220,12 @@ def main():
     asked = do.parse_args()
 
     if asked.debug:
-        if asked.log_level != "DEBUG":
-            logger.setLevel("DEBUG")
-            logger.warning(f"You asked for --debug but set --log-level={asked.log_level}, I will ignore that and set --log-level=DEBUG")
+        # if asked.log_level != "DEBUG":
+        #     logger.setLevel("DEBUG")
+        #     logger.warning(f"You asked for --debug but set --log-level={asked.log_level}, I will ignore that and set --log-level=DEBUG")
         if asked.pass_errors:
             logger.warning("You asked for --debug but passed --pass-errors, I will ignore that.")
-        asked.log_level = "DEBUG"
+        # asked.log_level = "DEBUG"
         asked.pass_errors = False
 
     logger.setLevel(asked.log_level)
@@ -272,7 +274,7 @@ def main():
         if ":" not in data_map:
             msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
             logger.error(msg)
-            sys.exit(error_codes["ConfigError"])
+            sys.exit(ontoweaver.exceptions.ConfigError.code)
         data,map = data_map.split(":")
         mappings[data] = map
         logger.info(f"    `{data}` => `{map}`")
@@ -355,7 +357,10 @@ def main():
 
     for file_map in asked.mapping:
         data_file, map_file = file_map.split(":")
-        check_file(data_file)
+        if '*' not in data_file and '?' not in data_file:
+            # Do not check if we are globbing several data files.
+            check_file(data_file)
+
         if map_file != "automap":
             check_file(map_file)
 
@@ -413,7 +418,7 @@ def main():
                 subprocess.run([shell, import_file])
             except Exception as e:
                 logger.error(e)
-                sys.exit(error_codes["SubprocessError"])
+                sys.exit(ontoweaver.exceptions.SubprocessError.code)
 
     logger.info("Done")
 

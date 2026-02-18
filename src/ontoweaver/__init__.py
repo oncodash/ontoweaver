@@ -65,6 +65,8 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
     auto_schema = copy.deepcopy(existing_schema)
     for with_mapping in supported:
         logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
+        if '"' in with_mapping:
+            with_mapping = with_mapping.strip('"')
         with open(with_mapping) as fd:
             config = yaml.full_load(fd)
             assert config, "I must have a YAML config."
@@ -74,7 +76,11 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
             validate_output=validate_output,
             raise_errors = raise_errors,
         )
-        _ = parser()
+        try:
+            _ = parser()
+        except Exception as err:
+            logger.error(f"While parsing mapping: `{with_mapping}`.")
+            raise err
 
         logger.debug(f"Serializing schema from mapping computed from `{with_mapping}`")
         for item in parser.declared:

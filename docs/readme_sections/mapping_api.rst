@@ -234,13 +234,13 @@ concatenation. For example:
          format_string: "{disease}_____{variant_id}"
 
 
-get
+nested
 ~~~
 
-The *get* transformer can access values in nested key-value store.
+The *nested* transformer can access values in nested key-value store.
 For instance, if your table cells contains a Python dictionary,
 or a Pandas one-dimensional DataFrame, or a flat JSON object string,
-*get* will be able to access a value into it.
+*nested* will be able to access a value into it.
 
 For instance, if your table looks like:
 
@@ -255,25 +255,65 @@ For instance, if your table looks like:
 Then, you will want to access first the column named "WORDS", and the key
 named "en" in the nested JSON object.
 
-To do so with *get*, you need to indicate the *sequence* of keys, in the order
+To do so with *nested*, you need to indicate the *sequence* of keys, in the order
 of the nesting. For instance:
 
 .. code:: yaml
 
     transformers:
-        - get:
+        - nested:
             keys:
                 - WORDS
                 - en
             to_object: word  # The usual.
-            via_relation has_word
+            via_relation: has_word
 
 .. note::
 
-   The *get* transformer can detect and parse JSON object notation, but if the
+   The *nested* transformer can detect and parse JSON object notation, but if the
    nested cell value is not a string, it will try to access it with the bracket
    syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
    number of data structures.
+
+
+split_nested
+~~~~~~~~~~~~
+
+This transformer is a combination of ``split`` and ``nested``.
+It first *splits* the cell value, and then on each item,
+allows to access elements in a *nested* data structure.
+
+For instance, imagine that your table contains Python lists, themselves containing
+dictionaries:
+
++------+-----------------------------------------+
+| ITEM | WORDS                                   |
++======+=========================================+
+|   1  | [{"en": "good"},{"fr": "bien"}]         |
++------+-----------------------------------------+
+|   2  | [{"en": "awesome"},{"de": "wunderbar"}] |
++------+-----------------------------------------+
+
+Then, you will want to access first the column named "WORDS", and the key
+named "fr" or "de" in the nested JSON object.
+
+To do so, you will map:
+
+.. code:: yaml
+
+    transformers:
+        - split_nested:
+            # No need to indicate a separator if the cell value is a list.
+            keys:
+                - WORDS  # The column name.
+                - fr     # The nested key.
+            to_object: word  # The usual.
+            via_relation: has_word
+
+.. note::
+
+   If the nested key does not exists, this transformer will silently skip the
+   row and this will not create any node or property.
 
 
 string

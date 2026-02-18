@@ -68,6 +68,11 @@ class split(base.Transformer):
 
         def __call__(self, columns, row, i):
             for key in columns:
+                if key not in row:
+                    self.error(f"Column `{key}` not found in row:\n{row}",
+                        "transformer.split",
+                        exception = exceptions.TransformerConfigError)
+
                 val = row[key]
                 if isinstance(val, str):
                     items = val.split(self.separator)
@@ -83,11 +88,21 @@ class split(base.Transformer):
                         for item in val:
                             yield item
                     except Exception as e:
-                        msg = f"Cannot skip or iterate over {type(val)}: `{val}`. {e}"
-                        logger.error(msg)
-                        raise exceptions.TransformerDataError(msg)
+                        self.error(f"Cannot skip or iterate over {type(val)}: `{val}`. {e}",
+                            "transformer.split",
+                            exception = exceptions.TransformerDataError)
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, raise_errors = True, separator = None, **kwargs):
+    def __init__(self,
+        properties_of,
+        label_maker = None,
+        branching_properties = None,
+        columns=None,
+        output_validator: validate.OutputValidator = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        separator = None,
+        **kwargs
+    ):
         """
         Initialize the split transformer.
 
@@ -103,12 +118,24 @@ class split(base.Transformer):
             separator: The character(s) to use for splitting the cell values. Defaults to ",".
         """
 
+        assert columns, "I need at least 1 column to operate."
+        assert isinstance(columns, list), "I need at least 1 column to operate."
+        assert len(columns) >= 1, "I need at least 1 column to operate."
+
         self.separator = separator
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors, separator=self.separator)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict = None,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
 
 class cat(base.Transformer):
@@ -126,7 +153,16 @@ class cat(base.Transformer):
                 formatted_items += str(row[key])
                 yield formatted_items
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Initialize the cat transformer.
 
@@ -143,8 +179,16 @@ class cat(base.Transformer):
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
     def __call__(self, row, i):
         """
@@ -179,7 +223,17 @@ class cat_format(base.Transformer):
             formatted_string = self.format_string.format_map(row)
             yield formatted_string
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, format_string = None,  **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            format_string = None,
+             **kwargs
+         ):
         """
         Initialize the cat_format transformer.
 
@@ -200,8 +254,16 @@ class cat_format(base.Transformer):
         self.format_string = format_string
         self.value_maker = self.ValueMaker(raise_errors=raise_errors, format_string=self.format_string)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator, multi_type_dict,
-                         raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
 
 class rowIndex(base.Transformer):
@@ -214,7 +276,16 @@ class rowIndex(base.Transformer):
         def __call__(self, columns, row, i):
             yield i
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Initialize the rowIndex transformer.
 
@@ -231,9 +302,16 @@ class rowIndex(base.Transformer):
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
-
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
 
 class map(base.Transformer):
@@ -252,7 +330,16 @@ class map(base.Transformer):
                 else:
                     yield row[key]
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Initialize the map transformer.
 
@@ -269,8 +356,16 @@ class map(base.Transformer):
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
         if not self.columns:
             self.error(f"No column declared for the `{type(self).__name__}` transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
@@ -294,7 +389,7 @@ class map(base.Transformer):
             yield item
 
 
-class get(base.Transformer):
+class nested(base.Transformer):
     """Transformer subclass used for accessing a value within
        nested dictionaries or dataframes."""
 
@@ -303,12 +398,18 @@ class get(base.Transformer):
             super().__init__(raise_errors)
 
         def __call__(self, keys, dic, i):
-            value = self.get(keys, dic, i)
-            return [value]
+            value = self.nested(keys, dic, i)
+            if value:
+                return [value]
+            else:
+                return []
 
-        def get(self, keys, dic, i, depth = " "):
+        def nested(self, keys, dic, i, depth = " "):
             depth += "| "
-            logger.debug(f"{depth}Received: {type(dic)}[{keys}]")
+            logger.debug(f"{depth}Received: {type(dic)}{keys}:\n{dic}")
+
+            if not dic:
+                return None
 
             if isinstance(dic, str) and not keys:
                 # Break recursivity.
@@ -327,29 +428,126 @@ class get(base.Transformer):
 
                 # Consider it an object with bracket access, we just pass it.
                 if keys[0] not in dic:
-                    self.error(f"Key '{keys[0]}' not found in data", section="get.call",
+                    if isinstance(dic, dict):
+                        available_keys = ', '.join(dic.keys())
+                    elif isinstance(dic, pd.DataFrame):
+                        available_keys = ', '.join(dic.columns)
+                    else:
+                        available_keys = f"[unknown object type `{type(dic)}`, I cannot read its keys or it does not have ones]"
+
+                    msg = f"Key '{keys[0]}' not found in data, I can only see keys: {available_keys}."
+                    msg += f" Object repr: {dic}."
+                    self.error(msg, section="nested.call",
                                exception=exceptions.TransformerDataError)
                 else:
                     # Recursive call until exhaustion.
                     logger.debug(f"{depth}Get: {type(dic)}[{keys[0]}]")
-                    return self.get( keys[1:], dic[keys[0]], i, depth )
+                    return self.nested( keys[1:], dic[keys[0]], i, depth )
 
+    def __init__(self,
+        properties_of,
+        label_maker = None,
+        branching_properties = None,
+        columns=None,
+        output_validator: validate.OutputValidator = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        **kwargs
+    ):
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+        assert columns, "I need at least 1 key to operate."
+        assert isinstance(columns, list), "I need at least 1 key to operate."
+        assert len(columns) >= 1, "I need at least 1 key to operate."
+
         self.value_maker = self.ValueMaker(raise_errors=raise_errors)
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
+        self.keys = columns
         logger.debug(f"keys: {self.keys}")
         if not self.keys:
-            self.error(f"No key declared for the `{type(self).__name__}` transformer, did you forgot to add a `keys` keyword?", section="get.call", exception = exceptions.TransformerInputError)
-        else:
-            # We use self.columns to reuse super::call as is.
-            self.columns = self.keys
+            self.error(f"No key declared for the `{type(self).__name__}` transformer, did you forgot to add a `keys` keyword?", section="nested.call", exception = exceptions.TransformerInputError)
 
     def __call__(self, row, i):
         for item in super().__call__(row, i):
             yield item
+
+
+class split_nested(base.Transformer):
+
+    def __init__(self,
+        properties_of,
+        label_maker = None,
+        branching_properties = None,
+        columns=None,
+        output_validator: validate.OutputValidator = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        separator = None,
+        **kwargs
+    ):
+        """
+        FIXME doc
+        """
+
+        logger.debug(f"COLUMNS: {type(columns)}\n{columns}")
+        assert columns, "I need 2 keys to operate."
+        assert isinstance(columns, list), "I need several keys."
+        assert len(columns) >= 2, "I need 2 keys, or you should use either split or nested."
+
+        self.split = split(
+            properties_of,
+            label_maker,
+            branching_properties,
+            [columns[0]],
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            separator = separator,
+            **kwargs,
+        )
+
+        keys = columns[1:]
+        if not isinstance(keys, list):
+            keys = [keys]
+
+        self.nested = nested(
+            properties_of,
+            label_maker,
+            branching_properties,
+            keys,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs,
+        )
+
+        super().__init__(properties_of,
+            self.split.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+
+    def __call__(self, row, i):
+        for rowval in self.split.value_maker(self.split.columns, row, i):
+            val = self.nested.value_maker(self.nested.keys, rowval, i)
+
+            value, edge_type, node_type, reverse_edge = self.create(val, row)
+            if base.is_not_null(value):
+                yield value, edge_type, node_type, reverse_edge
 
 
 class capitalize(map):
@@ -454,7 +652,16 @@ class translate(base.Transformer):
                                exception=exceptions.TransformerDataError)
                 yield row[key]
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Constructor.
 
@@ -478,8 +685,16 @@ class translate(base.Transformer):
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
         self.map = map(properties_of, label_maker, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
 
         lpf = loader.LoadPandasFile()
@@ -587,6 +802,7 @@ class translate(base.Transformer):
         for e, edge, node, rev_rel in self.map(row, i):
             yield e, edge, node, rev_rel
 
+
 class string(base.Transformer):
     """A transformer that makes up the given static string instead of extractsing something from the table."""
 
@@ -598,7 +814,16 @@ class string(base.Transformer):
         def __call__(self, columns, row, i):
             yield self.string
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Constructor.
 
@@ -617,8 +842,16 @@ class string(base.Transformer):
         self.value = kwargs.get("value", None)
         self.value_maker = self.ValueMaker(raise_errors=raise_errors, string=self.value)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
     def __call__(self, row, i):
         """
@@ -639,6 +872,7 @@ class string(base.Transformer):
 
         for item in super().__call__(row, i):
             yield item
+
 
 class replace(base.Transformer):
     """Transformer subclass used to remove characters that are not allowed from cell values of defined columns.
@@ -663,7 +897,16 @@ class replace(base.Transformer):
                 logger.debug(f"Formatted value: {strip_formatted}")
                 yield strip_formatted
 
-    def __init__(self, properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Constructor.
 
@@ -685,8 +928,16 @@ class replace(base.Transformer):
 
         self.value_maker = self.ValueMaker(raise_errors=raise_errors, forbidden=self.forbidden, substitute=self.substitute)
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
 
 class boolean(base.Transformer):
@@ -796,10 +1047,37 @@ class boolean(base.Transformer):
                 logger.debug(f"Made a boolean from `{value}` to `{out}`.")
                 yield out
 
-    def __init__(self,  properties_of, label_maker = None, branching_properties = None, columns=None, output_validator: validate.OutputValidator = None, multi_type_dict = None, raise_errors = True, output_true = "True", output_false = "False", consider_true = None, consider_false = None, **kwargs):
+    def __init__(self,
+             properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            output_true = "True",
+            output_false = "False",
+            consider_true = None,
+            consider_false = None,
+            **kwargs
+        ):
 
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors, output_true = output_true, output_false = output_false, consider_true = consider_true, consider_false = consider_false)
+        self.value_maker = self.ValueMaker(
+            raise_errors=raise_errors,
+            output_true = output_true,
+            output_false = output_false,
+            consider_true = consider_true,
+            consider_false = consider_false
+        )
 
-        super().__init__(properties_of, self.value_maker, label_maker, branching_properties, columns, output_validator,
-                         multi_type_dict, raise_errors=raise_errors, **kwargs)
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 

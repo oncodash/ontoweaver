@@ -181,7 +181,8 @@ class LoadPandasFile(Loader):
             else:
                 data.append( loadfunc(filename, **kw) )
 
-        return pd.concat(data)
+        out = pd.concat(data)
+        return out
 
     def adapter(self, **kwargs):
         return tabular.PandasAdapter

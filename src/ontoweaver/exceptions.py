@@ -15,6 +15,7 @@
 #    │  ├─ FileAccessError
 #    │  └─ FileOverwriteError
 #    ├─ InputDataError
+#    ├─ SubprocessError
 #    └─ TransformerError
 #       ├─ DataValidationError
 #       ├─ InterfaceInheritanceError
@@ -85,6 +86,10 @@ class InputDataError(RunError):
 class TransformerError(RunError):
     """A transformer cannot run properly."""
     code = 200
+
+class SubprocessError(RunError):
+    """A subprocess ended on an error."""
+    code = 128  # "bad exit"
 
 class DataValidationError(TransformerError):
     """Some data validation do not pass."""

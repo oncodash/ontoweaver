@@ -599,9 +599,17 @@ class YamlParser(base.MappingParser):
             if any(field in transformer_keyword_dict for field in base.MappingParser.k_target):
                 prop = self.get(base.MappingParser.k_properties, transformer_keyword_dict)
                 target = self.get(base.MappingParser.k_target, transformer_keyword_dict)
-                self.error(f"ERROR in transformer '{transformer_type}', at index `{transformer_index}`: one cannot "
-                           f"declare a mapping to both properties '{prop}' and object type '{target}'.", "transformers",
-                           transformer_index, exception=exceptions.CardinalityError)
+                col = self.get(base.MappingParser.k_columns, transformer_keyword_dict)
+                self.error(f"ERROR in transformer '{transformer_type}'," \
+                           f" at index `{transformer_index}`: one cannot " \
+                           f" declare a mapping to both properties '{prop}'" \
+                           f" and object type '{target}'." \
+                           f" Maybe you used `to_object` instead of `for_object`" \
+                            " to indicate to which object to attach the property?",
+                           "transformers",
+                           transformer_index,
+                           exception=exceptions.CardinalityError
+                       )
 
         elif not isinstance(transformer_keyword_dict, dict):
             self.error(str(transformer_keyword_dict) + " is not a dictionary",
@@ -833,7 +841,7 @@ class YamlParser(base.MappingParser):
                 skipped_columns += t.columns
 
         if skipped_columns:
-            logger.warning(f"Skip output validation for columns: `{'`, `'.join(skipped_columns)}`." \
+            logger.warning(f"Skip output validation for columns: `{'`, `'.join(str(i) for i in skipped_columns)}`." \
                            " This could result in some empty or `nan` nodes." \
                            " To enable output validation set `validate_output` to `True`.")
 

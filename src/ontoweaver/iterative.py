@@ -455,10 +455,22 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             # FIXME the transformer variable here shadows the transformer module.
             for j,transformer in enumerate(self.transformers):
                 local_transformations += 1
-                logger.debug(f"\tCalling transformer: {transformer}...")
+                logger.debug(f"\tCalling the {j}th transformer: {transformer}...")
+                k = 0
                 for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
-                    target_node_id = self._make_target_node_id(row, i, transformer, j, target_id, target_edge,
-                                                               target_node, local_nodes, local_errors)
+                    logger.debug(f"\t\t{k}th element yielded by transformer")
+                    k += 1
+                    target_node_id = self._make_target_node_id(
+                        row,
+                        i,
+                        transformer,
+                        j,
+                        target_id,
+                        target_edge,
+                        target_node,
+                        local_nodes,
+                        local_errors
+                    )
 
                     #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
                     #and we move to the next iteration of the loop.
@@ -478,22 +490,49 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         if hasattr(transformer, "from_subject"):
 
                             self._make_alternative_source_node_id(
-                                row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors)
-
+                                row,
+                                i,
+                                transformer,
+                                j,
+                                target_node_id,
+                                target_edge,
+                                local_edges,
+                                local_errors
+                            )
 
                         else: # no attribute `from_subject` in `transformer`
                             logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
-                            local_edges.append(self.make_edge(edge_t=target_edge, id_target=target_node_id,
-                                                              id_source=source_node_id,
-                                                              properties=self.properties(target_edge.fields(),
-                                                                                         row, i, target_edge, target_node)))
+                            local_edges.append(
+                                self.make_edge(
+                                    edge_t=target_edge,
+                                    id_target=target_node_id,
+                                    id_source=source_node_id,
+                                    properties=self.properties(
+                                        target_edge.fields(),
+                                        row,
+                                        i,
+                                        target_edge,
+                                        target_node
+                                    )
+                                )
+                            )
 
                             if reverse_relation:
                                 logger.info(f"\t\t\tMake reverse edge {reverse_relation.__name__} from {target_node_id} to {source_node_id}")
-                                local_edges.append(self.make_edge(edge_t=reverse_relation, id_target=source_node_id,
-                                                                  id_source=target_node_id,
-                                                                  properties=self.properties(reverse_relation.fields(),
-                                                                                             row, i, reverse_relation, source_node_id.__class__)))
+                                local_edges.append(
+                                    self.make_edge(
+                                        edge_t=reverse_relation,
+                                        id_target=source_node_id,
+                                        id_source=target_node_id,
+                                        properties=self.properties(
+                                            reverse_relation.fields(),
+                                            row,
+                                            i,
+                                            reverse_relation,
+                                            source_node_id.__class__
+                                        )
+                                    )
+                                )
             # assert hasattr(local_nodes, "__iter__")
             # assert hasattr(local_edges, "__iter__")
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes

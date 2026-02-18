@@ -605,8 +605,17 @@ class MappingParser(Declare):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None,
-                 output_validator: validate.OutputValidator() = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+        properties_of,
+        value_maker = None,
+        label_maker = None,
+        branching_properties = None,
+        columns = None,
+        output_validator: validate.OutputValidator() = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        **kwargs
+    ):
         """
         Make a transformer class with the given parameters.
         Instantiate transformers.
@@ -659,9 +668,9 @@ class Transformer(errormanager.ErrorManager):
 
         Yields:
             str: The concatenated string from the cell values.
-       """
-        for value in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type, reverse_edge = self.create(value, row)
+        """
+        for val in self.value_maker(self.columns, row, i):
+            value, edge_type, node_type, reverse_edge = self.create(val, row)
             if is_not_null(value):
                 yield value, edge_type, node_type, reverse_edge
 
@@ -814,7 +823,7 @@ class MappingParser(Declare):
     # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
     k_row = ["row", "entry", "line", "subject", "source"]
     k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
-    k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element"]
+    k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element", "keys"]
     k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
     k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
     k_edge = ["via_edge", "via_relation", "via_predicate"]
@@ -832,8 +841,17 @@ class MappingParser(Declare):
 class Transformer(errormanager.ErrorManager):
     """"Class used to manipulate cell values and return them in the correct format."""""
 
-    def __init__(self, properties_of, value_maker = None, label_maker = None, branching_properties = None, columns = None,
-                 output_validator: validate.OutputValidator() = None, multi_type_dict = None, raise_errors = True, **kwargs):
+    def __init__(self,
+            properties_of,
+            value_maker = None,
+            label_maker = None,
+            branching_properties = None,
+            columns = None,
+             output_validator: validate.OutputValidator() = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
         """
         Instantiate transformers.
 
@@ -885,12 +903,15 @@ class Transformer(errormanager.ErrorManager):
 
         Yields:
             str: The concatenated string from the cell values.
-       """
-        for value in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type, reverse_edge = self.create(value, row)
-            if is_not_null(value):
-                yield value, edge_type, node_type, reverse_edge
-
+        """
+        try:
+            for value in self.value_maker(self.columns, row, i):
+                value, edge_type, node_type, reverse_edge = self.create(value, row)
+                if is_not_null(value):
+                    yield value, edge_type, node_type, reverse_edge
+        except exceptions.TransformerDataError as err:
+            logger.debug(f"Availale columns: {', '.join(row.keys())}")
+            raise err
 
     #FIXME: The functions below are never implemented.
     @abstractmethod
@@ -978,15 +999,11 @@ class Transformer(errormanager.ErrorManager):
                 else:
                     columns = []
 
-                for c in columns:
-                    if not isinstance(c, str):
-                        self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
-
-                representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")
+                representation += (f"<{type(self).__name__}({params}) {','.join(str(i) for i in columns)}{link}>")
 
         else:
             #The transformer is a property transformer. We add the property name and value in the tabular.properties() function.
-            representation += (f"<{type(self).__name__}() {','.join(self.columns) if self.columns else ''} =>")
+            representation += (f"<{type(self).__name__}() {','.join(str(i) for i in self.columns) if self.columns else ''} =>")
 
         return representation
 
