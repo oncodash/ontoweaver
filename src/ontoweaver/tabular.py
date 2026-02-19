@@ -62,7 +62,7 @@ class PandasAdapter(iterative.IterativeAdapter):
 
         # logger.info("DataFrame info:")
         # logger.info(df.info())
-        logger.debug("Columns:")
+        logger.debug("Columns avialble in the loaded Pandas DataFrame:")
         for c in df.columns:
             logger.debug(f"\t`{c}`")
         # pd.set_option('display.max_rows', 30)

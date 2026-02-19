@@ -87,16 +87,21 @@ class SimpleLabelMaker(LabelMaker):
 
     def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
 
-        res = str(returned_value)
-        if validate(res):
+        value = str(returned_value)
+        if validate(value):
             if multi_type_dict:
                 if "None" in multi_type_dict.keys():
                     # No branching needed. The transformer is not a branching transformer.
-                    return ReturnCreate(res, multi_type_dict["None"]["via_relation"], multi_type_dict["None"]["to_object"],
-                                        None, multi_type_dict["None"]["final_type"], multi_type_dict["None"]["reverse_relation"])
+                    assert multi_type_dict["None"]["to_object"]
+                    return ReturnCreate(
+                        value,
+                        multi_type_dict["None"]["via_relation"],
+                        multi_type_dict["None"]["to_object"],
+                        None,
+                        multi_type_dict["None"]["final_type"], multi_type_dict["None"]["reverse_relation"] )
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
-                return ReturnCreate(res)
+                return ReturnCreate(value)
         else:
             # Validation failed.
             return None
@@ -122,8 +127,15 @@ class MultiTypeLabelMaker(LabelMaker):
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(label, types["via_relation"], types["to_object"], properties_of,
-                                            types["final_type"], types["reverse_relation"])
+                        assert types["to_object"]
+                        return ReturnCreate(
+                            label,
+                            types["via_relation"],
+                            types["to_object"],
+                            properties_of,
+                            types["final_type"],
+                            types["reverse_relation"]
+                        )
                 if not has_match:
                     self.local_warnings.add(f"No type pattern matching value: `{label}`.")
             else:
@@ -156,8 +168,15 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(label, types["via_relation"], types["to_object"], properties_of,
-                                            types["final_type"], types["reverse_relation"])
+                        assert types["to_object"]
+                        return ReturnCreate(
+                            label,
+                            types["via_relation"],
+                            types["to_object"],
+                            properties_of,
+                            types["final_type"],
+                            types["reverse_relation"]
+                        )
                 if not has_match:
                     self.local_warnings.add(f"No type pattern matching value: `{row[self.match_type_from_column]}`.")
             else:

@@ -53,6 +53,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         self.type_affix_sep = type_affix_sep
 
         self.subject_transformer = subject_transformer
+        assert self.subject_transformer
         self.transformers = transformers
         self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
@@ -213,64 +214,74 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
     def _make_default_source_node_id(self, row, i, local_nodes, local_errors):
         """
-        Helper function to create the default source node id for each row. Referred to as default because of possibility
+        Helper function to create the default source node id for each row.
+        Referred to as default because of possibility
         of it changing type with `from_subject` attribute in transformers.
         """
 
-        logger.debug("\tLabelMaker subject node:")
-        subject_generator_list = list(self.subject_transformer(row, i))
-        if len(subject_generator_list) > 1:
-            local_errors.append(self.error(
-                f"You cannot use transformer yielding multiple IDs for the subject. "
-                f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
-                f"{subject_generator_list}, I'll take the first one and pretend this"
-                f" did not happened.",
-                indent=2, exception=exceptions.TransformerInterfaceError))
+        logger.debug("\tMake subject node...")
+        for source_id, subject_edge_type, subject_node_type, _ in self.subject_transformer(row, i):
+        # subject_generator_list = list(self.subject_transformer(row, i))
+        # logger.debug(f"\t\tSubject items: {subject_generator_list}")
+        # if len(subject_generator_list) > 1:
+        #     local_errors.append(self.error(
+        #         f"You cannot use transformer yielding multiple IDs for the subject. "
+        #         f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
+        #         f"{subject_generator_list}, I'll take the first one and pretend this"
+        #         f" did not happened.",
+        #         indent=2, exception=exceptions.TransformerInterfaceError))
 
-        elif len(subject_generator_list) == 0:
-            logger.debug("The subject transformer did not produce any valid ID,"
-                " I'll try to skip this entry.")
-            return None
+        # elif len(subject_generator_list) == 0:
+        #     logger.debug("The subject transformer did not produce any valid ID,"
+        #         " I'll try to skip this entry.")
+        #     return None
+        #
+        # source_id, subject_edge_type, subject_node_type, _ = subject_generator_list[0]
 
-        source_id, subject_edge, subject_node, _ = subject_generator_list[0]
+            if self.subject_transformer.final_type:
+                # If a final_type attribute is present in the transformer, use it as the source node type, instead
+                # of the default type.
+                subject_node_type = self.subject_transformer.final_type
 
-        if self.subject_transformer.final_type:
-            # If a final_type attribute is present in the transformer, use it as the source node type, instead
-            # of the default type.
-            subject_node = self.subject_transformer.final_type
+            assert subject_node_type
 
-        assert subject_node
+            if source_id:
+                source_node_id = self.make_id(subject_node_type.__name__, source_id)
 
-        if source_id:
-            source_node_id = self.make_id(subject_node.__name__, source_id)
-
-            if source_node_id:
-                logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
-                local_nodes.append(
-                    self.make_node(
-                        node_t = subject_node,
-                        id = source_node_id,
-                        # FIXME: Should we use the meta-way of accessing node properties as well?
-                        # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                        properties = self.properties(
-                            self.subject_transformer.properties_of,
-                            row,
-                            i,
-                            subject_edge,
-                            subject_node,
-                            node = True
+                if source_node_id:
+                    logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
+                    local_nodes.append(
+                        self.make_node(
+                            node_t = subject_node_type,
+                            id = source_node_id,
+                            # FIXME: Should we use the meta-way of accessing node properties as well?
+                            # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
+                            properties = self.properties(
+                                self.subject_transformer.properties_of,
+                                row,
+                                i,
+                                subject_edge_type,
+                                subject_node_type,
+                                node = True
+                            )
                         )
                     )
-                )
+                else:
+                    local_errors.append(self.error(
+                        f"Failed to declare subject ID for row #{i}: `{row}`.",
+                        indent = 2,
+                        exception = exceptions.DeclarationError ))
+
+                # return source_node_id
+                yield source_node_id
+
             else:
-                local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
-                                               indent=2, exception=exceptions.DeclarationError))
+                local_errors.append(self.error(
+                    f"No valid source node identifier from {self.subject_transformer} for {i}th row."
+                    f" This row will be skipped.",
+                    indent = 2,
+                    exception = exceptions.TransformerDataError ))
 
-            return source_node_id
-
-        else:
-            local_errors.append(self.error(f"No valid source node identifier from {self.subject_transformer} for {i}th row."
-                                           f" This row will be skipped.", indent=2, exception = exceptions.TransformerDataError))
 
     def _make_target_node_id(self, row, i, transformer, j, target_id, target_edge, target_node, local_nodes, local_errors):
         """
@@ -433,6 +444,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
     def run(self):
         """Iterate through dataframe in parallel and map cell values according to YAML file, using a list of transformers."""
 
+        logger.debug("Run...")
         # Thread-safe containers with their respective locks
         self._nodes = []
         self._edges = []
@@ -457,107 +469,112 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             logger.debug(f"Process row {i}...")
             local_rows += 1
 
-            source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
-            if not source_node_id:
-                return None, None, None, None, None, None
+            # source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
+            # if not source_node_id:
+            #     return None, None, None, None, None, None
+            for source_node_id in self._make_default_source_node_id(row, i, local_nodes, local_errors):
+                logger.debug(f"Got subject node id: `{source_node_id}`")
+                if source_node_id:
+                    local_nb_nodes += 1
+                else:
+                    return None, None, None, None, None, None
 
-            if source_node_id:
-                local_nb_nodes += 1
+                # Loop over list of transformer instances and label_maker corresponding nodes and edges.
+                # FIXME the transformer variable here shadows the transformer module.
+                for j,transformer in enumerate(self.transformers):
+                    local_transformations += 1
+                    logger.debug(f"\tCalling the {j}th transformer: {transformer}...")
+                    k = 0
+                    for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
+                        logger.debug(f"\t\t{k}th element yielded by transformer")
+                        k += 1
+                        target_node_id = self._make_target_node_id(
+                            row,
+                            i,
+                            transformer,
+                            j,
+                            target_id,
+                            target_edge,
+                            target_node,
+                            local_nodes,
+                            local_errors
+                        )
 
-            # Loop over list of transformer instances and label_maker corresponding nodes and edges.
-            # FIXME the transformer variable here shadows the transformer module.
-            for j,transformer in enumerate(self.transformers):
-                local_transformations += 1
-                logger.debug(f"\tCalling the {j}th transformer: {transformer}...")
-                k = 0
-                for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
-                    logger.debug(f"\t\t{k}th element yielded by transformer")
-                    k += 1
-                    target_node_id = self._make_target_node_id(
-                        row,
-                        i,
-                        transformer,
-                        j,
-                        target_id,
-                        target_edge,
-                        target_node,
-                        local_nodes,
-                        local_errors
-                    )
+                        #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
+                        #and we move to the next iteration of the loop.
+                        if target_node_id is None:
+                            continue
+                        else:
+                            local_nb_nodes += 1
 
-                    #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
-                    #and we move to the next iteration of the loop.
-                    if target_node_id is None:
-                        continue
-                    else:
-                        local_nb_nodes += 1
+                            # If a `from_subject` attribute is present in the transformer, loop over the transformer
+                            # list to find the transformer instance mapping to the correct type, and then label_maker new
+                            # subject id.
 
-                        # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                        # list to find the transformer instance mapping to the correct type, and then label_maker new
-                        # subject id.
+                            # FIXME add hook functions to be overloaded.
 
-                        # FIXME add hook functions to be overloaded.
+                            # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
 
-                        # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
+                            if hasattr(transformer, "from_subject"):
 
-                        if hasattr(transformer, "from_subject"):
-
-                            self._make_alternative_source_node_id(
-                                row,
-                                i,
-                                transformer,
-                                j,
-                                target_node_id,
-                                target_edge,
-                                local_edges,
-                                local_errors
-                            )
-
-                        else: # no attribute `from_subject` in `transformer`
-                            logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
-                            local_edges.append(
-                                self.make_edge(
-                                    edge_t=target_edge,
-                                    id_target=target_node_id,
-                                    id_source=source_node_id,
-                                    properties=self.properties(
-                                        target_edge.fields(),
-                                        row,
-                                        i,
-                                        target_edge,
-                                        target_node
-                                    )
+                                self._make_alternative_source_node_id(
+                                    row,
+                                    i,
+                                    transformer,
+                                    j,
+                                    target_node_id,
+                                    target_edge,
+                                    local_edges,
+                                    local_errors
                                 )
-                            )
 
-                            if reverse_relation:
-                                logger.info(f"\t\t\tMake reverse edge {reverse_relation.__name__} from {target_node_id} to {source_node_id}")
+                            else: # no attribute `from_subject` in `transformer`
+                                logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
                                 local_edges.append(
                                     self.make_edge(
-                                        edge_t=reverse_relation,
-                                        id_target=source_node_id,
-                                        id_source=target_node_id,
+                                        edge_t=target_edge,
+                                        id_target=target_node_id,
+                                        id_source=source_node_id,
                                         properties=self.properties(
-                                            reverse_relation.fields(),
+                                            target_edge.fields(),
                                             row,
                                             i,
-                                            reverse_relation,
-                                            source_node_id.__class__
+                                            target_edge,
+                                            target_node
                                         )
                                     )
                                 )
+
+                                if reverse_relation:
+                                    logger.info(f"\t\t\tMake reverse edge {reverse_relation.__name__} from {target_node_id} to {source_node_id}")
+                                    local_edges.append(
+                                        self.make_edge(
+                                            edge_t=reverse_relation,
+                                            id_target=source_node_id,
+                                            id_source=target_node_id,
+                                            properties=self.properties(
+                                                reverse_relation.fields(),
+                                                row,
+                                                i,
+                                                reverse_relation,
+                                                source_node_id.__class__
+                                            )
+                                        )
+                                    )
             # assert hasattr(local_nodes, "__iter__")
             # assert hasattr(local_edges, "__iter__")
             return local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
-        # End of process_row local function
+            # End of process_row local function
 
         nb_rows = 0
         nb_transformations = 0
         nb_nodes = 0
 
         if self.parallel_mapping > 0:
+            logger.debug("\tParallel mapping...")
             self._run_all(process_row, nb_rows, nb_transformations, nb_nodes)
         else:
+            logger.debug("\tSequential mapping...")
             for local_nodes,local_edges in self._run_all(process_row, nb_rows, nb_transformations, nb_nodes):
                 yield local_nodes, local_edges
 

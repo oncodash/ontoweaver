@@ -56,6 +56,81 @@ def register(transformer_class):
 #       the (additional) user-defined arguments when calling __repr__.
 
 
+class map(base.Transformer):
+    """Transformer subclass used for the simple mapping of cell values of defined columns and creating
+    nodes with their respective values as id."""
+
+    class ValueMaker(make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            for key in columns:
+                if key not in row:
+                    self.error(f"Column '{key}' not found in data", section="map.call",
+                               exception=exceptions.TransformerDataError)
+                else:
+                    yield row[key]
+
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
+        """
+        Initialize the map transformer.
+
+        Args:
+            properties_of: Properties of the node.
+            value_maker: the ValueMaker object used for the logic of cell value selection for each transformer.
+            label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
+            columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
+            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
+            raise_errors: if True, the caller is asking for raising exceptions when an error occurs
+        """
+
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+
+        if not self.columns:
+            self.error(f"No column declared for the `{type(self).__name__}` transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
+
+
+    def __call__(self, row, i):
+        """
+        Process a row and yield cell values as node IDs.
+
+        Args:
+            row: The current row of the DataFrame.
+            i: The index of the current row.
+
+        Yields:
+            str: The cell value if valid.
+
+        Raises:
+            Warning: If the cell value is invalid.
+        """
+        for item in super().__call__(row, i):
+            yield item
+
+
 class split(base.Transformer):
     """Transformer subclass used to split cell values at defined separator and label_maker nodes with
     their respective values as id."""
@@ -132,7 +207,7 @@ class split(base.Transformer):
             branching_properties,
             columns,
             output_validator,
-            multi_type_dict = None,
+            multi_type_dict = multi_type_dict,
             raise_errors=raise_errors,
             **kwargs
         )
@@ -312,81 +387,6 @@ class rowIndex(base.Transformer):
             raise_errors=raise_errors,
             **kwargs
         )
-
-
-class map(base.Transformer):
-    """Transformer subclass used for the simple mapping of cell values of defined columns and creating
-    nodes with their respective values as id."""
-
-    class ValueMaker(make_value.ValueMaker):
-        def __init__(self, raise_errors: bool = True):
-            super().__init__(raise_errors)
-
-        def __call__(self, columns, row, i):
-            for key in columns:
-                if key not in row:
-                    self.error(f"Column '{key}' not found in data", section="map.call",
-                               exception=exceptions.TransformerDataError)
-                else:
-                    yield row[key]
-
-    def __init__(self,
-            properties_of,
-            label_maker = None,
-            branching_properties = None,
-            columns=None,
-            output_validator: validate.OutputValidator = None,
-            multi_type_dict = None,
-            raise_errors = True,
-            **kwargs
-        ):
-        """
-        Initialize the map transformer.
-
-        Args:
-            properties_of: Properties of the node.
-            value_maker: the ValueMaker object used for the logic of cell value selection for each transformer.
-            label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
-            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
-            columns: The columns to be processed.
-            output_validator: the OutputValidator object used for validating transformer output.
-            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
-            raise_errors: if True, the caller is asking for raising exceptions when an error occurs
-        """
-
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
-
-        super().__init__(properties_of,
-            self.value_maker,
-            label_maker,
-            branching_properties,
-            columns,
-            output_validator,
-            multi_type_dict,
-            raise_errors=raise_errors,
-            **kwargs
-        )
-
-        if not self.columns:
-            self.error(f"No column declared for the `{type(self).__name__}` transformer, did you forgot to add a `columns` keyword?", section="map.call", exception = exceptions.TransformerInputError)
-
-
-    def __call__(self, row, i):
-        """
-        Process a row and yield cell values as node IDs.
-
-        Args:
-            row: The current row of the DataFrame.
-            i: The index of the current row.
-
-        Yields:
-            str: The cell value if valid.
-
-        Raises:
-            Warning: If the cell value is invalid.
-        """
-        for item in super().__call__(row, i):
-            yield item
 
 
 class nested(base.Transformer):

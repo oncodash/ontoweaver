@@ -402,7 +402,11 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
             if with_loader.allows([data]):
                 logger.debug("  Loader allows this data type")
                 found_loader = True
-                ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+                try:
+                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+                except Exception as e:
+                    logger.error(f"While loading `{data}` and mapping with `{mapping}`.")
+                    raise e
                 nodes += ln
                 edges += le
                 break

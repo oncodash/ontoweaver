@@ -81,10 +81,10 @@ class YamlParser(base.MappingParser):
         logger.debug(f"Classes will be created in module '{self.module}'")
 
 
-    def make_transformer_class(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
+    def make_transformer(self, transformer_type, multi_type_dictionary = None, branching_properties = None,
                                properties=None, columns=None, output_validator=None, label_maker = None, **kwargs):
         """
-        LabelMaker a transformer class with the given parameters.
+        LabelMaker a transformer class and instance with the given parameters.
 
         Args:
             multi_type_dictionary: Dictionary of regex rules and corresponding types in case of cell value match.
@@ -95,25 +95,28 @@ class YamlParser(base.MappingParser):
             **kwargs: Additional keyword arguments.
 
         Returns:
-            The created transformer class.
+            The created transformer instance.
 
         Raises:
             TypeError: If the transformer type is not an existing transformer.
         """
+        # If `transformer` module has this specific type.
         if hasattr(transformer, transformer_type):
-            parent_t = getattr(transformer, transformer_type)
-            kwargs.setdefault("subclass", parent_t)
-            if not issubclass(parent_t, base.Transformer):
+            class_t = getattr(transformer, transformer_type)
+            kwargs.setdefault("subclass", class_t)
+            if not issubclass(class_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
             logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
-            return parent_t(properties_of=properties,
-                            columns=columns,
-                            output_validator=output_validator,
-                            multi_type_dict = multi_type_dictionary,
-                            branching_properties = branching_properties,
-                            label_maker = label_maker,
-                            raise_errors = self.raise_errors,
-                            **kwargs)
+            return class_t(
+                properties_of = properties,
+                label_maker = label_maker,
+                branching_properties = branching_properties,
+                columns = columns,
+                output_validator = output_validator,
+                multi_type_dict = multi_type_dictionary,
+                raise_errors = self.raise_errors,
+                **kwargs
+            )
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
@@ -269,18 +272,24 @@ class YamlParser(base.MappingParser):
 
         return output_validator
 
+
     def _extract_final_type_class(self, final_type, possible_types, metadata, metadata_list, columns, properties_of):
         """
         Extract metadata and class for the final type and update the metadata dictionary.
         """
 
         if final_type:
-            final_type_class = self.make_node_class(final_type, properties_of.get(final_type, {}))
+            final_type_class = self.make_node_class(
+                final_type,
+                properties_of.get(final_type, {})
+            )
             possible_types.add(final_type_class.__name__)
-            extracted_s_final_type_metadata = self._extract_metadata(base.MappingParser.k_metadata_column,
-                                                                     metadata_list, metadata,
-                                                                     final_type,
-                                                                     columns)
+            extracted_s_final_type_metadata = self._extract_metadata(
+                base.MappingParser.k_metadata_column,
+                metadata_list, metadata,
+                final_type,
+                columns )
+
             if extracted_s_final_type_metadata:
                 metadata.update(extracted_s_final_type_metadata)
 
@@ -309,19 +318,32 @@ class YamlParser(base.MappingParser):
 
                     alt_final_type = self.get(base.MappingParser.k_final_type, v)
 
-                    alt_final_type_class = self._extract_final_type_class(alt_final_type, possible_node_types, metadata,
-                                                                          metadata_list, columns, properties_of)
+                    alt_final_type_class = self._extract_final_type_class(
+                        alt_final_type,
+                        possible_node_types,
+                        metadata,
+                        metadata_list,
+                        columns,
+                        properties_of
+                    )
 
                     if not subject:
                         alt_edge = self.get(base.MappingParser.k_edge, v)
-                        alt_edge_class = self.make_edge_class(alt_edge, None, alt_type_class,
-                                                              properties_of.get(alt_edge, {}))
+                        alt_edge_class = self.make_edge_class(
+                            alt_edge,
+                            None,
+                            alt_type_class,
+                            properties_of.get(alt_edge, {})
+                        )
 
                         possible_edge_types.add(alt_edge)
 
-                        extracted_alt_edge_metadata = self._extract_metadata(base.MappingParser.k_metadata_column,
-                                                                             metadata_list, metadata, alt_edge,
-                                                                             None)
+                        extracted_alt_edge_metadata = self._extract_metadata(
+                            base.MappingParser.k_metadata_column,
+                            metadata_list, metadata,
+                            alt_edge,
+                            None
+                        )
 
                         if extracted_alt_edge_metadata:
                             metadata.update(extracted_alt_edge_metadata)
@@ -329,28 +351,41 @@ class YamlParser(base.MappingParser):
                         # Extract reverse edge, if specified in config.
                         alt_reverse_edge = self.get(base.MappingParser.k_reverse_edge, v)
                         if alt_reverse_edge:
-                            alt_reverse_edge_class = self.make_edge_class(alt_reverse_edge, None, alt_type_class,
-                                                                          properties_of.get(alt_reverse_edge, {}))
+                            alt_reverse_edge_class = self.make_edge_class(
+                                alt_reverse_edge,
+                                None,
+                                alt_type_class,
+                                properties_of.get(alt_reverse_edge, {})
+                            )
 
                             possible_edge_types.add(alt_reverse_edge)
-                            extracted_alt_reverse_edge_metadata = self._extract_metadata(base.MappingParser.k_metadata_column,
-                                                                                 metadata_list, metadata, alt_reverse_edge,
-                                                                                 None)
+                            extracted_alt_reverse_edge_metadata = self._extract_metadata(
+                                base.MappingParser.k_metadata_column,
+                                metadata_list,
+                                metadata,
+                                alt_reverse_edge,
+                                None
+                            )
 
                             if extracted_alt_reverse_edge_metadata:
                                 metadata.update(extracted_alt_reverse_edge_metadata)
 
                         #TODO: Create new function or add this to make edge class?
 
-                    extracted_alt_type_metadata = self._extract_metadata(base.MappingParser.k_metadata_column,
-                                                                           metadata_list, metadata, alt_type,
-                                                                           columns)
+                    extracted_alt_type_metadata = self._extract_metadata(
+                        base.MappingParser.k_metadata_column,
+                        metadata_list,
+                        metadata,
+                        alt_type,
+                        columns
+                    )
                     if extracted_alt_type_metadata:
                         metadata.update(extracted_alt_type_metadata)
 
                     if extracted_alt_type_metadata:
                         metadata.update(extracted_alt_type_metadata)
 
+                    assert alt_type_class
                     multi_type_dictionary[key] = {
                         'to_object': alt_type_class,
                         # Via relation is always None for subject, since there is never an edge declared for the subject type.
@@ -417,7 +452,7 @@ class YamlParser(base.MappingParser):
                     p_output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=field_dict)
                     p_output_validator = self._make_output_validator(p_output_validation_rules)
 
-                    prop_transformer = self.make_transformer_class(
+                    prop_transformer = self.make_transformer(
                         transformer_type, columns=column_names,
                         output_validator=p_output_validator,
                         label_maker=make_labels.SimpleLabelMaker(
@@ -451,8 +486,12 @@ class YamlParser(base.MappingParser):
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
         subject_kwargs = self.get_not(base.MappingParser.k_subject_type + base.MappingParser.k_columns, subject_transformer_dict[
             subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
-        subject_columns = self.get(base.MappingParser.k_columns, subject_transformer_dict[subject_transformer_class])
-        subject_final_type = self.get(base.MappingParser.k_final_type, subject_transformer_dict[subject_transformer_class])
+        subject_columns = self.get(
+            base.MappingParser.k_columns,
+            subject_transformer_dict[subject_transformer_class] )
+        subject_final_type = self.get(
+            base.MappingParser.k_final_type,
+            subject_transformer_dict[subject_transformer_class] )
         if subject_columns != None and not isinstance(subject_columns, list):
             logger.debug(f"\tDeclared singular subject’s column `{subject_columns}`")
             assert (isinstance(subject_columns, str))
@@ -461,7 +500,7 @@ class YamlParser(base.MappingParser):
         # Parse the validation rules for the output of the subject transformer.
         subject_output_validation_rules = self.get(
             base.MappingParser.k_validate_output,
-            subject_transformer_dict[subject_transformer_class])
+            subject_transformer_dict[subject_transformer_class] )
 
         subject_output_validator = self._make_output_validator(subject_output_validation_rules)
 
@@ -473,21 +512,30 @@ class YamlParser(base.MappingParser):
         possible_subject_types = set()
         subject_branching = False
 
+        # NOTE: this alters possible_subject_types and metadata
         s_final_type_class = self._extract_final_type_class(
             subject_final_type, possible_subject_types, metadata,
             metadata_list, subject_columns, properties_of)
 
         if subject_transformer_params:
+            logger.debug("Subject section has parameters.")
 
             if "match" in subject_transformer_params:
+                logger.debug("\tThere is a `match` in the subject section.")
 
                 subject_branching = True
 
-                self._make_branching_dict(subject = True, match_parser = subject_transformer_params["match"],
-                                          properties_of = properties_of, metadata_list = metadata_list, metadata = metadata,
-                                          columns = subject_columns, final_type_class = s_final_type_class,
-                                          multi_type_dictionary = subject_multi_type_dict, possible_node_types = possible_subject_types,
-                                          possible_edge_types = set())
+                self._make_branching_dict(
+                    subject = True,
+                    match_parser = subject_transformer_params["match"],
+                    properties_of = properties_of,
+                    metadata_list = metadata_list, metadata = metadata,
+                    columns = subject_columns,
+                    final_type_class = s_final_type_class,
+                    multi_type_dictionary = subject_multi_type_dict,
+                    possible_node_types = possible_subject_types,
+                    possible_edge_types = set()
+                )
 
                 source_t = None # Subject_type declared None because the subject transformer is a branching transformer.
                 subject_type = None
@@ -503,8 +551,17 @@ class YamlParser(base.MappingParser):
 
             # "None" key is used to return any type of string, in case no branching is needed.
             else:
-                subject_type = self.get(base.MappingParser.k_subject_type, subject_transformer_dict[subject_transformer_class])
-                source_t = self.make_node_class(subject_type, properties_of.get(subject_type, {}))
+                logger.debug("\tThere is NO `match` in the subject section.")
+
+                subject_type = self.get(
+                    base.MappingParser.k_subject_type,
+                    subject_transformer_dict[subject_transformer_class]
+                )
+                source_t = self.make_node_class(
+                    subject_type,
+                    properties_of.get(subject_type, {})
+                )
+                assert source_t
 
                 subject_multi_type_dict = {'None': {
                     'to_object': source_t,
@@ -515,20 +572,24 @@ class YamlParser(base.MappingParser):
 
                 possible_subject_types.add(source_t.__name__)
 
-                s_label_maker = make_labels.SimpleLabelMaker(raise_errors=self.raise_errors)
+                s_label_maker = make_labels.SimpleLabelMaker( raise_errors = self.raise_errors )
 
             # Append properties to subject type(s). In case other types are not declared.
             properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
 
-            subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
-                                                              multi_type_dictionary=subject_multi_type_dict,
-                                                              branching_properties=properties_of if subject_branching else None,
-                                                              properties=properties_of.get(subject_type,
-                                                                                           {}) if not subject_branching else None,
-                                                              columns=subject_columns,
-                                                              output_validator=subject_output_validator,
-                                                              label_maker=s_label_maker,
-                                                              **subject_kwargs)
+            subject_transformer = self.make_transformer(
+                transformer_type = subject_transformer_class,
+                multi_type_dictionary = subject_multi_type_dict,
+                branching_properties = properties_of if subject_branching else None,
+                properties = properties_of.get(
+                    subject_type,
+                    {}
+                ) if not subject_branching else None,
+                columns = subject_columns,
+                output_validator = subject_output_validator,
+                label_maker = s_label_maker,
+                **subject_kwargs
+            )
 
             logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
 
@@ -537,6 +598,7 @@ class YamlParser(base.MappingParser):
                 f"subject kwargs: `{subject_kwargs}`, subject columns: '{subject_columns}'")
 
         else:
+            logger.debug("\tSubject section does not have parameters.")
 
             # Still parse properties even if no subject transformer parameters are declared.
             properties_of = self.parse_properties(properties_of, possible_subject_types, transformers_list)
@@ -544,16 +606,25 @@ class YamlParser(base.MappingParser):
             logger.warning(f"No keywords declared for subject transformer `{subject_transformer_class}`"
                        f" Creating transformer with no parameters.")
 
-            subject_transformer = self.make_transformer_class(transformer_type=subject_transformer_class,
-                                                             branching_properties=properties_of)
+            subject_transformer = self.make_transformer(
+                transformer_type = subject_transformer_class,
+                 branching_properties=properties_of
+             )
 
             # Declare source type as None because no parameters were declared for the subject transformer.
             source_t = None
 
-        extracted_metadata = self._extract_metadata(base.MappingParser.k_metadata_column, metadata_list, metadata, possible_subject_types, subject_columns)
+        extracted_metadata = self._extract_metadata(
+            base.MappingParser.k_metadata_column,
+            metadata_list,
+            metadata,
+            possible_subject_types,
+            subject_columns
+        )
         if extracted_metadata:
             metadata.update(extracted_metadata)
 
+        assert source_t
         return possible_subject_types, subject_transformer, source_t, subject_columns
 
     # ============================================================
@@ -591,7 +662,7 @@ class YamlParser(base.MappingParser):
         if not transformer_keyword_dict:
             logger.warning(f"No keywords declared for target transformer `{transformer_type}` at index"
                        f" `{transformer_index}`. Creating transformer with no parameters.")
-            target_transformer = self.make_transformer_class(transformer_type=transformer_type,
+            target_transformer = self.make_transformer(transformer_type=transformer_type,
                                                              branching_properties=properties_of)
             transformers.append(target_transformer)
 
@@ -774,7 +845,7 @@ class YamlParser(base.MappingParser):
                 output_validator = self._make_output_validator(output_validation_rules)
 
                 label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
-                target_transformer = self.make_transformer_class(
+                target_transformer = self.make_transformer(
                     transformer_type = transformer_type,
                     multi_type_dictionary = multi_type_dictionary,
                     branching_properties = properties_of if target_branching else None,
