@@ -59,6 +59,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
 
+        self.non_viable_rows = set()
+
 
     # FIXME not used, maybe will come in handy?
     def source_type(self, row):
@@ -226,10 +228,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 indent=2, exception=exceptions.TransformerInterfaceError))
 
         elif len(subject_generator_list) == 0:
-            local_errors.append(self.error(
-                "The subject transformer did not produce any valid ID,"
-                " I'll try to skip this entry.",
-                indent=2, exception=exceptions.TransformerDataError))
+            logger.debug("The subject transformer did not produce any valid ID,"
+                " I'll try to skip this entry.")
             return None
 
         source_id, subject_edge, subject_node, _ = subject_generator_list[0]
@@ -240,17 +240,28 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             subject_node = self.subject_transformer.final_type
 
         assert subject_node
+
         if source_id:
             source_node_id = self.make_id(subject_node.__name__, source_id)
 
             if source_node_id:
                 logger.debug(f"\t\tDeclared subject ID: {source_node_id}")
-                local_nodes.append(self.make_node(node_t=subject_node, id=source_node_id,
-                                                  # FIXME: Should we use the meta-way of accessing node properties as well?
-                                                  # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
-                                                  properties=self.properties(self.subject_transformer.properties_of,
-                                                                             row, i, subject_edge, subject_node,
-                                                                             node=True)))
+                local_nodes.append(
+                    self.make_node(
+                        node_t = subject_node,
+                        id = source_node_id,
+                        # FIXME: Should we use the meta-way of accessing node properties as well?
+                        # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
+                        properties = self.properties(
+                            self.subject_transformer.properties_of,
+                            row,
+                            i,
+                            subject_edge,
+                            subject_node,
+                            node = True
+                        )
+                    )
+                )
             else:
                 local_errors.append(self.error(f"Failed to declare subject ID for row #{i}: `{row}`.",
                                                indent=2, exception=exceptions.DeclarationError))
@@ -357,7 +368,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             for local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes in results:
                 i += 1
                 if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
-                    logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    # logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    self.non_viable_rows.add(i)
                     continue
                 with self._nodes_lock:
                     self.nodes_append(local_nodes)
@@ -379,7 +391,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             for i, row in self.iterate():
                 local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
                 if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
-                    logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    # logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                    self.non_viable_rows.add(i)
                     continue
                 self.nodes_append(local_nodes)
                 self.edges_append(local_edges)
@@ -562,4 +575,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
     @abstractmethod
     def iterate(self):
         raise NotImplementedError
+
+    def __del__(self):
+        if self.non_viable_rows:
+            logger.warning( \
+                f"Got {len(self.non_viable_rows)} rows that produced no valid element." \
+                " I skipped them silently, but you may want to double check your mapping." \
+                " This is normal if you used a match section that does not consider" \
+                " all possible values. Run with the DEBUG log level to see the row numbers.")
+            logger.debug(", ".join(str(i) for i in self.non_viable_rows))
 

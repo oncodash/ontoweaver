@@ -46,6 +46,9 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
         """
         super().__init__(raise_errors)
 
+        self.local_errors = set()
+        self.local_warnings = set()
+
     @abc.abstractmethod
     def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
         """
@@ -61,6 +64,17 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
             ReturnCreate: An object containing the defined values.
         """
         return NotImplementedError("The call method must be implemented in a subclass.")
+
+    def __del__(self):
+        if self.local_errors:
+            logger.error("Got errors while making some labels:")
+            for e in self.local_errors:
+                logger.error(f"\t{e}")
+
+        if self.local_warnings:
+            logger.warning("Got warnings while making some labels:")
+            for w in self.local_warnings:
+                logger.error(f"\t{w}")
 
 
 class SimpleLabelMaker(LabelMaker):
@@ -96,24 +110,25 @@ class MultiTypeLabelMaker(LabelMaker):
         super().__init__(raise_errors)
 
     def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
-        res = str(returned_value)
-        if validate(res):
+        label = str(returned_value)
+        if validate(label):
             if multi_type_dict:
-                for key, types in multi_type_dict.items():
+                has_match = False
+                for pattern, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    if re.search(key, res):
+                    if re.search(pattern, label):
+                        has_match = True
                         if branching_properties:
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
+                        return ReturnCreate(label, types["via_relation"], types["to_object"], properties_of,
                                             types["final_type"], types["reverse_relation"])
-                    else:
-                        logger.info(f"Branching key `{key}` does not match extracted value `{res}`.")
-                        continue
+                if not has_match:
+                    self.local_warnings.add(f"No type pattern matching value: `{label}`.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
-                return ReturnCreate(res)
+                return ReturnCreate(label)
         else:
             # Validation failed, return empty object with None values.
             return ReturnCreate()
@@ -129,24 +144,25 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
         super().__init__(raise_errors)
 
     def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
-        res = str(returned_value)
-        if validate(res):
+        label = str(returned_value)
+        if validate(label):
             if multi_type_dict:
-                for key, types in multi_type_dict.items():
+                has_match = False
+                for pattern, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    if re.search(key, row[self.match_type_from_column]):
+                    if re.search(pattern, row[self.match_type_from_column]):
+                        has_match = True
                         if branching_properties:
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
                         else:
                             properties_of = {}
-                        return ReturnCreate(res, types["via_relation"], types["to_object"], properties_of,
+                        return ReturnCreate(label, types["via_relation"], types["to_object"], properties_of,
                                             types["final_type"], types["reverse_relation"])
-                    else:
-                        logger.info(f"Branching key `{key}` does not match extracted value `{row[self.match_type_from_column]}`.")
-                        continue
+                if not has_match:
+                    self.local_warnings.add(f"No type pattern matching value: `{row[self.match_type_from_column]}`.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
-                return ReturnCreate(res)
+                return ReturnCreate(label)
         else:
             return ReturnCreate()
 
