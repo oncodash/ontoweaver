@@ -17,6 +17,14 @@ In a hurry? We suggest you jump to :ref:`fully_fledged_demo` and :ref:`how_to`.
 But be warned that you'd better know the difference between a knowledge graph
 and an ontology.
 
+|
+
+.. image:: Pure_Organic_Code__logo.svg
+    :align: center
+    :width: 150px
+
+|
+
 
 Introduction for beginners
 --------------------------

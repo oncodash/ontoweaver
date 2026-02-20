@@ -49,6 +49,9 @@ html_css_files = [
     "css/custom.css",
 ]
 
+# Adds a logo to the navbar.
+html_logo = 'OntoWeaver_logo__big.svg'
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
