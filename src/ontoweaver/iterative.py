@@ -142,7 +142,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         If no properties are found, return an empty dictionary.
 
         Args:
-            property_dict: Dictionary of property mappings.
+            property_dict: Dictionary of transformer => property name
             row: The current row of the DataFrame.
             i: The index of the current row.
             edge_t: The type of the edge of the current transformer.
@@ -157,12 +157,27 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         if property_dict:
 
             for prop_transformer, property_name in property_dict.items():
-                for property, none_node, none_edge, none_reverse_relation in prop_transformer(row, i):
-                    if property:
-                        properties[property_name] = str(property).replace("'", "`")
-                        logger.debug(f"                 {prop_transformer} to property `{property_name}` with value `{properties[property_name]}`.")
+                properties[property_name] = []
+
+                for property_value, none_node, none_edge, none_reverse_relation \
+                    in prop_transformer(row, i):
+
+                    if property_value:
+                        if isinstance(property_value, list):
+                            properties[property_name] += str(property_value)
+                        else:
+                            properties[property_name].append(str(property_value))
+                        # properties[property_name] = str(property_value).replace("'", "`") # FIXME double-check why the old code needed this.
+                        logger.debug(
+                            f"                 {prop_transformer}" \
+                            f" to property `{property_name}` with value" \
+                            f" `{properties[property_name]}`." )
                     else:
-                        self.error(f"Failed to extract valid property with {prop_transformer.__repr__()} for {i}th row.", indent=2, exception = exceptions.TransformerDataError)
+                        self.error(
+                            f"Failed to extract valid property with" \
+                            f" {prop_transformer.__repr__()} for {i}th row.",
+                            indent=2,
+                            exception = exceptions.TransformerDataError )
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:

@@ -201,7 +201,6 @@ class YamlParser(base.MappingParser):
         Returns:
             dict: The updated metadata dictionary.
         """
-        # TODO: Redundant code with the _extract_metadata function.
         if metadata_list and types:
             if not isinstance(types, set):
                 t = types
@@ -823,7 +822,6 @@ class YamlParser(base.MappingParser):
                 # We create a branching dictionary.
                 # The keys of the dictionary are the regex patterns to be matched
                 # against the extracted value of the column.
-
                 if "match" in gen_data:
 
                     target_branching = True
@@ -839,6 +837,7 @@ class YamlParser(base.MappingParser):
                         possible_node_types = possible_target_types,
                         possible_edge_types = possible_edge_types
                     )
+
                 # Parse the validation rules for the output of the transformer. Each transformer gets its own
                 # instance of the OutputValidator with (at least) the default output validation rules.
                 output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=transformer_keyword_dict)
@@ -868,7 +867,7 @@ class YamlParser(base.MappingParser):
                     if extracted_metadata:
                         metadata.update(extracted_metadata)
 
-        return transformers, possible_target_types, possible_edge_types
+        return transformers, possible_target_types, possible_edge_types, metadata
 
 
     def __call__(self):
@@ -899,7 +898,7 @@ class YamlParser(base.MappingParser):
         possible_subject_types, subject_transformer, source_t, subject_columns = self.parse_subject(properties_of, transformers_list, metadata_list, metadata)
 
         # Parse the target types and target metadata.
-        transformers, possible_target_types, possible_edge_types = self.parse_targets(transformers_list, properties_of, source_t, metadata_list, metadata)
+        transformers, possible_target_types, possible_edge_types, metadata = self.parse_targets(transformers_list, properties_of, source_t, metadata_list, metadata)
 
         validator = self._get_input_validation_rules()
 

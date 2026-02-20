@@ -5,6 +5,7 @@ import json
 import logging
 from abc import abstractmethod
 
+import numpy as np
 import pandas as pd
 import pandera.pandas as pa
 
@@ -408,7 +409,7 @@ class nested(base.Transformer):
             depth += "| "
             logger.debug(f"{depth}Received: {type(dic)}{keys}:\n{dic}")
 
-            if not dic:
+            if dic is None:
                 return None
 
             if isinstance(dic, str) and not keys:
@@ -427,7 +428,13 @@ class nested(base.Transformer):
                     assert not isinstance(dic, str)
 
                 # Consider it an object with bracket access, we just pass it.
-                if keys[0] not in dic:
+                if isinstance(dic, np.ndarray):
+                    if dic.shape == (0,):
+                        return None
+                    else:
+                        return self.nested( keys[1:], dic[keys[0]], i, depth )
+
+                elif keys[0] not in dic:
                     if isinstance(dic, dict):
                         available_keys = ', '.join(dic.keys())
                     elif isinstance(dic, pd.DataFrame):

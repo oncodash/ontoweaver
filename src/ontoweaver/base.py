@@ -592,7 +592,7 @@ class MappingParser(Declare):
     k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
     k_edge = ["via_edge", "via_relation", "via_predicate"]
     k_properties = ["to_properties", "to_property"]
-    k_prop_to_object = ["for_objects", "for_object"]
+    k_prop_to_object = ["for_objects", "for_object", "for_relation", "for_relations", "for_edge", "for_edges"]
     k_transformer = ["transformers"]
     k_metadata = ["metadata"]
     k_metadata_column = ["add_source_column_names_as"]
@@ -761,9 +761,10 @@ class Transformer(errormanager.ErrorManager):
                 else:
                     columns = []
 
-                for c in columns:
-                    if not isinstance(c, str):
-                        self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+                # for c in columns:
+                    # if not isinstance(c, str):
+                    #     self.error(f"Column `{c}` is not a string, did you mistype a leading colon?", exception=exceptions.ParsingError)
+                columns = [str(i) for i in columns]
 
                 representation += (f"<{type(self).__name__}({params}) {','.join(columns)}{link}>")
 

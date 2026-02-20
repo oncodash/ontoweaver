@@ -147,6 +147,10 @@ class dictry:
                 if isinstance(v, set):
                     e.union(v)
                     self.merged[k] = e
+                elif isinstance(v, list):
+                    u = set(v)
+                    e.union(u)
+                    self.merged[k] = e
                 else:
                     self.merged[k] = set((v,)).union(e)
 
