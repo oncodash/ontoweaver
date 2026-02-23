@@ -179,6 +179,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             indent=2,
                             exception = exceptions.TransformerDataError )
 
+        # Collapse any list with less than one item to a string.
+        for k,v in properties.items():
+            if len(v) == 0:
+                properties[k] = ''
+            elif len(v) == 1:
+                properties[k] = v[0]
+
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
             if node:
