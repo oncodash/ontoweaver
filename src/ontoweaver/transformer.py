@@ -1019,8 +1019,8 @@ class boolean(base.Transformer):
                 logger.error(msg)
                 raise exceptions.TransformerConfigError(msg)
 
-            if not output_true or not output_false:
-                msg = "I need both `output_true` and `ooutput_false` to have some value."
+            if output_true is None or output_false is None:
+                msg = "I need both `output_true` and `output_false` to have some value."
                 logger.error(msg)
                 raise exceptions.TransformerConfigError(msg)
 
