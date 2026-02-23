@@ -180,11 +180,15 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             exception = exceptions.TransformerDataError )
 
         # Collapse any list with less than one item to a string.
+        to_delete = []
         for k,v in properties.items():
             if len(v) == 0:
-                properties[k] = ''
+                to_delete.append(k)
             elif len(v) == 1:
                 properties[k] = v[0]
+
+        for k in to_delete:
+            del properties[k]
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
