@@ -98,10 +98,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Raises:
             ValueError: If the ID creation fails.
         """
-        assert(isinstance(entry_type, str))
+        assert isinstance(entry_type, str), "Entry type is not a string"
         if not isinstance(entry_name, str):
-            logger.warning(f"Identifier '{entry_name}' (of type '{entry_type}') is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
+            logger.warning(f"Identifier `{entry_name}` (of type `{entry_type}`) is not a string, I had to convert it explicitely, check that the related transformer yields a string.")
             entry_name = str(entry_name)
+
+        if '[' in entry_name or ']' in entry_name:
+            logger.warning(f"Identifier `{entry_name}` (of type `{entry_type}`) contains brackets. Maybe you should use a `split` transformer for this column?")
 
         if self.type_affix == base.TypeAffixes.prefix:
             idt = f'{entry_type}{self.type_affix_sep}{entry_name}'

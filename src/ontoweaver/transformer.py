@@ -1034,17 +1034,17 @@ class boolean(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 value = row[key]
-                if not self.consider_true and not self.consider_false:
-                    # Let Python do it.
-                    boo = bool(value)
+                if not value:
+                    continue
+                value = str(value)
+
+                if value in self.consider_true:
+                    boo = True
+                elif value in self.consider_false:
+                    boo = False
                 else:
-                    if value in self.consider_true:
-                        boo = True
-                    elif value in self.consider_false:
-                        boo = False
-                    else:
-                        logger.error(f"Value `{value}` is not found in either `consider_true` or `consider_false`. I will bypass columns {columns} at row {i}.")
-                        continue
+                    logger.error(f"Value `{value}` is not found in either `consider_true` (`{'`, `'.join(self.consider_true)}`) or `consider_false` (`{'`, `'.join(self.consider_false)}`). I will bypass columns {columns} at row {i}.")
+                    continue
 
                 if boo:
                     out = self.output_true
@@ -1071,10 +1071,10 @@ class boolean(base.Transformer):
 
         self.value_maker = self.ValueMaker(
             raise_errors=raise_errors,
-            output_true = output_true,
-            output_false = output_false,
-            consider_true = consider_true,
-            consider_false = consider_false
+            output_true    = output_true,
+            output_false   = output_false,
+            consider_true  = [str(i) for i in consider_true],
+            consider_false = [str(i) for i in consider_false],
         )
 
         super().__init__(properties_of,
