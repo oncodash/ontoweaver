@@ -254,6 +254,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
    """
     assert sort_key == None or callable(sort_key)
 
+    logger.info("\tExtracting data...")
     nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
 
     # The fusion module is independant from OntoWeaver,
@@ -262,10 +263,11 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     bc_nodes = ow2bc(nodes)
     bc_edges = ow2bc(edges)
 
+    logger.info("\tFusing data...")
     fnodes, fedges = reconciliate(bc_nodes, bc_edges, reconciliate_sep, raise_errors)
 
     if sort_key:
-        logger.debug(f"Sort elements using: {sort_key}.")
+        logger.info(f"Sort elements on: {sort_key}.")
         snodes = sorted(fnodes, key = sort_key)
         sedges = sorted(fedges, key = sort_key)
     else:
