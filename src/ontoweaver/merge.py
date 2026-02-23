@@ -142,6 +142,7 @@ class dictry:
 
         def set(self, merged) -> None:
             assert(isinstance(merged, dict))
+            assert(isinstance(self.merged, dict))
             for k,v in merged.items():
                 e = self.merged.get(k, set())
                 if isinstance(v, set):

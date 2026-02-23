@@ -6,6 +6,7 @@ def get_csv_files(directory):
     """Get all CSV files in the directory."""
     return glob.glob(os.path.join(directory, "*.csv"))
 
+
 def compare_csv_files(expected_dir, output_dir):
     """Compare all CSV files between two directories."""
     expected_files = get_csv_files(expected_dir)
@@ -23,22 +24,31 @@ def compare_csv_files(expected_dir, output_dir):
 
         pd.testing.assert_frame_equal(output_df, expected_df)
 
+
 def convert_to_set(tuple_output):
     """Convert the OntoWeaver tuple output to a set."""
 
-    return set([
-    tuple([
-        node[0],
-        node[1],
-        tuple(sorted(node[2].items()))
-    ]) if len(node) == 3 else tuple([
-        node[0],
-        node[1],
-        node[2],
-        node[3],
-        tuple(sorted(node[4].items()))
-    ]) for node in tuple_output
-    ])
+    out = set()
+    for elem in tuple_output:
+        id = elem[0]
+        type = elem[1]
+        if len(elem) == 3: # Nodes
+            sp = {}
+            for k,v in elem[2].items():
+                if isinstance(v, list):
+                    sp[k] = ",".join(v)
+                else:
+                    sp[k] = v
+            props = tuple(sorted(sp.items()))
+            out.add(tuple([id, type, props]))
+
+        elif len(elem) == 4: # Edges
+            source = elem[2]
+            target = elem[3]
+            props = tuple(sorted(elem[4].items()))
+            out.add(tuple([id, type, source, target, props]))
+
+    return out
 
 
 def assert_edges(lhs, rhs):

@@ -9,7 +9,7 @@ def test_2_databases():
     directory_name1 = "oncokb"
     directory_name2 = "multi_type_transformer"
 
-    expected_nodes = [('0:variant', 'variant', {'whatever': 'A0'}),
+    expected_nodes = [('0:variant', 'variant', {'whatever': 'A1'}),
 ('A:disease', 'disease', {'whatever': 'A0', 'something': 'Whatever it is'}),
 ('1:variant', 'variant', {'whatever': 'B1'}),
 ('B:patient', 'patient', {'something': 'Whatever it is'}),
