@@ -67,7 +67,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
         logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
         if '"' in with_mapping:
             with_mapping = with_mapping.strip('"')
-        with open(with_mapping) as fd:
+        with open(with_mapping, 'r') as fd:
             config = yaml.full_load(fd)
             assert config, "I must have a YAML config."
 
@@ -327,7 +327,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         else:
             assert isinstance(with_mapping, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
             logger.debug(f"\twith user file mapping: `{with_mapping}`")
-            with open(with_mapping) as fd:
+            with open(with_mapping, 'r') as fd:
                 config = yaml.full_load(fd)
 
         parser = mapping.YamlParser(
@@ -583,7 +583,7 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
     for data_file, mapping_file in filename_to_mapping.items():
         table = read_table_file(data_file, **kwargs)
 
-        with open(mapping_file) as fd:
+        with open(mapping_file, 'r') as fd:
             yaml_mapping = yaml.full_load(fd)
 
         validator = mapping.YamlParser(

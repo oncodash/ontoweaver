@@ -53,6 +53,8 @@ def test_full_fledged_demo():
     tutorials = "docs/readme_sections/tutorials.rst"
     dir = "tests/full_fledge_demo"
     prefix = "demo_"
+    logging.warning("This test extracts the code (mapping, ontology, etc.) from the documentation")
+    logging.warning("If you want to fix some bug, DO NOT FIX THE FILES in test/, but instead, fix the documentation in `tutorial.rst`.")
     doc_to_file(tutorials, "data.csv"    , dir, prefix)
     doc_to_file(tutorials, "ontology.ttl", dir, prefix)
     doc_to_file(tutorials, "config.yaml" , dir, prefix)
@@ -63,7 +65,7 @@ def test_full_fledged_demo():
     if os.path.isfile(xs):
         os.remove(xs)
 
-    cmd = f"ontoweave --biocypher-config {dir}/config.yaml --auto-schema {xs} --biocypher-schema {dir}/schema.yaml {dir}/data.csv:{dir}/mapping.yaml --debug"
+    cmd = f"ontoweave --biocypher-config {dir}/config.yaml --auto-schema {xs} --biocypher-schema {dir}/schema.yaml {dir}/data.csv:{dir}/mapping.yaml --auto-schema-overwrite --debug"
 
     logging.debug(f"Run: {cmd}")
     subprocess.run(cmd.split(), capture_output=True, check=True)
