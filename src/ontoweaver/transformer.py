@@ -224,10 +224,10 @@ class cat(base.Transformer):
 
         def __call__(self, columns, row, i):
             formatted_items = ""
-
             for key in columns:
                 formatted_items += str(row[key])
-                yield formatted_items
+
+            yield formatted_items
 
     def __init__(self,
             properties_of,
