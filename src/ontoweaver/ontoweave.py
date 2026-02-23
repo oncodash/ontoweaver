@@ -174,7 +174,12 @@ def main():
              " and save it into FILE." \
              " If an existing schema is passed with --biocypher-schema," \
              " then it is extended and saved into FILE." \
-             " Raises an error if FILE already exists. [default: %(default)s]")
+             " Raises an error if FILE already exists," \
+             " unless --auto-schema-overwrite is passed. [default: %(default)s]")
+
+    do.add_argument("-W", "--auto-schema-overwrite", action="store_true",
+        help="Overwrite the schema generated with --auto-schema" \
+             " if it exists [default: do not overwrite the auto schema]")
 
     do.add_argument("-p", "--parallel", metavar="NB_CORES", default="0",
         help=f"Number of processor cores to use when processing with multi-threading. `0` means a sequential processing (no parallelization, the default). Use 'auto' to let {appname} do its best to use a good number. [default: %(default)s]")
@@ -346,6 +351,7 @@ def main():
             asked.auto_schema,
             asked.validate_output,
             not asked.pass_errors,
+            overwrite = asked.auto_schema_overwrite,
             # Error handling parameters
             debug = asked.debug,
             section = "validation of input data"
