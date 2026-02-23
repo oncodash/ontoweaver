@@ -5,7 +5,7 @@ import pandas as pd
 
 import ontoweaver
 
-def test_transformer_get():
+def test_transformer_nested():
 
     logging.debug("Load data...")
 
@@ -28,7 +28,7 @@ row:
         column: name
         to_subject: Subject
 transformers:
-    - get:
+    - nested:
         keys:
             - aspects
             - is
@@ -48,5 +48,5 @@ transformers:
 
 
 if __name__ == "__main__":
-    test_transformer_get()
+    test_transformer_nested()
 
