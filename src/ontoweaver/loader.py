@@ -173,12 +173,17 @@ class LoadPandasFile(Loader):
 
             # Overwrite default named arguments with the passed ones.
             kw.update(kwargs)
-            logger.debug(f"Additional arguments passed to the {pathlib.Path(filename).suffix} load function: {kw}")
 
             if not kw:
                 # pd.read_parquet does not allow even an empty kwargs.
-                data.append( loadfunc(filename) )
+                logger.debug(f"No argument passed to `{pathlib.Path(filename).suffix}` load function.")
+                try:
+                    data.append( loadfunc(filename) )
+                except AttributeError as e:
+                    logger.error(f"I cannot load those parquet files. Maybe they don't have the 'name' property? That may explain the following error in Pandas.")
+                    raise e
             else:
+                logger.debug(f"Additional arguments passed to the `{pathlib.Path(filename).suffix}` load function: {kw}")
                 data.append( loadfunc(filename, **kw) )
 
         out = pd.concat(data)
