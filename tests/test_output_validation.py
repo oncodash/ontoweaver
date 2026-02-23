@@ -8,17 +8,18 @@ def test_output_validation():
 
     directory_name = "output_validation"
 
-    expected_nodes = [('1:variant', 'variant', {}),
-                    ('2:variant', 'variant', {}),
-                    ('3:variant', 'variant', {}),
-                    ('A:patient', 'patient', {}),
-                    ('B:patient', 'patient', {'version': 'Correct'}),
-                    ]
+    expected_nodes = [
+        ('1:variant', 'variant', {}),
+        ('2:variant', 'variant', {}),
+        ('3:variant', 'variant', {}),
+        ('A:patient', 'patient', {}),
+        ('B:patient', 'patient', {'version': 'Correct'}),
+    ]
 
-    expected_edges = [('', '1:variant', 'B:patient', 'patient_has_variant', {}),
-                    ('', '2:variant', 'A:patient', 'patient_has_variant', {}),
-                    ]
-
+    expected_edges = [
+        ('', '1:variant', 'B:patient', 'patient_has_variant', {}),
+        ('', '2:variant', 'A:patient', 'patient_has_variant', {}),
+    ]
 
     data_mapping = {f"tests/{directory_name}/data.csv" : f"tests/{directory_name}/mapping.yaml" }
 
@@ -26,13 +27,10 @@ def test_output_validation():
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-
-    expected_node_set = testing_functions.convert_to_set(expected_nodes)
-    f_node_set = testing_functions.convert_to_set(fnodes)
-
-    assert expected_node_set == f_node_set, "Nodes are not equal."
-
-    testing_functions.assert_edges(fedges, expected_edges)
+    logging.debug(fnodes)
+    logging.debug(fedges)
+    testing_functions.assert_equals(fnodes, expected_nodes)
+    testing_functions.assert_equals(fedges, expected_edges)
 
 
 if __name__ == "__main__":

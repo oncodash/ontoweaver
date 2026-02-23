@@ -51,10 +51,10 @@ def convert_to_set(tuple_output):
     return out
 
 
-def assert_edges(lhs, rhs):
-    assert_edge_set = set([e[1:2] for e in rhs])
-    f_edge_set = set([e[1:2] for e in lhs])
-    assert len(f_edge_set) == len(assert_edge_set)
-    for edge in assert_edge_set:
-        assert edge in f_edge_set, f"Edges {edge} should exists."
+def assert_equals(given, expected):
+    given_set = convert_to_set(given)
+    expected_set = convert_to_set(expected)
+    assert len(expected_set) == len(given_set)
+    for elem in given_set:
+        assert elem in expected_set, f"Element {elem} should exists."
 
