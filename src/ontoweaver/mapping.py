@@ -623,7 +623,6 @@ class YamlParser(base.MappingParser):
         if extracted_metadata:
             metadata.update(extracted_metadata)
 
-        assert source_t
         return possible_subject_types, subject_transformer, source_t, subject_columns
 
     # ============================================================
