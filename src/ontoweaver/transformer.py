@@ -768,10 +768,14 @@ class translate(base.Transformer):
 
                 self.translate = {}
                 for i,row in self.df.iterrows():
-                    if row[self.translate_from] and row[self.translate_to]:
-                        self.translate[row[self.translate_from]] = row[self.translate_to]
+                    from = row[self.translate_from]
+                    to = row[self.translate_to]
+                    if from in self.translate and self.translate[from] != to:
+                        logger.warning(f"The key `{from}` already exists in the translation table, and translated to `{self.translate[from]}`. It now translates to `{to}`. You may want to avoid such duplicates in translation tables.")
+                    if from and to:
+                        self.translate[from] = to
                     else:
-                        logger.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{row[self.translate_from]}` => `{row[self.translate_to]}`. I will ignore this translation.")
+                        logger.warning(f"Cannot translate from `{self.translate_from}` to `{self.translate_to}`, invalid translations values at row {i} of file `{self.translations_file}`: `{from}` => `{to}`. I will ignore this translation.")
 
         else:
             self.error(f"When using a {type(self).__name__} transformer, you must define either `translations` or `translations_file`.", section="translate.init", exception = exceptions.TransformerInterfaceError)
