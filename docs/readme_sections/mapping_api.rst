@@ -606,6 +606,35 @@ subject type ``line`` with different edge types. The cell values
 values ``sensitivity`` and ``productivity`` would be mapped to the node
 type ``noun`` via the edge type ``line_is_noun``.
 
+.. warning::
+
+    When using a transformer that expects parameters, they should be passed
+    within the transformer's section level, not under the match items.
+
+.. code:: yaml
+
+   row:
+      map:
+        column: LINE
+        to_subject: line
+   transformers:
+       - split:
+           separator: "i"  # Here, but not below.
+           column: WORDS
+           match:
+               - ve\b:
+                   to_object: adjective
+                   via_relation: line_is_adjective
+               - ty\b:
+                   to_object: noun
+                   via_relation: line_is_noun
+
+.. note::
+
+    Note that if some value does not match any item, you will get a warning,
+    but the mapping will skip the item and continue. This allows to implement
+    a simple filtering.
+
 
 Type selection based on cell value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -673,6 +702,75 @@ nodes of type ``person`` would be connected to the nodes of type ``kitchen_furni
 ``will_not_sit``, and to the node of type ``rest_of_house_furniture`` via an edge of type ``will_sit``.
 
 
+Mapping different items to the same type with `final_type`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some cases, you will need to map several items (e.g. columns) to the same
+type. However, this can be tricky, because the reason why an OntoWeaver
+mapping feels simple is because it relies on mapping to *types*, and not
+specific identifiers. But if you map several objects to the same type, then
+OntoWeaver cannot know whoch one you really meant.
+
+For instance, in the following mapping, to what element should the "name"
+property be attached?
+
+.. code:: yaml
+
+    row:
+        map:
+            column: id
+            to_subject: drug
+    transformers:
+        - map:
+            column: parentId
+            to_object: drug  # Ambiguous!
+            via_relation: subclass_of
+        - split:
+            column: childChemblIds  # A numpy array of drugs.
+            to_object: drug  # Ambiguous!
+            via_relation: superclass_of
+        - map:
+            column: name
+            to_property: drugName
+            for_object: drug  # Ambiguous: which one of the (more than) 3 created items?
+
+The answer is: there is no way to know.
+
+To solve this problem, you can use the `final_type` keyword.
+This keyword indicate that the type indicated in the classical `to_object`
+keyword is to be changed *after the mapping happened*.
+The classical commands are thus indicating a mapping to *temporary types*.
+
+Following the previous example, we use "row_drug", "parent_drug", and
+"child_drug" as temporary types, and indicate `final_type: drug` for objects.
+The property is then mapped onto "row_drug", which is not ambiguous.
+
+.. code:: yaml
+
+    row:
+        map:
+            column: id
+            to_subject: row_drug
+            final_type: drug
+    transformers:
+        - map:
+            column: parentId
+            to_object: parent_drug
+            final_type: drug
+            via_relation: subclass_of
+        - split:
+            column: childChemblIds
+            to_object: child_drug
+            final_type: drug
+            via_relation: superclass_of
+        - map:
+            column: name
+            to_property: drugName
+            # Here we need row_drug, or else we wouldn't know
+            # to which drug to map this property:
+            for_object: row_drug
+
+
 Keyword Synonyms
 ^^^^^^^^^^^^^^^^
 
@@ -693,3 +791,4 @@ Here is the list of available synonyms:
 - ``for_object`` = ``for_objects``
 - ``final_type`` = ``final_object`` = ``final_label`` = ``final_node`` = ``final_target`` = ``final_subject``
 - ``reverse_relation`` = ``reverse_edge`` = ``reverse_predicate``
+
