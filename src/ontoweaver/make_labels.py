@@ -72,9 +72,9 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
                 logger.error(f"\t{e}")
 
         if self.local_warnings:
-            logger.warning("Got warnings while making some labels:")
-            for w in self.local_warnings:
-                logger.error(f"\t{w}")
+            logger.warning(f"Got {len(self.local_warnings)} warnings while making some labels:")
+            for i,w in enumerate(self.local_warnings):
+                logger.warning(f"\t{i+1}) {w}")
 
 
 class SimpleLabelMaker(LabelMaker):
@@ -137,7 +137,7 @@ class MultiTypeLabelMaker(LabelMaker):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.local_warnings.add(f"No type pattern matching value: `{label}`.")
+                    self.local_warnings.add(f"No type pattern matching value: `{label}` during extraction in a match section. This cell value is skipped.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(label)
@@ -178,7 +178,7 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.local_warnings.add(f"No type pattern matching value: `{row[self.match_type_from_column]}`.")
+                    self.local_warnings.add(f"No type pattern matching value: `{row[self.match_type_from_column]}` during extraction in a match section. This cell value is skipped.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(label)
