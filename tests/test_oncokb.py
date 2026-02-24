@@ -8,10 +8,10 @@ def test_oncokb():
     directory_name = "oncokb"
 
     expected_nodes = [
-        ('0:variant', 'variant', {'timestamp': '91', 'mutation_effect_description': 'MET amplification results from the gain of the MET gene on chromosome 7 (PMID: 17463250).'}),
+        ('0:variant', 'variant', {'timestamp': '91', 'version': [], 'mutation_effect_description': 'MET amplification results from the gain of the MET gene on chromosome 7 (PMID: 17463250).', 'variant_summary': []}),
         ('33:patient', 'patient', {}),
         ('MET:gene_hugo', 'gene_hugo', {'entrez_gene_id': '4233', 'gene_summary': 'MET, a receptor tyrosine kinase.'}),
-        ('HGSOC:disease', 'disease', {}),
+        ('HGSOC:disease', 'disease', {'tumor_type_summary': []}),
         ('Oncogenic:oncogenicity', 'oncogenicity', {}),
         ('30073261:publication', 'publication', {}),
         ('16461907:publication', 'publication', {}),
@@ -24,24 +24,24 @@ def test_oncokb():
         ('17463250:publication', 'publication', {}),
         ('2023-02-26:drug', 'drug', {}),
         ('Gain-of-function:functional_effect', 'functional_effect', {}),
-        ('Amplification:alteration', 'alteration', {}),
+        ('Amplification:alteration', 'alteration', {'alteration_consequence': [], 'protein_start': [], 'protein_end': []}),
         ('33:patient', 'patient', {}),
         ('LEVEL_Fda3:fda_evidence_level', 'fda_evidence_level', {}),
         ('LEVEL_3B:oncokb_evidence_level', 'oncokb_evidence_level', {}),
-        ('1:variant', 'variant', {'timestamp': '92', 'mutation_effect_description': 'MET amplification results from the gain of the MET gene on chromosome 7 (PMID: 17463250).'}),
+        ('1:variant', 'variant', {'timestamp': '92', 'version': [], 'mutation_effect_description': 'MET amplification results from the gain of the MET gene on chromosome 7 (PMID: 17463250).', 'variant_summary': []}),
         ('34:patient', 'patient', {}),
         ('MET2:gene_hugo', 'gene_hugo', {'entrez_gene_id': '4234', 'gene_summary': 'MET, a receptor tyrosine kinase.'}),
-        ('HGSOC:disease', 'disease', {}),
+        ('HGSOC:disease', 'disease', {'tumor_type_summary': []}),
         ('Oncogenic:oncogenicity', 'oncogenicity', {}),
         ('30073261:publication', 'publication', {}),
         ('16461907:publication', 'publication', {}),
         ('2023-02-26:drug', 'drug', {}),
         ('Gain-of-function:functional_effect', 'functional_effect', {}),
-        ('Amplification:alteration', 'alteration', {}),
+        ('Amplification:alteration', 'alteration', {'alteration_consequence': [], 'protein_start': [], 'protein_end': []}),
         ('34:patient', 'patient', {}),
         ('LEVEL_Fda3:fda_evidence_level', 'fda_evidence_level', {}),
         ('LEVEL_3B:oncokb_evidence_level', 'oncokb_evidence_level', {})
-    ]
+      ]
 
     expected_edges = [
         ('(0:variant)--[patient_has_variant]->(33:patient)', '0:variant', '33:patient', 'patient_has_variant', {}),
@@ -82,12 +82,8 @@ def test_oncokb():
     bc_nodes = ontoweaver.ow2bc(nodes)
     bc_edges = ontoweaver.ow2bc(edges)
 
-    # The fusion functions is not being used due to the large number of duplicates, resulting in the properties being
-    # fused in varying orders. This is not normally an issue, as the properties are still the same.
-    # fnodes, fedges = ontoweaver.fusion.reconciliate(bc_nodes, bc_edges, reconciliate_sep=",")
-
-    logging.debug(bc_nodes)
-    logging.debug(bc_edges)
+    # logging.debug(bc_nodes)
+    # logging.debug(bc_edges)
     testing_functions.assert_equals(bc_nodes, expected_nodes)
     testing_functions.assert_equals(bc_edges, expected_edges)
 

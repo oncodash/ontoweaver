@@ -12,7 +12,7 @@ def test_output_validation():
         ('1:variant', 'variant', {}),
         ('2:variant', 'variant', {}),
         ('3:variant', 'variant', {}),
-        ('A:patient', 'patient', {}),
+        ('A:patient', 'patient', {'version': ''}),
         ('B:patient', 'patient', {'version': 'Correct'}),
     ]
 
