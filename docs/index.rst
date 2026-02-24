@@ -7,6 +7,7 @@ Overview
    :maxdepth: 4
    :caption: Table of Contents:
 
+   Introductions <./readme_sections/introductions.rst>
    Tutorials <./readme_sections/tutorials.rst>
    Installation and Setup <./readme_sections/installation_and_quick_setup_guide.rst>
    Usage <./readme_sections/usage.rst>
