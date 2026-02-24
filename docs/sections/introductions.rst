@@ -172,8 +172,7 @@ Our fusion engine is one of our killer feature, as it allows you to call
 adapters made by third parties, and integrate their data in a single database,
 without much configuration.
 
-.. image:: OntoWeaver_and_BioCypher__summary.svg
+.. image:: ../OntoWeaver_and_BioCypher__summary.svg
     :alt: Detailled summary of how various data sources ov various types can
           be integrated in a single SKG, thanks to the fusion engine.
-
 
