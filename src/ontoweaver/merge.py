@@ -146,11 +146,11 @@ class dictry:
             for k,v in merged.items():
                 e = self.merged.get(k, set())
                 if isinstance(v, set):
-                    e.union(v)
+                    e = e.union(v)
                     self.merged[k] = e
                 elif isinstance(v, list):
                     u = set(v)
-                    e.union(u)
+                    e = e.union(u)
                     self.merged[k] = e
                 else:
                     self.merged[k] = set((v,)).union(e)
