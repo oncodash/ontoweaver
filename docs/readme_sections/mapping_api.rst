@@ -552,8 +552,11 @@ The following transformers can change the case of the string within the cells:
   to uppercase.
 
 
-Multi-type Transformers
-~~~~~~~~~~~~~~~~~~~~~~~
+Advanced type management
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Map the same item to several types depending on its value with `match`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases there might be a need to apply multiple type mappings to
 cell values within a single column. For example, having the table below:
@@ -636,8 +639,8 @@ type ``noun`` via the edge type ``line_is_noun``.
     a simple filtering.
 
 
-Type selection based on cell value
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Use different columns to get the id and the types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In some cases the type of the node or edge you would like to assign to a value extracted from the current column depends on the
 value extracted from another column. For example, lets look at the following table:

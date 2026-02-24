@@ -1,7 +1,7 @@
 Overview
 --------
 
-.. include:: ./readme_sections/overview.rst
+.. include:: overview.rst
 
 .. toctree::
    :maxdepth: 4
