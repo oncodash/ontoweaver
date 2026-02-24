@@ -162,7 +162,7 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                 has_match = False
                 for pattern, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    if re.search(pattern, row[self.match_type_from_column]):
+                    if re.search(pattern, str(row[self.match_type_from_column])):
                         has_match = True
                         if branching_properties:
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
