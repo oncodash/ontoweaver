@@ -901,12 +901,17 @@ class replace(base.Transformer):
 
         def __call__(self, columns, row, i):
             for key in columns:
-                logger.debug(
-                    f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
-                formatted = re.sub(self.forbidden, self.substitute, row[key])
-                strip_formatted = formatted.strip(self.substitute)
-                logger.debug(f"Formatted value: {strip_formatted}")
-                yield strip_formatted
+
+                if pd.isnull(row[key]):
+                    yield row[key]
+                else: 
+                    logger.debug(
+                        f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
+                    formatted = re.sub(self.forbidden, self.substitute, row[key])
+
+                    strip_formatted = formatted.strip(self.substitute)
+                    logger.debug(f"Formatted value: {strip_formatted}")
+                    yield strip_formatted
 
     def __init__(self,
             properties_of,
