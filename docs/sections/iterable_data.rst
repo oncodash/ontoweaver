@@ -73,9 +73,10 @@ but not its instances graph (it may not even have one!).
 And you may even have to combine data from tabular files and an ontology's
 instance graph, while also combining the taxonomies of several ontology files.
 
-.. image:: ../OntoWeaver__ontology-taxonomy-data.svg
-   :alt: A diagram showing the paths of types and data in an OWL file, across
-         OntoWeaver and BioCypher.
+.. figure:: ../OntoWeaver__ontology-taxonomy-data.svg
+
+    A diagram showing the paths of types and data in an OWL file, across
+    OntoWeaver and BioCypher.
 
 .. note::
    Ontologies specialists have specific terms for different parts of an
@@ -112,7 +113,13 @@ file.
 Using this ``OWLAutoAdapter``, you thus don't need to define a mapping, it will
 be automatically extracted from the input ontology file.
 
-.. image:: ../OntoWeaver__owl-automap.svg
+.. figure:: ../OntoWeaver__owl-automap.svg
+
+    The automap feature uses the same taxonomy for building up the SKG
+    (through BioCypher) and for defining the mapping (through OntoWeaver).
+
+    It thus creates a one-to-one mapping of the data (the SKG withing the OWL
+    file, in red).
 
 Of course, this adapter will expect that the classes defined in the input
 ontology exist in the taxonomy configured by BioCypher.

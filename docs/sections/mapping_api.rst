@@ -25,8 +25,9 @@ As shown in the figure below, the column headers in the *input data*
 are linked to the type tag in the *mapping*, which are linked to the ontology
 classes in the *schema*.
 
-.. image:: ../simplest_example_visual_summary.svg
-   :alt: Four files represented as blocks with links between equivalent keywords.
+.. figure:: ../simplest_example_visual_summary.svg
+
+   Four files represented as blocks with links between equivalent keywords.
 
 .. note::
    While not strictly necessary, it is often the case that people use

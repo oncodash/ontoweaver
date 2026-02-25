@@ -8,8 +8,9 @@ Overview
    :caption: Table of Contents:
 
    Introductions <./sections/introductions.rst>
-   Tutorials <./sections/tutorials.rst>
+   Basics of Semantic Knowledge Graphs <./sections/intro_SKG.rst>
    Installation and Setup <./sections/installation_and_quick_setup_guide.rst>
+   Tutorials <./sections/tutorials.rst>
    Usage <./sections/usage.rst>
    Iterable input data <./sections/iterable_data.rst>
    Mapping API <./sections/mapping_api.rst>

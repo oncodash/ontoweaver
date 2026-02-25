@@ -17,8 +17,9 @@ To build up a SKG from scratch, you will need at least five files:
 4. a mapping, indicating what column of the table to map on which type of the
    ontology: ``mapping.yaml``.
 
-.. image:: ../OntoWeaver__simple-example.svg
-   :alt: A diagram showcasing the various files needed to configure an OntoWeaver run.
+.. figure:: ../OntoWeaver__simple-example.svg
+
+    A diagram showcasing the various files needed to configure an OntoWeaver run.
 
 
 Files
@@ -171,8 +172,10 @@ Fully fledged demo
 This tutorial tries to show as much as possible of OntoWeaver's features, with
 all explanations inserted as comments in the actual files.
 
-.. image:: ../OntoWeaver__simple-summary.svg
-   :alt: Diagram showing that OntoWeaver needs ontologies, tabular data and graph schema to produce a Semantic Knowledge Graph.
+.. figure:: ../OntoWeaver__simple-summary.svg
+
+    Diagram showing that OntoWeaver needs ontologies, tabular data and graph
+    schema to produce a Semantic Knowledge Graph.
 
 
 Input files
