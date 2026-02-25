@@ -902,7 +902,7 @@ class replace(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
 
-                if pd.isnull(row[key]):
+                if not base.is_not_null(row[key]):
                     yield row[key]
                 else: 
                     logger.debug(
