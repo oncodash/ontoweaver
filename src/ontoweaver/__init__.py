@@ -87,7 +87,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
             logger.debug(f"\tResolve: {item}")
             if isinstance(item, base.Transformer):
                 if item.multi_type_dict:
-                    # This is a type mapping.
+                    # This is a type/match mapping.
                     for colval,section in item.multi_type_dict.items():
                         for pred,ptype in section.items():
                             if ptype:
@@ -174,6 +174,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
     # prettyprint(auto_schema)
 
     # Filter out empty keys.
+    logger.debug(f"Filtering out empty keys")
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         if not section:
@@ -182,10 +183,12 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
             raise exceptions.ConfigError(msg)
 
         for pred,val in section.items():
-            if not val:
+            if pred == "properties" and val == {}:
                 del auto_schema[t][pred]
+            # if not val:
+            #     del auto_schema[t][pred]
 
-    # Collapse target multi-types into their common super-type.
+    logger.debug("Collapse target multi-types into their common super-type...")
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         for pred,val in section.items():
@@ -212,7 +215,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
                         logger.error(msg)
                         raise exceptions.AutoSchemaError(msg)
 
-    # Save the extended automatic schema in YAML.
+    logger.debug("Save the extended automatic schema in YAML...")
     file_exists = os.path.isfile(extended_schema_filename)
     file_writable = os.access(extended_schema_filename, os.W_OK)
 
@@ -228,6 +231,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
         msg = f"You asked not to overwrite `{extended_schema_filename}`, but this file exists."
         raise exceptions.FileOverwriteError(msg)
 
+    logger.debug("Done auto schema.")
     return extended_schema_filename
 
 
