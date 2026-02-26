@@ -50,7 +50,7 @@ def doc_to_file(docfile, demofile, dir, prefix):
 
 
 def test_full_fledged_demo():
-    tutorials = "docs/readme_sections/tutorials.rst"
+    tutorials = "docs/sections/tutorials.rst"
     dir = "tests/full_fledge_demo"
     prefix = "demo_"
     logging.warning("This test extracts the code (mapping, ontology, etc.) from the documentation")
@@ -72,7 +72,7 @@ def test_full_fledged_demo():
 
 
 def test_simplest_example():
-    tutorials = "docs/readme_sections/tutorials.rst"
+    tutorials = "docs/sections/tutorials.rst"
     dir = "tests/simplest_example"
     prefix = "simple_"
     doc_to_file(tutorials, "data.csv"    , dir, prefix)

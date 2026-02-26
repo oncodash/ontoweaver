@@ -36,7 +36,7 @@ authors = [
     { name = "Matthieu Najm", email = "matthieu.najm@pasteur.fr" },
     { name = "Benno Schwikowski", email = "benno.schwikowski@pasteur.fr" },
 ]
-requires-python = "<4.0,>=3.10"
+requires-python = "<4.0,>=3.11"
 dependencies = [
     "biocypher<1.0.0,>=0.11.0",
     "pooch<2.0.0,>=1.7.0",

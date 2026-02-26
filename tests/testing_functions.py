@@ -58,3 +58,11 @@ def assert_equals(given, expected):
     for elem in given_set:
         assert elem in expected_set, f"Element {elem} should exists."
 
+
+def create_parquet_files():
+    df1 = pd.DataFrame({"a":[1,2], "b":[3,4]})
+    df1.to_parquet("./tests/parquets/numbers_part-1.parquet")
+
+    df2 = pd.DataFrame({"a":[5,6], "b":[7,8]})
+    df2.to_parquet("./tests/parquets/numbers_part-2.parquet")
+
