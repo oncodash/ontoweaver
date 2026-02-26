@@ -19,5 +19,6 @@ Overview
    Information Fusion <./sections/information_fusion.rst>
    Data Validation <./sections/data_validation.rst>
    How to <./sections/how_to.rst>
+   FAQ <./sections/FAQ.rst>
    ontoweaver
 
