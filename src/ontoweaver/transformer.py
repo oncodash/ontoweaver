@@ -671,15 +671,23 @@ class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
     class ValueMaker(make_value.ValueMaker):
-        def __init__(self, raise_errors: bool = True):
+        def __init__(self, translate, translate_from, translate_to, raise_errors: bool = True):
+            self.translate = translate
+            self.translate_from = translate_from
+            self.translate_to = translate_to
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
+
             for key in columns:
                 if key not in row:
-                    self.error(f"Column '{key}' not found in data", section="map.call",
-                               exception=exceptions.TransformerDataError)
-                yield row[key]
+                    self.error(f"Column '{key}' not found in data", section="translate", 
+                               exception = exceptions.TransformerDataError)
+                cell = row[key]
+                if cell in self.translate:
+                    yield self.translate[cell]
+                else:
+                    logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
 
     def __init__(self,
             properties_of,
@@ -712,18 +720,6 @@ class translate(base.Transformer):
             kwargs: Additional arguments to pass to a Loader function (e.g. if you want to load TSVs, "sep=TAB", reads the translations_file as tab-separated).
         """
 
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
-
-        super().__init__(properties_of,
-            self.value_maker,
-            label_maker,
-            branching_properties,
-            columns,
-            output_validator,
-            multi_type_dict,
-            raise_errors=raise_errors,
-            **kwargs
-        )
         self.map = map(properties_of, label_maker, branching_properties, columns, output_validator, multi_type_dict, **kwargs)
 
         lpf = loader.LoadPandasFile()
@@ -806,6 +802,24 @@ class translate(base.Transformer):
         if not self.translate:
             self.error("No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
+            self.value_maker = self.ValueMaker(
+            self.translate, 
+            self.translate_from, 
+            self.translate_to, 
+            raise_errors=raise_errors
+        )
+
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+        
     def __call__(self, row, i):
         """
         Process a row and yield cell values as node IDs.
@@ -823,17 +837,10 @@ class translate(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="translate", exception = exceptions.TransformerDataError)
 
-        for key in self.columns:
-            if key not in row:
-                self.error(f"Column '{key}' not found in data", section="translate", exception = exceptions.TransformerDataError)
-            cell = row[key]
-            if cell in self.translate:
-                row[key] = self.translate[cell]
-            else:
-                logger.warning(f"Row {i} does not contain something to be translated from `{self.translate_from}` to `{self.translate_to}` at column `{key}`.")
-
-        for e, edge, node, rev_rel in self.map(row, i):
-            yield e, edge, node, rev_rel
+        for val in self.value_maker(self.columns, row, i):
+            value, edge_type, node_type, reverse_edge = self.create(val, row)
+            if base.is_not_null(value):
+                yield value, edge_type, node_type, reverse_edge
 
 
 class string(base.Transformer):
@@ -1119,3 +1126,65 @@ class boolean(base.Transformer):
             **kwargs
         )
 
+
+class split_translate(base.Transformer):
+
+    def __init__(self,
+        properties_of,
+        label_maker = None,
+        branching_properties = None,
+        columns=None,
+        output_validator: validate.OutputValidator = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        separator = None,
+        **kwargs
+    ):
+        """
+        FIXME doc
+        """
+
+        self.split = split(
+            properties_of,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            separator = separator,
+            **kwargs,
+        )
+
+        self.translate = translate(
+            properties_of,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs,
+        )
+
+        super().__init__(properties_of,
+            self.split.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+
+    def __call__(self, row, i):
+
+        for value in self.split.value_maker(self.split.columns, row, i):
+            if base.is_not_null(value):
+                logging.debug(f"VALUE {value}")
+                pseudorow = {"translate_column": value}
+                for val in self.translate.value_maker(["translate_column"], pseudorow, i):
+                    logging.debug(f"VAL {val}")
+                    value, edge_type, node_type, reverse_edge = self.create(val, row)
+                    yield value, edge_type, node_type, reverse_edge
