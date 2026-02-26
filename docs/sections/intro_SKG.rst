@@ -19,10 +19,10 @@ What is a *Graph*?
 
 A graph is a data structure consisting of a set of objects where some pairs of
 the objects are in some sense "related". The objects are represented by
-abstractions called "vertices" (also called "nodes") and each of the related
-pairs of vertices is called an "edge" (also called "link").
+abstractions called "vertices" (also called "nodes") and the link between each of the related
+pairs of vertices is called an "edge".
 
-When show on a diagram, a graph is depicted as a set of circles (the nodes),
+When showed on a diagram, a graph is depicted as a set of circles (the nodes),
 some of which are joined by lines (the edges).
 Classicaly, nodes are shown with a text identifier (their "name", or "ID"),
 but edges are not (albeit they may have one ID).
@@ -49,10 +49,10 @@ What is a *Knowledge* Graph?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A *knowledge* graph (KG) is a graph that carries data on its nodes and edges.
-For instance, nodes and labels can carry a "label" that represent their *type*,
-or really any data property that means something.
+For instance, nodes and labels can carry a "label" that represents their *type*,
+or any data property that means something.
 
-Below is our graph of diseases and drugs, which show the *type* of its nodes and
+Below is our graph of diseases and drugs, which shows the *type* of its nodes and
 edges, along with the IDs of its nodes.
 Note that any kind of property can be attached to a knowledge graph element,
 like the "form" one, attached here to the drug nodes:
@@ -75,7 +75,7 @@ like the "form" one, attached here to the drug nodes:
        Depression -> Duloxetine [label="type:treatable_by"]
    }
 
-A graph with such properties attached to its element is sometime called a
+Such a graph with properties attached to its elements is sometime called a
 "property graph".
 
 When programming, we often see representations like:
@@ -86,12 +86,20 @@ What is a *Semantic* Knowledge Graph?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A *semantic* knowledge graph (SKG) is a knowledge graph that works with a
-"taxonomy" of types (sometime called a "vocabulary").
-A taxonomy is a hierarchical data structure (more
-precisely a "tree") that represents types of increasing abstraction.
+voccabulary.
+The vocabulary if made of a "taxonomy" of types (sometimes called "classes")
+and a set of properties associated to each type.
 
-For instance, an "insomnia" is a type of "sleep disorder", which in turn is a
-type of "disease". Taxonomies are classically represented the same way than
+The *taxonomy* is a hierarchical data structure (often
+a "tree") that represents types of increasing abstraction.
+The hierarchical structure defines a (sometimes partial)
+order among the set of types.
+
+The set of *properties* associated to a type defines the intrinsic properties
+that an object has when it belongs to this type (class).
+
+For instance, an "insomnia" is a kind of "sleep disorder", which in turn is a
+sub-type of "disease". Taxonomies are classically represented the same way than
 a directory tree is shown in your everyday files manager, or a nested bullet
 list:
 
@@ -132,9 +140,9 @@ nodes and edges.
          Depression -> Duloxetine [label="type:\l  thing\l   └ association\l      └ sensible_to\l         └ treatable_by"]
    }
 
-Note that the graph element carry all their "parent" types, along with the
+Note that the graph elements carry all their "parent" types, along with the
 "terminal" type (sometime called "leaf type", in reference to the taxonomy
-beoing a *tree*). Nodes and edges may still have properties, usually in the
+being a *hierarchy*). Nodes and edges may have properties, usually in the
 form of *key:value* pairs (like ``form:pills`` here).
 
 
@@ -199,14 +207,16 @@ The first community to have produced tools around this idea of graphs carrying
 structured data gravitates around the idea of "semantic web". As such, several
 of their tools became some kind of standard. That's the case of "ontologies".
 
-Nowadays, most of the useful taxonomies thus come in the form of an ontology
-file.
+Nowadays, most of the useful taxonomies thus come in the form of ontology
+files.
 
 
 What is an *Ontology*?
 ^^^^^^^^^^^^^^^^^^^^^^
 
-An *ontology* is generally a file, carrying both a taxonomy (a "vocabulary")
+If we restrict its definition to the use made in computer science,
+an *ontology* is generally a file, carrying both a vocabulary
+(both the "taxonomy" and the set of "properties")
 and an SKG (a "populated graph"). Less often, it also carry a set of logical
 predicates modelling constraints, for instance about what type of node can be
 connected to what other type of node.
@@ -218,8 +228,8 @@ connected to what other type of node.
     Ontology files can contain a taxonomy (and thus "types", in blue),
     and an SKG (and thus "data", in red).
 
-To do so, an ontology file is taking a very generic approach: every thing there
-is modelled as a "triple": a (subject) is linke by a [predicate] to an (object).
+To do so, an ontology file is taking a very generic approach: everything there
+is modelled as a "triple": a (subject) is linked by a [predicate] to an (object).
 This means that *everything in an ontology* is represented by:
 ``(subject)--[predicate]->(object)``. Nodes are subjects or objects, edges are
 predicates. But "node having a type" is also represented as a triple:
@@ -263,7 +273,7 @@ The "language" it refers to is a pre-defined set of predicates and types
 This language defines how to *model* a SKG, using a standardized vocabulary
 on which everyone can agree.
 
-But in fact, OWL is build up on top of *two* other standards:
+But in fact, OWL is built up on top of *two* other standards:
 
 1. the Resource Description Framework (RDF),
 2. the RDF Schema (RDFS).
@@ -364,7 +374,7 @@ Why do I need OntoWeaver to make an SKG?
 OntoWeaver is a tool that shines if you need to build up an SKG that:
 
 * is integrating several heterogeneous data sources,
-* automatically built, in a reproducible way,
+* is automatically built, in a reproducible way,
 * allows using independent data sources, for which import scripts and taxonomies
   have been made by other people,
 * allows fine-grained configuration.
