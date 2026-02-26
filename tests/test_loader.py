@@ -2,6 +2,8 @@ import rdflib
 import ontoweaver
 import pandas as pd
 
+from . import testing_functions
+
 def test_loader():
     lpf = ontoweaver.loader.LoadPandasFile()
     lpf.load(["./tests/simplest/data.csv"])
@@ -21,22 +23,14 @@ def test_loader():
     lrg.load([g])
 
 
-def create_parquet_files():
-    df1 = pd.DataFrame({"a":[1,2], "b":[3,4]})
-    df1.to_parquet("./tests/parquets/numbers_part-1.parquet")
-
-    df2 = pd.DataFrame({"a":[5,6], "b":[7,8]})
-    df2.to_parquet("./tests/parquets/numbers_part-2.parquet")
-
-
 def test_multi_files():
-    create_parquet_files()
+    testing_functions.create_parquet_files()
     lpf = ontoweaver.loader.LoadPandasFile()
     lpf.load(["./tests/parquets/numbers_part-1.parquet", "./tests/parquets/numbers_part-2.parquet"])
 
 
 def test_multi_files_glob():
-    create_parquet_files()
+    testing_functions.create_parquet_files()
     lpf = ontoweaver.loader.LoadPandasFile()
     lpf.load(["./tests/parquets/numbers_*.parquet"])
 
