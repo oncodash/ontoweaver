@@ -5,6 +5,7 @@ dev = [
     "sphinx-rtd-theme<4.0.0,>=3.0.2",
     "pygments-csv-lexer",
     "graphviz",
+    "dot",
 ]
 
 [tool.pytest.ini_options]
