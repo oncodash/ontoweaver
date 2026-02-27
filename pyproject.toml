@@ -55,6 +55,6 @@ dependencies = [
     "fastparquet>=2025.12.0",
 ]
 name = "ontoweaver"
-version = "1.3.0"
+version = "1.3.2"
 description = "Convert iterable data to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
