@@ -1,0 +1,38 @@
+p {
+    text-align: justify;
+}
+
+.rst-content .highlight-default .highlight > pre {
+    line-height: 100% !important;
+}
+
+figure {
+    text-align: center;
+}
+
+figure img {
+    display: inline-block;
+    padding: 1em;
+    border: thin solid Gainsboro !important;
+    box-shadow: 5px 5px 10px Gainsboro;
+    text-align: center;
+    margin: auto;
+}
+
+figcaption {
+    margin-left: 12%;
+    margin-right: 12%;
+}
+
+figcaption > p {
+    margin: 0.5em;
+    text-align: center;
+}
+
+code {
+    color: #0e7e9c !important;
+}
+
+.wy-side-nav-search {
+    background-color: #0e7e9c;
+}
