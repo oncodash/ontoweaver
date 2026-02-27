@@ -21,6 +21,17 @@ In the schema, the header of a block is the RDFS label that lies in the
 taxonomy of the ontology file, while the ``label_in_input`` is a kind of tag
 that is written in the mapping, after a keyword (e.g. ``to_object``).
 
+.. hint::
+
+    OntoWeaver can automatically generate a schema file from your mapping,
+    if you just need to have a one-to-one parity of type names.
+    With that feature, you need to map the input data items to the
+    taxonomy's terms directly.
+    That way you can just forget about having to write a schema file, in most
+    cases.
+    See ontoweave's `--auto-schema` parameter, or the `oncoweave.autoschema`
+    function.
+
 As shown in the figure below, the column headers in the *input data*
 are linked to the type tag in the *mapping*, which are linked to the ontology
 classes in the *schema*.
@@ -30,10 +41,12 @@ classes in the *schema*.
    Four files represented as blocks with links between equivalent keywords.
 
 .. note::
+
    While not strictly necessary, it is often the case that people use
    the very same name for both the taxonomy classes in the schema
    and the type tags in the mapping; to ease the reading of config files.
-
+   But if you integrate data using pre-made adapters, it can be useful to
+   write your own schema to align terms.
 
 
 Common Mapping
