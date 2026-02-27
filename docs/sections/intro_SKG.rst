@@ -1,4 +1,6 @@
 
+.. _basics_SKG:
+
 Basics of Semantic Knowledge Graphs
 -----------------------------------
 
