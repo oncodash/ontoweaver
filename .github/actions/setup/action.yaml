@@ -1,0 +1,21 @@
+name: "Setup"
+description: "Setup Python and uv"
+inputs:
+  PYTHON_VERSION:
+    description: "Python version"
+    default: "3.11"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python ${{inputs.PYTHON_VERSION}}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{inputs.PYTHON_VERSION}}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    - name: Check uv installation
+      run: uv --version
+      shell: bash

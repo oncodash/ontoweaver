@@ -1,0 +1,15 @@
+name: "Test"
+description: "Run tests"
+
+runs:
+  using: "composite"
+  steps:
+    #----------------------------------------------
+    #     run tests
+    #----------------------------------------------
+    - name: Run tests (Linux and MacOS)
+      run: |
+        uv run pytest --version
+        uv run pytest
+      shell: bash
+
