@@ -80,7 +80,7 @@ instance graph, while also combining the taxonomies of several ontology files.
 
 .. note::
    Ontologies specialists have specific terms for different parts of an
-   ontology file. You may encounter "T-box" or "vacabulary", which means the
+   ontology file. You may encounter "T-box" or "vocabulary", which means the
    taxonomy along with a set of logical rules.
 
    The "A-box" in an ontology file is the set (or "population") of "instances"
@@ -134,7 +134,8 @@ ontology exist in the taxonomy configured by BioCypher.
 
 .. warning::
    This adapter cannot handle individuals inheriting from multiple classes,
-   it will also ignore individuals without an `owl:class`.
+   it will also ignore individuals not having ``rdf:type`` of an ``owl:Class``
+   and without ``owl:NamedIndividual``.
 
 
 Mapping OWL

@@ -63,6 +63,7 @@ You then run a command to transform your data in an SKG:
 Which will create a graph:
 
 .. graphviz::
+   :caption: A very simple graph.
 
    digraph {
        Insomnia ->  Doxylamine [label=treatable_by]
