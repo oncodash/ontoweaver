@@ -69,6 +69,9 @@ Which will create a graph:
        Allergies -> Doxylamine [label=treatable_by]
    }
 
+To understand a bit more the specifics, you will probably need to also read
+the :ref:`basics_SKG` section.
+
 
 .. _intro-skilled:
 
@@ -122,6 +125,9 @@ in the graph database of your choice:
 .. code:: sh
 
    ontoweave my_data.csv:my_mapping.yaml other_data.tsv:my_mapping.yaml --run-import-file
+
+If you still have troubles understanding what this is about, read the
+:ref:`basics_SKG` section.
 
 
 .. _intro-experts:

@@ -20,7 +20,7 @@ and an ontology.
 
 |
 
-.. image:: Pure_Organic_Code__logo.svg
+.. image:: Organic_Code__logo-serialized.svg
     :align: center
     :width: 150px
 

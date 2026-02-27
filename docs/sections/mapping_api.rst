@@ -431,7 +431,7 @@ Then, to declare a translation using this table, you would do:
        decimal: ","
        encoding: latin-1
 
-.. note::
+.. hint::
    
    You can use the "glob" feature to load multiple files to form your translation
    table. For example: ``translations_file: my_table-part*.parquet``.
