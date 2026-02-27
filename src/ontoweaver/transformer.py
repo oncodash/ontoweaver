@@ -754,6 +754,8 @@ class translate(base.Transformer):
                 mapping_args = ["translations", "translations_file", "translate_from", "translate_to"]
                 # Possible Python attributes.
                 mapping_args += ["subclass"]
+                # Discard match
+                mapping_args += ["match"]
                 # All possible arguments found in a YAML mapping.
                 for attr in dir(base.MappingParser):
                     if re.match("^k_", attr):
@@ -802,7 +804,7 @@ class translate(base.Transformer):
         if not self.translate:
             self.error("No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
-            self.value_maker = self.ValueMaker(
+        self.value_maker = self.ValueMaker(
             self.translate, 
             self.translate_from, 
             self.translate_to, 
