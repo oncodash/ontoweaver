@@ -56,6 +56,18 @@ def register(transformer_class):
 # NOTE: transformers pass all kwargs to superclass to allow it to show
 #       the (additional) user-defined arguments when calling __repr__.
 
+def register_all(module_path):
+    for mpath in module_path:
+        check_file(mpath)
+        logger.info(f"Look for transformers in `{mpath}`")
+        mod = import_from_path(mpath)
+        for name,cls in mod.__dict__.items():
+            if inspect.isclass(cls):
+                logger.debug(f"{cls}")
+                if issubclass(cls, ontoweaver.base.Transformer):
+                    logger.info(f"    Register transformer: `{cls}`")
+                    ontoweaver.transformer.register(cls)
+
 
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
