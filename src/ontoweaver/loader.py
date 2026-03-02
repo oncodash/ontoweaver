@@ -16,23 +16,75 @@ logger = logging.getLogger("ontoweaver")
 
 
 class Loader(metaclass = ABSTRACT):
+    """ The interface for classes that load data.
+
+        Classes implementing this interface are in charge of checking if they can
+        load the given data, and indicate which base.Adapter can manage what they load.
+    """
     def __call__(self, data, **kwargs):
+        """If the loader allows the passed data, then load and return them.
+
+           This will pass any named argument to the load() function.
+
+           Args:
+               data: the data to be loaded.
+               kwargs: any named argument dictionary
+
+           Returns:
+               The loaded data structure.
+        """
         if self.allows(data):
             return self.load(data, **kwargs)
 
     @abstractmethod
     def allows(self, data):
+        """ Returns True if the given data can be loaded by this Loader.
+
+            The given data can be string refereing to a filename,
+            or any typed data structure.
+
+            Args:
+                data: the data to be checked
+
+            Returns:
+                True, if the given data is allowed, else False.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def load(self, data, **kwargs):
+    def load(self, data : list, **kwargs):
+        """ Load the data structure from the given item.
+
+            The given item can be a string representing a filename,
+            or a typed data structure. In the later case, this method
+            will probably just return it as-is.
+
+            Args:
+                data: the list of data items to load
+                kwargs: any named argument that this method may use or pass to subfunctions
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def adapter(self, **kwargs):
+        """ Return the type of the adapter that can process the loaded data.
+
+            Args:
+                kwargs: any named argument that this method may use or pass
+        """
         return NotImplementedError()
 
     def extensions(self, filenames):
+        """ Return the extensions of the given filenames
+
+            Utility function for loaders interested in filenames.
+
+            Args:
+                filenames: a list of filenames (strings or pathlid.Path objects)
+
+            Returns:
+                A list of extensions, with their dot.
+        """
         assert type(filenames) == list, "You must pass a list to this function"
 
         if not all(type(f) == str for f in filenames):
@@ -55,6 +107,11 @@ class Loader(metaclass = ABSTRACT):
 
 
 class LoadPandasDataframe(Loader):
+    """ Load Pandas DataFrame
+
+        This mainly concatenates the given DataFrames into a single one.
+        Pandas will raises an error if that's not possible.
+    """
     def allows(self, data):
         return all(type(d) == pd.DataFrame for d in data)
 
@@ -194,6 +251,14 @@ class LoadPandasFile(Loader):
 
 
 class LoadOWLGraph(Loader):
+    """ Load the given rdflib.Graph(s)
+
+        If adapter() function is given the string "automap", this will select the
+        owl.OWLAutoAdapter, else the owl.OWLAdapter.
+
+        If you try to load several graphs, this will show a warning stating
+        that it is quite improbable that this would work.
+    """
     def allows(self, data):
         return all(type(d) == rdflib.Graph for d in data)
 
@@ -226,6 +291,14 @@ class LoadOWLGraph(Loader):
 
 
 class LoadOWLFile(Loader):
+    """ Load the given OWL file.
+
+        If adapter() function is given the string "automap", this will select the
+        owl.OWLAutoAdapter, else the owl.OWLAdapter.
+
+        If you try to load several graphs, this will show a warning stating
+        that it is quite improbable that this would work.
+    """
     def __init__(self):
         self.allowed = [".owl", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
 
@@ -283,6 +356,11 @@ class LoadOWLFile(Loader):
 
 
 class LoadXMLString(Loader):
+    """ Load (here, that is: parse) the given XML string.
+
+        If you try to load several graphs, this will show a warning stating
+        that it is quite improbable that this would work.
+    """
     def allows(self, data):
         # assert type(data) != str and len(data) > 0 and all(i != '' for i in data), "A Loader expects a list (or an iterable) of data."
         return all(type(d) == str for d in data)
@@ -303,6 +381,11 @@ class LoadXMLString(Loader):
 
 
 class LoadXMLFile(Loader):
+    """ Load the given XML file.
+
+        If you try to load several graphs, this will show a warning stating
+        that it is quite improbable that this would work.
+    """
     def __init__(self):
         self.xl = LoadXMLString()
         self.allowed = [".xml"]
@@ -346,6 +429,8 @@ class LoadXMLFile(Loader):
 
 
 class LoadJSONString(Loader):
+    """ Load (here, that is: parse) the given JSON string.
+    """
     def allows(self, jsons):
         # assert type(jsons) != str and len(jsons) > 0 and all(i != '' for i in jsons), "A Loader expects a list (or an iterable) of data."
         if not all(type(j) == str for j in jsons):
@@ -379,6 +464,8 @@ class LoadJSONString(Loader):
 
 
 class LoadJSONFile(Loader):
+    """ Load the given JSON file.
+    """
     def __init__(self):
         self.allowed = [".json"]
         self.jl = LoadJSONString()

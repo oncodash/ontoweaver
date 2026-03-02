@@ -622,6 +622,19 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
     @abstractmethod
     def iterate(self):
+        """ The function that access the atomic item of its targeted iterable data structure.
+
+            It is called by run() in a way that is equivalent to:
+
+            .. code-block:: python
+
+                for i,item in self.iterate():
+
+            For example, for a table, it yield the row number and the row itself.
+
+            Returns:
+                The index of the item and the item.
+        """
         raise NotImplementedError
 
     def __del__(self):

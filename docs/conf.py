@@ -8,7 +8,7 @@
 
 project = 'OntoWeaver'
 author = 'Johann Dreo, Marko Baric, Claire Laudy, Matthieu Najm, Benno Schwikowski'
-release = '2024'
+release = '1.3.4'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -58,3 +58,18 @@ html_logo = 'OntoWeaver_logo__big.svg'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
+
+html_theme_options = {
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+    'vcs_pageview_mode': 'view',
+    'version_selector': True,
+}
+
+html_context = {
+    "display_github": True, # Integrate GitHub
+    "github_user": "oncodash", # Username
+    "github_repo": "ontoweaver", # Repo name
+    "github_version": "main", # Version
+    "conf_py_path": "/docs/", # Path in the checkout to the docs root
+}
