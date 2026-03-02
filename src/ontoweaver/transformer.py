@@ -2,7 +2,10 @@ import re
 import math
 import sys
 import json
+import inspect
 import logging
+import pathlib
+import importlib
 from abc import abstractmethod
 
 import numpy as np
@@ -74,9 +77,9 @@ def register_all(module_path):
         for name,cls in mod.__dict__.items():
             if inspect.isclass(cls):
                 logger.debug(f"{cls}")
-                if issubclass(cls, ontoweaver.base.Transformer):
+                if issubclass(cls, base.Transformer):
                     logger.info(f"    Register transformer: `{cls}`")
-                    ontoweaver.transformer.register(cls)
+                    register(cls)
 
 
 class map(base.Transformer):
