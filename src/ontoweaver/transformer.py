@@ -56,9 +56,19 @@ def register(transformer_class):
 # NOTE: transformers pass all kwargs to superclass to allow it to show
 #       the (additional) user-defined arguments when calling __repr__.
 
+
+def import_from_path(file_path):
+    """Import the given Python file path as a module."""
+    # See https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+    module_name = pathlib.Path(file_path).stem
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
 def register_all(module_path):
     for mpath in module_path:
-        check_file(mpath)
         logger.info(f"Look for transformers in `{mpath}`")
         mod = import_from_path(mpath)
         for name,cls in mod.__dict__.items():
