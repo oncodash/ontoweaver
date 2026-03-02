@@ -654,6 +654,7 @@ class Transformer(errormanager.ErrorManager):
         self.declare_types = Declare()
 
 
+
     def get_transformer(self):
         return self
 
