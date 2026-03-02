@@ -11,14 +11,15 @@ Overview
    Basics of Semantic Knowledge Graphs <./sections/intro_SKG.rst>
    Installation and Setup <./sections/installation_and_quick_setup_guide.rst>
    Tutorials <./sections/tutorials.rst>
-   Usage <./sections/usage.rst>
+   Use the "ontoweave" command <./sections/usage.rst>
    Iterable input data <./sections/iterable_data.rst>
-   Mapping API <./sections/mapping_api.rst>
+   Writing a Mapping <./sections/mapping_api.rst>
    User-Made Transformers <./sections/user_made_transformers.rst>
    Parallel Processing <./sections/parallel_processing.rst>
-   Information Fusion <./sections/information_fusion.rst>
    Data Validation <./sections/data_validation.rst>
    How to <./sections/how_to.rst>
    FAQ <./sections/FAQ.rst>
+   How does OntoWeaver works internally <./sections/processing.rst>
+   Information Fusion <./sections/information_fusion.rst>
    ontoweaver
 

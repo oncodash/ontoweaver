@@ -29,7 +29,7 @@ The generic workflow is to first produce nodes and edges —as usual— then
 call the ``fusion.reconciliate`` function on the produced nodes and
 edges:
 
-.. code:: python
+.. code-block:: python
 
    # Call the mappings:
    adapter_A = ontoweaver.tabular.extract_table(input_table_A, mapping_A)
@@ -57,7 +57,7 @@ values, it aggregates the values in a list.
 This means that if the two following nodes come from two different
 sources:
 
-.. code:: python
+.. code-block:: python
 
    # From source A:
    ("id_1", "type_A", {"prop_1": "x"}),
@@ -68,7 +68,7 @@ sources:
 
 Then, the result of the reconciliation step above would be:
 
-.. code:: python
+.. code-block:: python
 
    # Note how "x" and "z" are separated by reconciliate_sep=";".
    ("id_1", "type_A", {"prop_1": "x;z", "prop_2": "y"})
@@ -188,7 +188,7 @@ The user can instantiate those function objects, and pass them to the
 ``congregate`` module, to find which nodes are duplicates of each other.
 For example:
 
-.. code:: python
+.. code-block:: python
 
    on_ID = serialize.ID() # Instantiation.
    congregater = congregate.Nodes(on_ID) # Instantiation.
@@ -227,7 +227,7 @@ The ``dictry`` submodule provides:
 
 For example, to fuse “congregated” nodes, one can do:
 
-.. code:: python
+.. code-block:: python
 
        # How to merge two components:
        use_first  = merge.string.UseFirst() # Instantiation.
@@ -292,14 +292,14 @@ anymore. Fortunately, the fuser keeps track of which ID was replaced by
 which one. And this can be used to remap the edges’ *target* and
 *source* identifiers:
 
-.. code:: python
+.. code-block:: python
 
    remaped_edges = remap_edges(edges, fuser.ID_mapping)
 
 Finally, the same fusion step can be done on the resulting edges (some
 of which are now duplicates, because they were remapped):
 
-.. code:: python
+.. code-block:: python
 
        # Find duplicates:
        on_STL = serialize.edge.SourceTargetLabel()
@@ -327,7 +327,7 @@ of which are now duplicates, because they were remapped):
 Because all those steps are performed onto OntoWeaver’s internal
 classes, they need to be converted back to Biocypher’s tuples:
 
-.. code:: python
+.. code-block:: python
 
        return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]
 
