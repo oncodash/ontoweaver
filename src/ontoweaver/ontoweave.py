@@ -122,17 +122,6 @@ def config_paths(appname = "ontoweave"):
         yield str(p / (appname+".yaml"))
 
 
-def import_from_path(file_path):
-    """Import the given Python file path as a module."""
-    # See https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
-    module_name = pathlib.Path(file_path).stem
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
 def main():
     import jsonargparse
     import argparse
@@ -310,16 +299,7 @@ def main():
         )
 
     # Register all transformers existing in the given modules.
-    for mpath in asked.register:
-        check_file(mpath)
-        logger.info(f"Look for transformers in `{mpath}`")
-        mod = import_from_path(mpath)
-        for name,cls in mod.__dict__.items():
-            if inspect.isclass(cls):
-                logger.debug(f"{cls}")
-                if issubclass(cls, ontoweaver.base.Transformer):
-                    logger.info(f"    Register transformer: `{cls}`")
-                    ontoweaver.transformer.register(cls)
+    transformer.register_all( asked.register )
 
     # Double check file inputs and exit on according errors.
     check_file(asked.biocypher_config)
