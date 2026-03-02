@@ -65,10 +65,12 @@ def import_from_path(file_path):
     # See https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
     module_name = pathlib.Path(file_path).stem
     spec = importlib.util.spec_from_file_location(module_name, file_path)
+    assert spec
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
+
 
 def register_all(module_path):
     for mpath in module_path:
@@ -303,7 +305,7 @@ class cat(base.Transformer):
             str: The concatenated string from the cell values.
         """
         if not self.columns:
-            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="cat.call", exception = exceptions.TransformerInputError)
+            self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section=f"{type(self).__name__}.call", exception = exceptions.TransformerInputError)
 
         for item in super().__call__(row, i):
             yield item
@@ -350,11 +352,10 @@ class cat_format(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
 
-        format_string = kwargs.get("format_string", None)
-        if not format_string:  # Neither empty string nor None.
-            self.error(f"The `format_string` parameter of the `{self.__name__}` transformer cannot be an empty string.")
-        self.format_string = format_string
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors, format_string=self.format_string)
+        self.value_maker = self.ValueMaker(
+            raise_errors=raise_errors,
+            format_string=format_string
+        )
 
         super().__init__(properties_of,
             self.value_maker,
@@ -366,6 +367,10 @@ class cat_format(base.Transformer):
             raise_errors=raise_errors,
             **kwargs
         )
+
+        if not format_string:  # Neither empty string nor None.
+            self.error(f"The `format_string` parameter of the `{type(self).__name__}` transformer cannot be an empty string.")
+
 
 
 class rowIndex(base.Transformer):
@@ -732,27 +737,27 @@ class translate(base.Transformer):
         lrg = loader.LoadOWLGraph()
 
         # Since we cannot expand kwargs, let's recover what we have inside.
-        translations = kwargs.get("translations", None)
-        translations_file = kwargs.get("translations_file", None)
-        translate_from = kwargs.get("translate_from", None)
-        translate_to = kwargs.get("translate_to", None)
+        self.translations = kwargs.get("translations", None)
+        self.translations_file = kwargs.get("translations_file", None)
+        self.translate_from = kwargs.get("translate_from", None)
+        self.translate_to = kwargs.get("translate_to", None)
 
-        if translations and translations_file:
-            self.error(f"Cannot have both `translations` (=`{translations}`) and `translations_file` (=`{translations_file}`) defined in a {type(self).__name__} transformer.", section="translate", exception = exceptions.TransformerInterfaceError)
+        if self.translations and self.translations_file:
+            self.error(f"Cannot have both `translations` (=`{self.translations}`) and `translations_file` (=`{self.translations_file}`) defined in a {type(self).__name__} transformer.", section="translate", exception = exceptions.TransformerInterfaceError)
 
-        if translations:
-            self.translate = translations
+        if self.translations:
+            self.translate = self.translations
             logger.debug(f"\t\t\tManual translations: `{self.translate}`")
-        elif translations_file:
-            logger.debug(f"\t\t\tGet translations from file: `{translations_file}`")
-            if not translate_from:
-                self.error(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_from` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
-            if not translate_to:
-                self.error(f"No translation target column declared for the `{type(self).__name__}` transformer using translations_file=`{translations_file}`, did you forget to add a `translate_to` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
+        elif self.translations_file:
+            logger.debug(f"\t\t\tGet translations from file: `{self.translations_file}`")
+            if not self.translate_from:
+                self.error(f"No translation source column declared for the `{type(self).__name__}` transformer using translations_file=`{self.translations_file}`, did you forget to add a `translate_from` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
+            if not self.translate_to:
+                self.error(f"No translation target column declared for the `{type(self).__name__}` transformer using translations_file=`{self.translations_file}`, did you forget to add a `translate_to` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
             else:
-                self.translations_file = translations_file
-                self.translate_from = translate_from
-                self.translate_to = translate_to
+                # self.translations_file = translations_file
+                # self.translate_from = translate_from
+                # self.translate_to = translate_to
 
                 # Possible arguments from the `translate` section.
                 mapping_args = ["translations", "translations_file", "translate_from", "translate_to"]
@@ -809,9 +814,9 @@ class translate(base.Transformer):
             self.error("No translation found, did you forget the `translations` keyword?", section="translate.init", exception = exceptions.TransformerInterfaceError)
 
         self.value_maker = self.ValueMaker(
-            self.translate, 
-            self.translate_from, 
-            self.translate_to, 
+            self.translate,
+            self.translate_from,
+            self.translate_to,
             raise_errors=raise_errors
         )
 
