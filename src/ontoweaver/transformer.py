@@ -347,6 +347,7 @@ class cat_format(base.Transformer):
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
 
+        format_string = kwargs.get("format_string", None)
         if not format_string:  # Neither empty string nor None.
             self.error(f"The `format_string` parameter of the `{self.__name__}` transformer cannot be an empty string.")
         self.format_string = format_string
@@ -839,10 +840,8 @@ class translate(base.Transformer):
         if not self.columns:
             self.error(f"No column declared for the {type(self).__name__} transformer, did you forgot to add a `columns` keyword?", section="translate", exception = exceptions.TransformerDataError)
 
-        for val in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type, reverse_edge = self.create(val, row)
-            if base.is_not_null(value):
-                yield value, edge_type, node_type, reverse_edge
+        for item in super().__call__(row, i):
+            yield item
 
 
 class string(base.Transformer):
