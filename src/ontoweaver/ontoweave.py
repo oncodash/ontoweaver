@@ -299,7 +299,7 @@ def main():
         )
 
     # Register all transformers existing in the given modules.
-    transformer.register_all( asked.register )
+    ontoweaver.transformer.register_all( asked.register )
 
     # Double check file inputs and exit on according errors.
     check_file(asked.biocypher_config)
