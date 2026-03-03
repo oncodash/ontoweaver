@@ -1,3 +1,13 @@
+""" Functions at the root of the ``ontoweaver`` module are high-level functions useful to the end user.
+
+    .. note::
+        If you are looking to write your own code calling OntoWeaver,
+        those functions are probably the only thing you will need.
+
+    If you want to understand how OntoWeaver works internally, you may start with
+    the :func:`ontoweaver.weave` function, and follow the calls from there.
+"""
+
 from typing import Tuple
 from pathlib import Path
 from abc import ABCMeta as ABSTRACT, abstractmethod
@@ -356,11 +366,29 @@ def read_table_file(filename, **kwargs):
 
 
 def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
+    """Deprecated alias for ``weave`` (since version 1.2).
+    """
     logger.warning("The `extract_reconciliate_write` function is deprecated and will be removed in the next version, use `weave` instead.")
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
 def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+    """ Load the given data with the given loader, and apply the given mapping on it.
+
+        Args:
+            data: whatever data item that the with_loader is able to load.
+            with_mapping: the mapping dictionary
+            with_loader: the loader with which to load data
+            parallel_mapping: if > 0, will run in parallel mode
+            affix: whether to add a type affix
+            type_affix_sep: a string for separating the ID from the type affix
+            validate_output: if True, calls the validate section of the mapping, if any
+            raise_errors: if True, stop at the first error, if False, try to proceed anyway
+            kwargs: arguments passed to the loader function
+
+        Returns:
+            a pair of lists, the first one are nodes, the second one are egdes
+    """
     logger.info(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
 
     assert with_loader.allows([data]), "This loader cannot handle this data"
@@ -677,5 +705,11 @@ def validate_input_data_loaded(dataframe, validator, raise_errors = True) -> boo
 
 
 def ow2bc(ow_elements):
+    """ Convert OntoWeaver objects into BioCypher tuples
+
+        This is useful for converting whatever gets out of OntoWeaver's
+        ``weave`` or ``extract*`` functions into tuples that can be
+        fed to the fusion module or to BioCypher.
+    """
     return [e.as_tuple() for e in ow_elements]
 
