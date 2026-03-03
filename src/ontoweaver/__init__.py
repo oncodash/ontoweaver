@@ -232,7 +232,7 @@ def autoschema(
     # prettyprint(auto_schema)
 
     # Filter out empty keys.
-    logger.debug(f"Filtering out empty keys")
+    logger.debug(f"Checking consistency...")
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         if not section:
@@ -241,10 +241,10 @@ def autoschema(
             raise exceptions.ConfigError(msg)
 
         for pred,val in section.items():
-            if pred == "properties" and val == {}:
+            if pred == "properties" and val == {}:  # If empty `properties` section.
                 del auto_schema[t][pred]
-            # if not val:
-            #     del auto_schema[t][pred]
+            # We don't remove keys with empty values,
+            # because BioCypher needs the complete schema.
 
     logger.debug("Collapse target multi-types into their common super-type...")
     sch = copy.deepcopy(auto_schema)
