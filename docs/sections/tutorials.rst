@@ -379,12 +379,12 @@ config.
             forbidden: "_"  # Remove this regular expression...
             substitute: ":" # ... and replace matching strings with this one.
     
-        # - nested:
-        #     keys:
-        #         - Metadata # The column.
-        #         - ref # The key within the JSON object.
-        #     to_property: reference
-        #     for_object: has_alteration # You can attach properties to edges. FIXME
+        - nested:
+            keys:
+                - Metadata # The column.
+                - ref # The key within the JSON object.
+            to_property: reference
+            for_object: has_alteration # You can attach properties to edges. FIXME
     
         - nested:
             keys:
