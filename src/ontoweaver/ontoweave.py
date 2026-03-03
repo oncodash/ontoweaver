@@ -329,9 +329,8 @@ def main():
             asked.mapping,
             existing_schema,
             asked.auto_schema,
-            asked.validate_output,
+            asked.auto_schema_overwrite,
             not asked.pass_errors,
-            overwrite = asked.auto_schema_overwrite,
             # Error handling parameters
             debug = asked.debug,
             section = "validation of input data"
