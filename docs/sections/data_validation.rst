@@ -97,8 +97,6 @@ return an error if the data does not meet the expectations.
 
 .. note::
       If you want to know more about the rules you can use to validate your
-
-.. note::
       data, you can check the `Pandera
       documentation <https://pandera.readthedocs.io/en/stable/index.html>`__.
 
