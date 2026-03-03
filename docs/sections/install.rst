@@ -24,8 +24,14 @@ Output Database
 ~~~~~~~~~~~~~~~
 
 OntoWeaver can export the created knowledge graph in any format
-supported by BioCypher (Neo4j, ArangoDB, CSV, RDF, PostgreSQL, SQLite,
-NetworkX, … see `BioCypher’s
+supported by BioCypher (`Neo4j <https://neo4j.com>`_,
+`ArangoDB <https://arangodb.com>`_,
+CSV,
+`RDF <https://www.w3.org/RDF>`_,
+`PostgreSQL <https://www.postgresql.org>`_,
+`SQLite <https://sqlite.org>`_,
+`NetworkX <https://networkx.org>`_,
+… see `BioCypher’s
 documentation <https://biocypher.org/output/index.html>`__).
 
 

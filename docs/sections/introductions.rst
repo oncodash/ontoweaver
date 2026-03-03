@@ -146,17 +146,19 @@ and can be extended by independant procedural code if needed.
 
 The mappings can be applied to several iterable data structure: either any kind
 of table that can be loaded with Pandas (CSV, spreadsheets, etc.), or structure
-documents that can be queried (XML dialects, JSON, or OWL, for instance).
+documents that can be queried (XML dialects, `JSON <https://json.org>`_, or
+`OWL <https://www.w3.org/OWL/>`_, for instance).
 
-Note that OntoWeaver delegates filtering to query languages (e.g. XPath,
-JMESPath or regular expressions).
+Note that OntoWeaver delegates filtering to query languages (e.g.
+`XPath <https://www.w3.org/TR/xpath/>`_,
+`JMESPath <https://jmespath.org/>`_ or regular expressions).
 
 The mapping references any existing types in the assembled ontology, and the engine will
 project all the ancestors in the assembled taxonomy onto the nodes and edges.
 We support several output backends, not just labelled knowledge graphs.
 Some output backend will keep the full T-box (like OWL),
-some will project only the set of ancestors (NetworkX),
-some will only use the leaf type (Neo4j, on its edges).
+some will project only the set of ancestors (`NetworkX <https://networkx.org>`_),
+some will only use the leaf type (`Neo4j <https://neo4j.com>`_, on its edges).
 
 Each element of the graph can carry key-value pairs, named "properties", which
 are semantically similar ---albeit technically different for several backends---

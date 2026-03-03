@@ -81,7 +81,7 @@ Such a graph with properties attached to its elements is sometime called a
 "property graph".
 
 When programming, we often see representations like:
-``(Insomnia:disease)--[:treatable_by]->(Doxylamine:disease)``.
+``(Insomnia:disease)-[:treatable_by]->(Doxylamine:disease)``.
 
 
 What is a *Semantic* Knowledge Graph?

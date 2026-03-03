@@ -9,7 +9,7 @@ Overview
 
    Introductions <./sections/introductions.rst>
    Basics of Semantic Knowledge Graphs <./sections/intro_SKG.rst>
-   Installation and Setup <./sections/installation_and_quick_setup_guide.rst>
+   Installation and Setup <./sections/install.rst>
    Tutorials <./sections/tutorials.rst>
    Use the "ontoweave" command <./sections/usage.rst>
    Iterable input data <./sections/iterable_data.rst>
