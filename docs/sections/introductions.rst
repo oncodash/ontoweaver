@@ -151,7 +151,7 @@ documents that can be queried (XML dialects, JSON, or OWL, for instance).
 Note that OntoWeaver delegates filtering to query languages (e.g. XPath,
 JMESPath or regular expressions).
 
-The mapping references leaf types of the assembled ontology, and the engine will
+The mapping references any existing types in the assembled ontology, and the engine will
 project all the ancestors in the assembled taxonomy onto the nodes and edges.
 We support several output backends, not just labelled knowledge graphs.
 Some output backend will keep the full T-box (like OWL),
@@ -169,7 +169,7 @@ backends, and allowing reproducible & configurable builds.
 
 However, with OntoWeaver, you can design adapters that:
 
-1) take less line of codes,
+1) contain less line of codes,
 2) are readable by non-programmers,
 3) are independent from each other, and can be combined.
 

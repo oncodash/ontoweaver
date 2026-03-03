@@ -7,7 +7,7 @@ Simplest possible full example
 Introduction
 ^^^^^^^^^^^^
 
-To build up a SKG from scratch, you will need at least five files:
+To build up a SKG from scratch, you will need at least four files:
 
 1. some data, for instance in a table: ``data.csv``,
 2. An ontology file, containing the taxonomy of types you want
@@ -25,7 +25,7 @@ To build up a SKG from scratch, you will need at least five files:
 Files
 ^^^^^
 
-Let' say we want to extract a graph of 4 nodes and 3 edges from a table
+Let's say we want to extract a graph of 4 nodes and 3 edges from a table
 with 3 rows and 2 columns, those files would look like the following.
 
 
@@ -50,7 +50,7 @@ with 3 rows and 2 columns, those files would look like the following.
          rdfs:label "BioCypherRoot" .
     
     owl:thing a rdfs:Class ;
-        rdfs:label "thing" ; # Note how labels are uppercased.
+        rdfs:label "thing" ; # Note how labels are lowercased.
         rdfs:subClassOf biocypher:BioCypherRoot .
     
     :node a rdfs:Class ;
@@ -86,7 +86,7 @@ with 3 rows and 2 columns, those files would look like the following.
     row:
         map:
             column: Stuff     # Columns are uppercased.
-            to_subject: thing # But types are converted to lowercase.
+            to_subject: thing # But types are converted to lowercase as the labels in the ontology.
     transformers:
         - map:
             column: Gizmo
@@ -237,7 +237,7 @@ Which encodes the following table:
     # Classical types, serving ase bases.
     
     owl:thing a rdfs:Class ; # Type for nodes.
-        rdfs:label "thing" ; # Note how labels are uppercased.
+        rdfs:label "thing" ; # Note how labels are lowercased.
         rdfs:subClassOf biocypher:BioCypherRoot . # `subClassOf` means the same than `is_a`.
     
     :association a owl:ObjectProperty ; # Type for edges.
@@ -246,7 +246,7 @@ Which encodes the following table:
     
     # Our own node types, inheriting from the others:
     
-    :patient a rdfs:Class ; # a Class = is a node.
+    :patient a rdfs:Class ; # a Class = is a typed node.
         rdfs:label "patient" ;
         rdfs:subClassOf owl:thing . # Inherits from thing = is a node.
     
@@ -320,7 +320,7 @@ config.
         is_a: alteration
     
     # We could have defined a lot more things here (see BioCyoher's documentation),
-    # but we will let OntoWeaver extend this schema to a complete one by itself.
+    # but we will let OntoWeaver automatically extend this schema to a complete one.
 
 
 

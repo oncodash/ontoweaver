@@ -15,7 +15,7 @@ timestamp from when the adapter has been executed.
 
 To configure your data mapping, you will have to first define the
 mapping that you want to apply on your data. Then, you will need a
-BioCypher configuration file (which mainly indicate your ontologoy and
+BioCypher configuration file (which mainly indicate your ontology and
 backend). Optionally, you may need a schema configuration file
 (indicating which node and edge types you want).
 

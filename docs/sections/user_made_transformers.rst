@@ -177,7 +177,7 @@ Full-Featured Generic Transformers
 If you plan on implementing a generic transformer, you will need to understand
 the slightly complex machinery that OntoWeaver uses for its generic transformers.
 
-For sych cases, you might need transformers that perform operations using
+For such cases, you might need transformers that perform operations using
 ``ValueMakers`` and ``LabelMakers``.
 
 
@@ -186,7 +186,7 @@ Value Makers
 
 ``ValueMakers`` are classes that define how to extract values from the cells of desired columns in oder to create node IDs,
 edge IDs, or property values. They all represent subclasses of the ``ontoweaver.make_value.ValueMaker`` interface.
-Several ``ValueMakers`` are provided by default in OntoWeaver, and come packaged as a nested class in each ``Transforemr`` class.
+Several ``ValueMakers`` are provided by default in OntoWeaver, and come packaged as a nested class in each ``Transformer`` class.
 
 The example below shows the implementation of a simple ``ValueMaker`` that splits the content of a cell based on a separator.
 This is the ``ValueMaker`` used by the ``split`` provided in OntoWeaver.

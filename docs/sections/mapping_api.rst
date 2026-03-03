@@ -213,8 +213,8 @@ you may write:
 cat
 ~~~
 
-The *cat* transformer concatenates the values cells of the defined
-columns and then inserts a single node. For example, the mapping below
+The *cat* transformer concatenates the value cells of several
+columns and then creates a single node. For example, the mapping below
 would result in the concatenation of cell values from the columns
 ``variant_id``, and ``disease``, to the node type ``variant``. The
 values are concatenated in the order written in the ``columns`` section.
@@ -249,7 +249,7 @@ concatenation. For example:
 
 
 nested
-~~~
+~~~~~~
 
 The *nested* transformer can access values in nested key-value store.
 For instance, if your table cells contains a Python dictionary,
@@ -377,7 +377,10 @@ Gene            Organism
 ENSG00000139618 Mus musculus
 =============== ============
 
-Then, to map a gene from the second table (the one using Ensembl), you
+Explicit translation
+....................
+
+To define an explicit translation to map a gene from the second table (the one using Ensembl), you
 would do:
 
 .. code:: yaml
@@ -387,6 +390,9 @@ would do:
        to_object: gene
        translations:
            ENSG00000139618: BRCA2
+
+File-based translation
+......................
 
 Of course, there could be hundreds of thousands of translations to
 declare, and you don’t want to declare them by hand in the mapping file.
@@ -726,7 +732,7 @@ In some cases, you will need to map several items (e.g. columns) to the same
 type. However, this can be tricky, because the reason why an OntoWeaver
 mapping feels simple is because it relies on mapping to *types*, and not
 specific identifiers. But if you map several objects to the same type, then
-OntoWeaver cannot know whoch one you really meant.
+OntoWeaver cannot know which one you really meant.
 
 For instance, in the following mapping, to what element should the "name"
 property be attached?

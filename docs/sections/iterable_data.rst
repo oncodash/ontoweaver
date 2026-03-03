@@ -117,8 +117,7 @@ be automatically extracted from the input ontology file.
 
     The automap feature uses the same taxonomy for building up the SKG
     (through BioCypher) and for defining the mapping (through OntoWeaver).
-
-    It thus creates a one-to-one mapping of the data (the SKG withing the OWL
+    It thus creates a one-to-one mapping of the data (the SKG within the OWL
     file, in red).
 
 Of course, this adapter will expect that the classes defined in the input
@@ -141,7 +140,7 @@ ontology exist in the taxonomy configured by BioCypher.
 Mapping OWL
 ^^^^^^^^^^^
 
-In some case, you may want to change the types of some elements of a graph
+In some cases, you may want to change the types of some elements of a graph
 stored in an OWL file.
 
 With OntoWeaver, you can use a mapping file to change the types (*classes*,
