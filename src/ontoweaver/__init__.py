@@ -43,12 +43,60 @@ from . import mapping
 
 logger = logging.getLogger("ontoweaver")
 
-__all__ = ['tabular',
-           'types', 'transformer', 'serialize', 'congregate',
-           'merge', 'fuse', 'fusion', 'exceptions', 'logger', 'loader', 'make_value', 'make_labels', 'iterative', 'xml',
-           'owl', 'mapping', 'base']
+__all__ = [
+    'tabular',
+    'types',
+    'transformer',
+    'serialize',
+    'congregate',
+    'merge',
+    'fuse',
+    'fusion',
+    'exceptions',
+    'logger',
+    'loader',
+    'make_value',
+    'make_labels',
+    'iterative',
+    'xml',
+    'owl',
+    'mapping',
+    'base',
+    'autoschema',
+    'weave',
+    'read_table_file',
+    'extract_reconciliate_write',
+    'load_extract',
+    'extract',
+    'extract_table',
+    'extract_OWL',
+    'reconciliate_write',
+    'reconciliate',
+    'write',
+    'validate_input_data',
+    'validate_input_data_loaded',
+    'ow2bc',
+]
 
-def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filename = "extended_schema.yaml", validate_output = False, raise_errors = True, overwrite = False):
+def autoschema(
+    filename_to_mappings,
+    existing_schema = {},
+    extended_schema_filename = "extended_schema.yaml",
+    overwrite = False,
+    raise_errors = True
+):
+    """Extend an existing_schema with what can be deduced from the given mapping files.
+
+       Args:
+           filename_to_mappings: a dictionary of the form {"filename": "mappingfile"}
+           existing_schema: a filename the schema file to extend
+           extended_schema_filename: the filename to which to write the extended schema
+           overwrite: if True, will raise an error if extended_schema_filename already exists
+           raise_errors: if True, will stop on any error, if False, will try to proceed anyway
+
+       Returns:
+           The extended_schema_filename
+    """
 
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
     supported = []
@@ -73,7 +121,7 @@ def autoschema(filename_to_mappings, existing_schema = {}, extended_schema_filen
 
         parser = mapping.YamlParser(
             config,
-            validate_output=validate_output,
+            validate_output = False,  # Never validate in autoschema.
             raise_errors = raise_errors,
         )
         try:
@@ -246,8 +294,8 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
            schema_path: the assembling schema file.
            filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-           reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
-           affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+           reconciliate_sep (str): The separator to use for combining values in reconciliation. Defaults to None.
+           affix (str): The affix to use for type inclusion. Defaults to "none".
            type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
            validate_output: Whether to validate the output of the transformers. Defaults to False.
            raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
@@ -296,7 +344,7 @@ def read_table_file(filename, **kwargs):
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
-        exception.FeatureError: if the extension is unknown.
+        exceptions.FeatureError: if the extension is unknown.
 
     Returns:
         A Pandas DataFrame.
@@ -376,7 +424,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         filename_to_mapping (dict): A dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
         data_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
-        affix (str, optional): The affix to use for type inclusion. Defaults to "none".
+        affix (str): The affix to use for type inclusion. Defaults to "none".
         type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
         validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
@@ -494,7 +542,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
         edges (list): A list of edges to be reconciliated and written.
         biocypher_config_path (str): the BioCypher configuration file.
         schema_path (str): the assembling schema file
-        reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        reconciliate_sep (str): The separator to use for combining values in reconciliation. Defaults to None.
 
         FIXME: The raise_errors parameter is currently not used downstream because the fusion classes are to be refactored with error management.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
@@ -516,7 +564,7 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
     Args:
         nodes (list): A list of nodes to be reconciliated and written.
         edges (list): A list of edges to be reconciliated and written.
-        reconciliate_sep (str, optional): The separator to use for combining values in reconciliation. Defaults to None.
+        reconciliate_sep (str): The separator to use for combining values in reconciliation. Defaults to None.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:

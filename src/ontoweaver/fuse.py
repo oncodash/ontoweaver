@@ -39,11 +39,16 @@ class Members(Fuser):
 
     class Mergers:
         def __init__(self,
-             merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
-             merge_label : merge.string.StringMerger = merge.string.UseKey(),
-             merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
-             merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
-             merge_target: merge.string.StringMerger = merge.string.OrderedSet()
+             merge_ID    = merge.string.UseKey(),
+             merge_label = merge.string.UseKey(),
+             merge_prop  = merge.dictry.Append(),
+             merge_source= merge.string.OrderedSet(),
+             merge_target= merge.string.OrderedSet()
+             # merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
+             # merge_label : merge.string.StringMerger = merge.string.UseKey(),
+             # merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
+             # merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
+             # merge_target: merge.string.StringMerger = merge.string.OrderedSet()
         ):
             self.ID = merge_ID
             self.label = merge_label
@@ -53,11 +58,16 @@ class Members(Fuser):
 
     def __init__(self,
                  cls,
-                 merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
-                 merge_label : merge.string.StringMerger = merge.string.UseKey(),
-                 merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
-                 merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
-                 merge_target: merge.string.StringMerger = merge.string.OrderedSet()
+                 merge_ID    = merge.string.UseKey(),
+                 merge_label = merge.string.UseKey(),
+                 merge_prop  = merge.dictry.Append(),
+                 merge_source= merge.string.OrderedSet(),
+                 merge_target= merge.string.OrderedSet()
+                 # merge_ID    : merge.string.StringMerger = merge.string.UseKey(),
+                 # merge_label : merge.string.StringMerger = merge.string.UseKey(),
+                 # merge_prop  : merge.dictry.DictryMerger = merge.dictry.Append(),
+                 # merge_source: merge.string.StringMerger = merge.string.OrderedSet(),
+                 # merge_target: merge.string.StringMerger = merge.string.OrderedSet()
                  ):
         """Constructor.
 

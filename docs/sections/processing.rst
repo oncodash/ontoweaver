@@ -139,7 +139,7 @@ charge of:
 - loading the data (optionally, from several compatible files), throught the
   :meth:`~ontoweaver.loader.Loader.load` method,
 - expose the compatible :class:`~ontoweaver.base.Adapter` class that can manage the data they
-  loaded, through the :meth:`~ontoweaver.loader.Loader.adapters` method.
+  loaded, through the :meth:`~ontoweaver.loader.Loader.adapter` method.
 
 The :class:`~ontoweaver.loader.Loader` interface provides the
 :meth:`~ontoweaver.loader.Loader.extensions`

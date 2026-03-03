@@ -133,11 +133,11 @@ class LoadPandasFile(Loader):
 
     Args:
         filename: The name of the data file the user wants to map.
-        separator (str, optional): The separator used in the data file. Defaults to None.
+        separator (str): The separator used in the data file. Defaults to None.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Raises:
-        exception.FeatureError: if the extension is unknown.
+        exceptions.FeatureError: if the extension is unknown.
 
     Returns:
         A Pandas DataFrame.

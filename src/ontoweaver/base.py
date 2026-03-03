@@ -112,7 +112,7 @@ class Element(metaclass = ABSTRACT):
         :param str id: Unique identifier of the element. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the element.
-        :param Comparer serializer: The comparer to use for equality checks. Default uses the python `is` operator.
+        :param serializer: an instance indicating what to serialize to get a unique ID
         """
         if not id:
             self._id = ''
@@ -207,7 +207,7 @@ class Node(Element):
         :param str id: Unique identifier of the node. If id == None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the node.
-        :param Comparer serializer: The comparer to use for equality checks. Default uses the python `is` operator.
+        :param serializer: an instance indicating what to serialize to get a unique ID
         """
         super().__init__(id = id, properties = properties, label = label, serializer = serializer)
 
@@ -275,7 +275,7 @@ class Edge(Element):
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the node.
-        :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
+        :param comparer: an instance indicating what to serialize to get a unique ID
         """
         super().__init__(id = id, properties = properties, label = label, serializer = serializer)
         self._id_source = str(id_source)
@@ -389,7 +389,7 @@ class GenericEdge(Edge):
         :param str id_target: Unique identifier of the target Node. If None, is then set to the empty string.
         :param dict[str,str] properties: All available properties for this instance.
         :param str label: The label of the node.
-        :param Comparer comparer: The comparer to use for equality checks. Default uses the python `is` operator.
+        :param comparer: an instance indicating what to serialize to get a unique ID
         """
         super().__init__(id = id, id_source = id_source, id_target = id_target, properties = properties, label = label, serializer = serializer)
 
@@ -611,7 +611,7 @@ class Transformer(errormanager.ErrorManager):
         label_maker = None,
         branching_properties = None,
         columns = None,
-        output_validator: validate.OutputValidator() = None,
+        output_validator = None,
         multi_type_dict = None,
         raise_errors = True,
         **kwargs
