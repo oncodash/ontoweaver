@@ -1,3 +1,5 @@
+""" Adapters managing iterable data.
+"""
 import logging
 import threading
 

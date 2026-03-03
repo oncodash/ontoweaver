@@ -1,3 +1,5 @@
+""" Interface for transformers' LabelMaker.
+"""
 import logging
 import abc
 import re

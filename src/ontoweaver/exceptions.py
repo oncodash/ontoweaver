@@ -1,30 +1,39 @@
+"""
+The exceptions hierarchy of what OntoWeaver may raise.
 
-# OntoWeaverError
-# ├─ AutoSchemaError
-# ├─ ConfigError
-# ├─ FeatureError
-# ├─ ParsingError
-# │  ├─ ParsingDeclarationsError
-# │  │  ├─ CardinalityError
-# │  │  └─ MissingDataError
-# │  ├─ # ParsingPropertiesError
-# │  │  └─ # MissingFieldError
-# └─ RunError
-#    ├─ DeclarationError
-#    ├─ FileError
-#    │  ├─ FileAccessError
-#    │  └─ FileOverwriteError
-#    ├─ InputDataError
-#    ├─ SubprocessError
-#    └─ TransformerError
-#       ├─ DataValidationError
-#       ├─ InterfaceInheritanceError
-#       ├─ TransformerConfigError
-#       ├─ TransformerDataError
-#       ├─ TransformerInputError
-#       └─ TransformerInterfaceError
+Classes in this file all have a static ``code`` variable,
+which is used by the ``ontoweave`` command as an error return code.
+
+The exceptions taxonomy is::
+    
+    OntoWeaverError
+    ├─ AutoSchemaError
+    ├─ ConfigError
+    ├─ FeatureError
+    ├─ ParsingError
+    │  ├─ ParsingDeclarationsError
+    │  │  ├─ CardinalityError
+    │  │  └─ MissingDataError
+    │  ├─ # ParsingPropertiesError
+    │  │  └─ # MissingFieldError
+    └─ RunError
+       ├─ DeclarationError
+       ├─ FileError
+       │  ├─ FileAccessError
+       │  └─ FileOverwriteError
+       ├─ InputDataError
+       ├─ SubprocessError
+       └─ TransformerError
+          ├─ DataValidationError
+          ├─ InterfaceInheritanceError
+          ├─ TransformerConfigError
+          ├─ TransformerDataError
+          ├─ TransformerInputError
+          └─ TransformerInterfaceError
+"""
 
 class OntoWeaverError(Exception):
+    """The base of all errors related to OntoWeaver."""
     code = 255
 
 class AutoSchemaError(OntoWeaverError):

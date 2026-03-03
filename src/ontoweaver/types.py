@@ -1,3 +1,5 @@
+""" An empty module for hosting the element classes created on-the-fly.
+"""
 import sys
 # from . import base
 

@@ -1,3 +1,5 @@
+""" Information fusion features for finding duplicates.
+"""
 import logging
 from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 

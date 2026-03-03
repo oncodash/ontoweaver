@@ -1,3 +1,5 @@
+""" Parsers handling mappings.
+"""
 import yaml
 import logging
 

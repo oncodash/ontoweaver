@@ -1,3 +1,5 @@
+""" The module that stores all the default transformers and the register functions.
+"""
 import re
 import math
 import sys

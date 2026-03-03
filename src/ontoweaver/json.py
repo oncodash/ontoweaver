@@ -1,3 +1,5 @@
+""" Adapters for querying JSON data.
+"""
 import json
 import logging
 import jmespath

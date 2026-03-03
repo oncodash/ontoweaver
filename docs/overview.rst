@@ -2,6 +2,9 @@
 OntoWeaver is a tool that automatize the creation of knowledge graphs
 from iterable data.
 
+The project is maintained on Github at
+`oncodash/ontoweaver <https://github.com/oncodash/ontoweaver>`_
+
 .. figure:: OntoWeaver__very-simple-summary.svg
 
     OntoWeaver allows you to create Semantic Knowledge Graphs from

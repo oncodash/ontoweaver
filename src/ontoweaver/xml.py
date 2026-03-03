@@ -1,3 +1,5 @@
+""" How to query an XML document and iterate over the results.
+"""
 import logging
 
 import pandas as pd

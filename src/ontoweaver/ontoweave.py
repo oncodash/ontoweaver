@@ -17,6 +17,8 @@
 # ]
 # ///
 
+""" The module holding utility functions for the main command line interface.
+"""
 
 import os
 import sys

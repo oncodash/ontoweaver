@@ -1,3 +1,5 @@
+""" Adapters handling OWL documents.
+"""
 import rdflib
 import logging
 

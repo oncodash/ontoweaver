@@ -1,3 +1,5 @@
+""" Base class for errors management.
+"""
 import logging
 
 logger = logging.getLogger("ontoweaver")

@@ -1,3 +1,5 @@
+""" Classes related to loading input data.
+"""
 import glob
 import rdflib
 import pathlib

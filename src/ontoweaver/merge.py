@@ -1,3 +1,5 @@
+""" Information fusion classes managing how to merge two items.
+"""
 from abc import ABCMeta, abstractmethod
 import logging
 import copy

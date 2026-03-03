@@ -1,3 +1,5 @@
+""" Interfaces for OntoWeaver.
+"""
 import logging
 import math
 

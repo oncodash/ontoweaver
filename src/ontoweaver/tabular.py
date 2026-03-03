@@ -1,3 +1,5 @@
+""" Adapters that process tabular data.
+"""
 import logging
 
 import pandas as pd

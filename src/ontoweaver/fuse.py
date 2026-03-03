@@ -1,3 +1,5 @@
+""" Module for fusing two elements.
+"""
 import logging
 from abc import ABCMeta, abstractmethod
 

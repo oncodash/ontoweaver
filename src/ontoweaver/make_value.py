@@ -1,3 +1,5 @@
+""" Interface for transformers' ValueMakers.
+"""
 import logging
 import abc
 

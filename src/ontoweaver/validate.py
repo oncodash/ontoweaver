@@ -1,3 +1,5 @@
+""" Class for input and output data validation.
+"""
 import math
 import logging
 import warnings

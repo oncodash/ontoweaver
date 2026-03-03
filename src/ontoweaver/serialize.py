@@ -1,3 +1,5 @@
+""" Classes for information fusion, handling unique ID creation.
+"""
 from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 
 from . import base

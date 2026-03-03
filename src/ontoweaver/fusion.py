@@ -1,3 +1,5 @@
+""" High-level fusion module.
+"""
 import logging
 from abc import abstractmethod, ABCMeta
 from typing import Optional
