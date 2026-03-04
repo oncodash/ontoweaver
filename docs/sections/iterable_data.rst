@@ -10,8 +10,9 @@ However, technically, OntoWeaver can consume any iterable data, providing that
 it has an "Adapter" class knowing how to do it.
 
 The more generic adapters run a query on a data file, which issue a set of
-iterable data. For instance, you can run a XPath query on an XML document,
-or a JMESPath query on a JSON file.
+iterable data. For instance, you can run a
+`XPath <https://www.w3.org/TR/xpath/>`_ query on an XML document,
+or a `JMESPath <https://jmespath.org/>`_ query on a JSON file.
 
 For a basic usage through the `ontoweave` command, OntoWeaver will guess the
 input data type from the input file extension. Then, it will read the
@@ -40,7 +41,7 @@ csv, tsv, txt,  xls, xlsx, xlsm, xlsb, odf, ods, odt, json, html, hdf,
 feather, parquet, pickle, orc, sas, spss, stata.
 
 Simple tables being the most common data format, we use it for all examples in
-the :ref:`Mapping API` section.
+the :ref:`mapping-api` section.
 
 
 Web Ontology data
@@ -101,7 +102,7 @@ OWL & automap
 The simplest way to read the input data from an ontology file is to use
 the *automatic* OWL adapter.
 This adapter can be used by passing the ``automap`` keyword in place of a mapping
-file into the ``ontoweave`` command, or the ``weave`` function:
+file into the ``ontoweave`` command, or the :py:func:`ontoweave.weave` function:
 
 .. code:: sh
 
@@ -110,8 +111,8 @@ file into the ``ontoweave`` command, or the ``weave`` function:
 This will automatically map the individuals defined into the input graph found
 in the ontology file to the types found in the taxonomy of the *same* ontology
 file.
-Using this ``OWLAutoAdapter``, you thus don't need to define a mapping, it will
-be automatically extracted from the input ontology file.
+Using this :py:class:`ontoweaver.owl.OWLAutoAdapter`, you thus don't need to
+define a mapping, it will be automatically extracted from the input ontology file.
 
 .. figure:: ../OntoWeaver__owl-automap.svg
 
@@ -178,7 +179,8 @@ as a subject, and then map "object properties" via a relation.
    ``owl:DataProperty``.
 
 
-If you need to call the adapter yourself, use the ``OWLAdapter`` class.
+If you need to call the adapter yourself, use the
+:py:class:`ontoweaver.owl.OWLAdapter` class.
 
 
 OWL Example

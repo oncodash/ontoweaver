@@ -1,10 +1,12 @@
-Mapping API
------------
+.. _mapping-api:
+
+Writing a mapping
+-----------------
 
 OntoWeaver essentially creates a Biocypher adapter from the description
 of a mapping from a table to ontology types. As such, its core input is
-a dictionary, that takes the form of a YAML file. This configuration
-file indicates:
+a dictionary, that takes the form of a `YAML <https://yaml.org>`_ file.
+This configuration file indicates:
 
 - to which (node) type to map each line of the table,
 - to which (node) type to map columns of the table,
@@ -15,9 +17,11 @@ How are config files related?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It may be difficult to understand how the type tags indicated in OntoWeaver's
-*mapping* are related to the types indicated in BioCypher's *schema*.
+*mapping* are related to the types indicated in
+`BioCypher's *schema* <https://biocypher.org/BioCypher/reference/schema-config>`_.
 
-In the schema, the header of a block is the RDFS label that lies in the
+In the schema, the header of a block is the
+`RDFS <https://www.w3.org/TR/rdf12-schema/>`_ label that lies in the
 taxonomy of the ontology file, while the ``label_in_input`` is a kind of tag
 that is written in the mapping, after a keyword (e.g. ``to_object``).
 
@@ -67,9 +71,10 @@ For example, if you have the following CSV table of phenotypes/patients:
    0,A
    1,B
 
-and if you target the Biolink ontology, using a schema configuration
-(i.e. subset of types), defined in your ``schema_config.yaml`` file, as
-below:
+and if you target the
+`Biolink ontology <https://biolink.github.io/biolink-model/>`_, using a schema
+configuration (i.e. subset of types), defined in your ``schema_config.yaml``
+file, as below:
 
 .. code:: yaml
 
@@ -252,9 +257,12 @@ nested
 ~~~~~~
 
 The *nested* transformer can access values in nested key-value store.
-For instance, if your table cells contains a Python dictionary,
-or a Pandas one-dimensional DataFrame, or a flat JSON object string,
-*nested* will be able to access a value into it.
+For instance, if your table cells contains a
+`Python dictionary <https://docs.python.org/3/tutorial/datastructures.html#dictionaries>`_,
+or a
+`Pandas one-dimensional DataFrame <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`_,
+or a flat `JSON object <https://www.json.org>`_ string, *nested* will be able
+to access a value into it.
 
 For instance, if your table looks like:
 
@@ -285,9 +293,10 @@ of the nesting. For instance:
 .. note::
 
    The *nested* transformer can detect and parse JSON object notation, but if the
-   nested cell value is not a string, it will try to access it with the bracket
-   syntax, e.g. ``value[key]``. This should be enough to allow it to use a large
-   number of data structures.
+   nested cell value is not a string, it will try to access it as a Python
+   variable, using the bracket syntax, e.g. ``value[key]``.
+   This should be enough to allow it to use a large number of data structures,
+   providing that they can be accessed with this syntax.
 
 
 split_nested

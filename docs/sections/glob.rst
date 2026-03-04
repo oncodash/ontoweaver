@@ -1,10 +1,13 @@
 
 In some specific cases, you may want to load several data files at once, and
-merge them in a single table before mapping the data. For instance, "parquet"
+merge them in a single table before mapping the data. For instance,
+"`parquet <https://parquet.apache.org/>`_"
 files often come as a set of files.
 
-To do so, you can use the "globbing" syntax that you may know from your command
-line shell.
+To do so, you can use the
+"`globbing <https://en.wikipedia.org/wiki/Glob_(programming)>`_" syntax that
+you may know from your command line
+`shell <https://en.wikipedia.org/wiki/Shell_(computing)>`_.
 
 For instance, if you want to select all the files ending with the ``.parquet``
 extension in the ``my_dir`` directory:

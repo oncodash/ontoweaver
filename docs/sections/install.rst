@@ -17,7 +17,7 @@ You can install the necessary dependencies in a virtual environment like this:
 UV will create a virtual environment according to your configuration
 (either centrally or in the project folder).
 You can then run any script or command using ``uv run``.
-For isntance, to run the ontoweave command: ``uv run ontoweave``.
+For instance, to run the ontoweave command: ``uv run ontoweave``.
 
 
 Output Database
@@ -38,10 +38,12 @@ documentation <https://biocypher.org/output/index.html>`__).
 Graph visualization with Neo4j
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Neo4j is a popular graph database management system that offers a
-flexible and efficient way to store, query, and manipulate complex,
-interconnected data. Cypher is the query language used to interact with
-Neo4j databases. In order to visualize graphs extracted from databases
+`Neo4j <https://neo4j.com>`_ is a popular graph database management system that
+offers a flexible and efficient way to store, query, and manipulate complex,
+interconnected data.
+`Cypher <https://en.wikipedia.org/wiki/Cypher_(query_language)>`_ is the query
+language used to interact with Neo4j databases.
+In order to visualize graphs extracted from databases
 using OntoWeaver and BioCypher, you can download the `Neo4j Graph
 Database Self-Managed <https://neo4j.com/deployment-center/>`__ for your
 operating system. It has been extensively tested with the Community

@@ -212,7 +212,7 @@ accessing the list of node and edge types:
 How to map properties on several nodes of the same type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In some cases there might be a need to filter properties of the same ontological type. 
+In some cases there might be a need to filter properties of the same ontological type.
 For example, if you have a table of proteins defining sources and targets of interactions, and  you want to have the uniProt IDs as a property of these nodes:
 
 ====== ====== ================= =================
@@ -222,7 +222,7 @@ A      B      uniprot_id_A      uniprot_id_B
 C      A      uniprot_id_C      uniprot_id_A
 ====== ====== ================= =================
 
-In a conventional way of mapping, you would map the ``SOURCE`` column to the node type ``protein`` and the ``TARGET`` column to the node type ``protein``. 
+In a conventional way of mapping, you would map the ``SOURCE`` column to the node type ``protein`` and the ``TARGET`` column to the node type ``protein``.
 
 By default, OntoWeaver will attach properties to all nodes of the same *type*. The ``UNIPROT_ID_SOURCE`` and ``UNIPROT_ID_TARGET`` columns would hence be mapped as properties to the type ``protein``.
 
@@ -511,11 +511,11 @@ How to load multiple Parquet files?
 How to access several keys in nested dictionaries?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The *get* transformer allows you to access a value located in nested key-stores.
+The *nested* transformer allows you to access a value located in nested key-stores.
 But it can only access *one* value.
 
 If you want to access several different keys in the same cell, then you will
-have to call the *get* transformer again, with the same first key, but with
+have to call the *nested* transformer again, with the same first key, but with
 different sequence of keys.
 
 For instance, if you have this data table:
@@ -531,19 +531,19 @@ For instance, if you have this data table:
 Then, you will want to access first the column named "WORDS", and the key
 named "en" in the nested JSON object.
 
-To do so with *get*, you need to indicate the *sequence* of keys, in the order
+To do so with *nested*, you need to indicate the *sequence* of keys, in the order
 of the nesting. For instance:
 
 .. code:: yaml
 
     transformers:
-        - get:
+        - nested:
             keys:
                 - WORDS
                 - en
             to_object: word  # The usual.
             via_relation: has_en_translation
-        - get:
+        - nested:
             keys:
                 - WORDS
                 - fr

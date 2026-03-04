@@ -182,7 +182,9 @@ for you than a relational database:
   drastically change the way you query the data.
 * Queries can leverage the taxonomy very easily.
 * Overall, we find queries on SKG to be more easy to state (especially with
-  the GQL language) than their counterpart (using SQL, for instance).
+  the `GQL language <https://www.gqlstandards.org>`_) than their counterpart
+  (using `SQL <https://fr.wikipedia.org/wiki/Structured_Query_Language>`_,
+  for instance).
 
 For example, here is a GQL query meaning "show me all the drugs for which there
 is a sensitivity to a sleep disorder":
@@ -233,17 +235,18 @@ connected to what other type of node.
 To do so, an ontology file is taking a very generic approach: everything there
 is modelled as a "triple": a (subject) is linked by a [predicate] to an (object).
 This means that *everything in an ontology* is represented by:
-``(subject)--[predicate]->(object)``. Nodes are subjects or objects, edges are
+``(subject)-[predicate]->(object)``. Nodes are subjects or objects, edges are
 predicates. But "node having a type" is also represented as a triple:
-``(my node)--[is a]->(my type)``.
+``(my node)-[is a]->(my type)``.
 
 
 What is *Turtle*?
 ~~~~~~~~~~~~~~~~~
 
 There are several formats with different syntaxes to write down ontology files,
-but we will only see here the "turtle" one, which is the most readable by a
-human being. In turtle, a triple is written as a "sentence":
+but we will only see here the
+"`turtle <https://www.w3.org/TeamSubmission/turtle>`_" one, which is the most
+readable by a human being. In turtle, a triple is written as a "sentence":
 
 .. code-block:: ttl
 
@@ -269,7 +272,8 @@ For instance, this is a valid turtle section:
 What is *OWL*?
 ~~~~~~~~~~~~~~
 
-*OWL* is a ---slightly eccentric--- accronym for "Web Ontology Language".
+*`OWL <https://www.w3.org/OWL>`_* is a ---slightly eccentric--- accronym for
+"Web Ontology Language".
 The "language" it refers to is a pre-defined set of predicates and types
 (hence the term "vocabulary").
 This language defines how to *model* a SKG, using a standardized vocabulary
@@ -277,8 +281,8 @@ on which everyone can agree.
 
 But in fact, OWL is built up on top of *two* other standards:
 
-1. the Resource Description Framework (RDF),
-2. the RDF Schema (RDFS).
+1. the `Resource Description Framework <https://www.w3.org/RDF/>`_ (RDF),
+2. the `RDF Schema <https://www.w3.org/TR/rdf12-schema>`_ (RDFS).
 
 Of course, RDFS is a vocabulary that sits on top of RDF, with a carefully chosen
 ---and not at all confusing--- name.
@@ -375,6 +379,8 @@ Why do I need OntoWeaver to make an SKG?
 
 OntoWeaver is a tool that shines if you need to build up an SKG that:
 
+* has an original graph structure, the one that *you* understands, and the one
+  that best suits your needs, not the ones of a random computer scientist,
 * is integrating several heterogeneous data sources,
 * is automatically built, in a reproducible way,
 * allows using independent data sources, for which import scripts and taxonomies
