@@ -4,7 +4,7 @@ Overview
 .. include:: overview.rst
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Table of Contents:
 
    Introductions <./sections/introductions.rst>
@@ -22,4 +22,4 @@ Overview
    How does OntoWeaver works internally <./sections/processing.rst>
    Information Fusion <./sections/information_fusion.rst>
    ontoweaver
-
+   About us <./sections/about.rst>

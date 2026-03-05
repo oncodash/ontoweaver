@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64"
+   height="64"
+   viewBox="0 0 16.933333 16.933333"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4-beta2 (9aaf4f34, 2024-07-30)"
+   sodipodi:docname="feature-schema.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title31">OntoWeaver Feature Icon: Schema Design</title>
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="9.296875"
+     inkscape:cx="31.946218"
+     inkscape:cy="32"
+     inkscape:window-width="1440"
+     inkscape:window-height="814"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     showguides="false">
+    <sodipodi:guide
+       position="0,11.641666"
+       orientation="0,1"
+       id="guide2"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,8.4666665"
+       orientation="0,1"
+       id="guide3"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,5.2916666"
+       orientation="0,1"
+       id="guide4"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,14.816666"
+       orientation="0,1"
+       id="guide5"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,2.1166666"
+       orientation="0,1"
+       id="guide6"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="5.3624875,8.4666665"
+       orientation="1,0"
+       id="guide7"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,9.6419676"
+       orientation="0,-1"
+       id="guide23"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,7.2208587"
+       orientation="0,-1"
+       id="guide24"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,10.59885"
+       orientation="0,-1"
+       id="guide25"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,6.2639765"
+       orientation="0,-1"
+       id="guide26"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="9.567469,8.4666665"
+       orientation="1,0"
+       id="guide27"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="4.4032102,8.4666665"
+       orientation="1,0"
+       id="guide28"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Calque 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g45"
+       transform="translate(-1.8436346,-0.17075628)">
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.529167;stroke-dasharray:none"
+         d="m 12.333093,15.502536 3.741408,-1.792941"
+         id="path2" />
+      <path
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.529167;stroke-linecap:butt;stroke-dasharray:none"
+         d="M 4.6002405,15.502536 H 12.333093 L 8.591684,13.372674"
+         id="path43"
+         sodipodi:nodetypes="ccc" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#g40"
+         id="use41"
+         transform="translate(-1.4034321e-8,11.941878)" />
+    </g>
+    <g
+       id="g43"
+       transform="translate(-1.8436346,0.32995101)">
+      <path
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.529167;stroke-linecap:butt;stroke-dasharray:none"
+         d="M 4.6002405,3.5606579 8.5916838,1.4307962 12.333093,3.5606579 16.074502,1.7677169"
+         id="path41" />
+      <g
+         id="g40"
+         transform="matrix(0.85765841,0,0,0.84789902,1.0801424,0.04841717)"
+         style="stroke-width:1.17266">
+        <circle
+           style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:0.775663;stroke-linecap:butt;stroke-dasharray:none"
+           id="path36"
+           cx="4.1043124"
+           cy="4.1422868"
+           r="1.2996291" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#path36"
+           id="use36"
+           transform="translate(4.6538849,-2.5119287)"
+           style="stroke-width:1.17266" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#path36"
+           id="use37"
+           transform="translate(9.0162381)"
+           style="stroke-width:1.17266" />
+        <use
+           x="0"
+           y="0"
+           xlink:href="#path36"
+           id="use1"
+           transform="translate(13.378591,-2.1145692)"
+           style="stroke-width:1.17266" />
+      </g>
+    </g>
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:0.661458;stroke-linecap:butt;stroke-dasharray:none;fill-opacity:0.34999999"
+       id="rect31"
+       width="16.933332"
+       height="16.933332"
+       x="0"
+       y="0"
+       rx="2.3151045"
+       ry="2.3151045" />
+    <g
+       id="g44"
+       transform="translate(-1.8436346,0.07959736)">
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.529167;stroke-dasharray:none"
+         d="M 12.333093,9.531597 16.074501,7.7386557 8.5916838,7.4017351"
+         id="path1" />
+      <path
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.529167;stroke-linecap:butt;stroke-dasharray:none"
+         d="M 4.6002405,9.531597 H 12.333093 L 8.5916838,7.4017351 Z"
+         id="path42" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#g40"
+         id="use40"
+         transform="translate(-1.403432e-8,5.970939)" />
+    </g>
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.396875;stroke-linecap:butt;stroke-dasharray:none"
+       id="rect43"
+       width="15.796163"
+       height="5.7570443"
+       x="0.54901975"
+       y="5.6735225"
+       rx="1.5213449"
+       ry="1.5213449" />
+  </g>
+  <metadata
+     id="metadata31">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>nojhan</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:date>2026-03-05</dc:date>
+        <dc:title>OntoWeaver Feature Icon: Schema Design</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

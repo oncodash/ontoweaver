@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64"
+   height="64"
+   viewBox="0 0 16.933333 16.933333"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4-beta2 (9aaf4f34, 2024-07-30)"
+   sodipodi:docname="feature-fusion.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title31">OntoWeaver Feature Icon: Information Fusion</title>
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#999999"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.5393264"
+     inkscape:cx="108.48901"
+     inkscape:cy="-5.5218957"
+     inkscape:window-width="1440"
+     inkscape:window-height="814"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1"
+     showguides="false">
+    <sodipodi:guide
+       position="0,11.641666"
+       orientation="0,1"
+       id="guide2"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,8.4666665"
+       orientation="0,1"
+       id="guide3"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,5.2916666"
+       orientation="0,1"
+       id="guide4"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,14.816666"
+       orientation="0,1"
+       id="guide5"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="0,2.1166666"
+       orientation="0,1"
+       id="guide6"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="5.3624875,8.4666665"
+       orientation="1,0"
+       id="guide7"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,9.6419676"
+       orientation="0,-1"
+       id="guide23"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,7.2208587"
+       orientation="0,-1"
+       id="guide24"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,10.59885"
+       orientation="0,-1"
+       id="guide25"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="13.558948,6.2639765"
+       orientation="0,-1"
+       id="guide26"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="9.567469,8.4666665"
+       orientation="1,0"
+       id="guide27"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="4.4032102,8.4666665"
+       orientation="1,0"
+       id="guide28"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="Triangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="0.7"
+       markerHeight="0.7"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135" />
+    </marker>
+  </defs>
+  <g
+     inkscape:label="Calque 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:0.661458;stroke-linecap:butt;stroke-dasharray:none;fill-opacity:0.35467127"
+       id="rect31"
+       width="16.933332"
+       height="16.933332"
+       x="0"
+       y="0"
+       rx="2.3151045"
+       ry="2.3151045" />
+    <circle
+       style="fill:#b3b3b3;fill-opacity:1;stroke:#000000;stroke-width:0.661458;stroke-linecap:butt;stroke-dasharray:none"
+       id="path31"
+       cx="8.4666662"
+       cy="8.4666662"
+       r="2.1742225" />
+    <g
+       id="g1"
+       transform="rotate(15,8.4666666,8.4666662)">
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.661458;stroke-linecap:butt;stroke-dasharray:none;marker-start:url(#Triangle)"
+         d="M 3.886548,8.4666662 0.71602994,7.9501265"
+         id="path29"
+         sodipodi:nodetypes="cc"
+         inkscape:transform-center-x="6.5233925" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path29"
+         id="use32"
+         transform="rotate(60,8.4666666,8.4666662)"
+         inkscape:transform-center-y="-5.6494236"
+         inkscape:transform-center-x="3.2616962" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path29"
+         id="use33"
+         transform="rotate(120,8.4666666,8.4666662)"
+         inkscape:transform-center-y="-5.6494236"
+         inkscape:transform-center-x="-3.2616963" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path29"
+         id="use34"
+         transform="rotate(180,8.4666666,8.4666662)"
+         inkscape:transform-center-x="-6.5233925" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path29"
+         id="use35"
+         transform="rotate(-120,8.4666666,8.4666662)"
+         inkscape:transform-center-x="-3.2616963"
+         inkscape:transform-center-y="5.6494236" />
+      <use
+         x="0"
+         y="0"
+         xlink:href="#path29"
+         id="use36"
+         transform="rotate(-60,8.4666666,8.4666663)"
+         inkscape:transform-center-x="3.2616963"
+         inkscape:transform-center-y="5.6494236" />
+    </g>
+  </g>
+  <metadata
+     id="metadata31">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>nojhan</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:date>2026-03-05</dc:date>
+        <dc:title>OntoWeaver Feature Icon: Information Fusion</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

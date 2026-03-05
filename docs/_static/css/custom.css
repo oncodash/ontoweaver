@@ -36,3 +36,58 @@ code {
 .wy-side-nav-search {
     background-color: #0e7e9c;
 }
+
+#killer-features {
+    margin: 1em;
+    margin-bottom: 3em;
+    margin-top: 3em;
+    border: thin solid lightgrey;
+    border-radius: 2em;
+    padding: 1em;
+    box-shadow: 5px 5px 5px grey;
+}
+
+#killer-caption {
+    font-style: italic;
+    margin-bottom: 0.5em;
+}
+
+.feature {
+    padding: 0.5em;
+    margin: 1.5em;
+    border-radius: 1em;
+    width: 90%;
+    font-weight: bold;
+    box-shadow: 4px 4px 5px grey;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.feature img {
+    height: 2.5em;
+}
+
+.feature p {
+    margin: 0.5em;
+}
+
+#feature-input {
+    background-color: #0e7e9c;
+    color: white;
+}
+
+#feature-schema {
+    background-color: #d47100;
+    color: white;
+}
+
+#feature-export {
+    background-color: #0e7e9c;
+    color: white;
+}
+
+#feature-fusion {
+    background-color: #d47100;
+    color: white;
+}

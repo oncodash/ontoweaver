@@ -64,6 +64,7 @@ html_theme_options = {
     'style_external_links': True,
     'vcs_pageview_mode': 'view',
     'version_selector': True,
+    'navigation_depth': 3,
 }
 
 html_context = {
@@ -73,3 +74,7 @@ html_context = {
     "github_version": "main", # Version
     "conf_py_path": "/docs/", # Path in the checkout to the docs root
 }
+
+html_show_sphinx = False
+project_copyright = "%Y, OntoWeaver project"
+
