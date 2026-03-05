@@ -1199,3 +1199,65 @@ class split_translate(base.Transformer):
                     logging.debug(f"VAL {val}")
                     value, edge_type, node_type, reverse_edge = self.create(val, row)
                     yield value, edge_type, node_type, reverse_edge
+
+class split_replace(base.Transformer):
+
+    def __init__(self,
+        properties_of,
+        label_maker = None,
+        branching_properties = None,
+        columns=None,
+        output_validator: validate.OutputValidator = None,
+        multi_type_dict = None,
+        raise_errors = True,
+        separator = None,
+        **kwargs
+    ):
+        """
+        FIXME doc
+        """
+
+        self.split = split(
+            properties_of,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            separator = separator,
+            **kwargs,
+        )
+
+        self.replace = replace(
+            properties_of,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs,
+        )
+
+        super().__init__(properties_of,
+            self.split.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+
+    def __call__(self, row, i):
+
+        for value in self.split.value_maker(self.split.columns, row, i):
+            if base.is_not_null(value):
+                logging.debug(f"VALUE {value}")
+                pseudorow = {"replace_column": value}
+                for val in self.replace.value_maker(["replace_column"], pseudorow, i):
+                    logging.debug(f"VAL {val}")
+                    value, edge_type, node_type, reverse_edge = self.create(val, row)
+                    yield value, edge_type, node_type, reverse_edge
