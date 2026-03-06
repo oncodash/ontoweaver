@@ -774,8 +774,9 @@ class translate(base.Transformer):
 
                 # Keep only the user-passed arguments that are not in possible YAML keywords.
                 more_args = {k:v for k,v in kwargs.items() if k not in mapping_args}
-                if more_args['sep'] == 'TAB': # FIXME why the fuck is this changed somehow?
-                    more_args['sep'] = '\t'
+                if "sep" in more_args:
+                    if more_args['sep'] == 'TAB': # FIXME why the fuck is this changed somehow?
+                        more_args['sep'] = '\t'
 
                 logger.debug(f"\t\t\tAdditional user-passed arguments for the load function: {more_args}")
 
