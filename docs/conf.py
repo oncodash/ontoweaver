@@ -76,5 +76,5 @@ html_context = {
 }
 
 html_show_sphinx = False
-project_copyright = "%Y, OntoWeaver project"
+project_copyright = "%Y: Johann Dreo, Marko Baric, Matthieu Najm, Claire Laudy — license CC-BY-SA⁴"
 

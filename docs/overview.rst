@@ -10,8 +10,8 @@ you to do that with just a **simple description** of the graph you want.
 
 .. figure:: OntoWeaver__very-simple-summary.svg
 
-    OntoWeaver allows you to create Semantic Knowledge Graphs from
-    either tabular data or data that can be queried in a document.
+    OntoWeaver allows you to create :ref:`Semantic Knowledge Graphs <basics_SKG>`
+    from either tabular data or data that can be queried in a document.
 
 
 
@@ -19,7 +19,8 @@ you to do that with just a **simple description** of the graph you want.
 
     <div id="killer-features">
         <p id="killer-caption">
-        OntoWeaver "killer features" that make it better than other solutions:
+        OntoWeaver "killer features" that make it
+        <a href="sections/comparison.html">better than other solutions</a>:
         </p>
 
         <div class="feature" id="feature-input">

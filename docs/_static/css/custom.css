@@ -1,3 +1,9 @@
+body {
+    font-family: Tahoma, Arial, Verdana, sans, sans-serif;
+    color: #404040;
+}
+
+
 p {
     text-align: justify;
 }
@@ -33,6 +39,28 @@ code {
     color: #0e7e9c !important;
 }
 
+em {
+    color: black;
+    font-weight: 500;
+    font-style: oblique 40eg;
+}
+
+a > em {
+    color: inherit;
+}
+
+h1 {
+    color: black;
+}
+
+h2 {
+    color: #151515;
+}
+
+h3 {
+    color: #303030;
+}
+
 .wy-side-nav-search {
     background-color: #0e7e9c;
 }
@@ -42,7 +70,7 @@ code {
     margin-bottom: 3em;
     margin-top: 3em;
     border: thin solid lightgrey;
-    border-radius: 2em;
+    border-radius: 1em;
     padding: 1em;
     box-shadow: 5px 5px 5px grey;
 }

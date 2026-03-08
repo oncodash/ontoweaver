@@ -53,6 +53,8 @@ classes in the *schema*.
    write your own schema to align terms.
 
 
+.. _common-mapping:
+
 Common Mapping
 ~~~~~~~~~~~~~~
 
