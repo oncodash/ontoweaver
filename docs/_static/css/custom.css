@@ -36,7 +36,10 @@ figcaption > p {
 }
 
 code {
-    color: #0e7e9c !important;
+    color: #0e6e8c !important;
+    font-size: 85% !important;
+    position: relative;
+    top: -0.08ex;
 }
 
 em {

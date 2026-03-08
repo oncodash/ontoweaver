@@ -4,6 +4,19 @@ Installation and quick setup guide
 Python Module
 ~~~~~~~~~~~~~
 
+OntoWeaver is published on the `Python Package Index <https://pypi.org/>`_,
+you may install it from there with ``pip install ontoweaver``.
+
+Users on Debian-derived Linux may have to use
+``sudo apt install python3-ontoweaver``.
+
+If thoses does not work on your system, you may still clone the repository
+and use UV (see the next section).
+
+
+Using your own repository clone
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The project is written in Python and has been tested with the
 `UV <https://docs.astral.sh/uv/>`__ environment manager.
 You can install the necessary dependencies in a virtual environment like this:
@@ -12,7 +25,7 @@ You can install the necessary dependencies in a virtual environment like this:
 
    git clone https://github.com/oncodash/ontoweaver.git
    cd ontoweaver
-   uv build
+   uv sync
 
 UV will create a virtual environment according to your configuration
 (either centrally or in the project folder).
@@ -33,6 +46,9 @@ CSV,
 `NetworkX <https://networkx.org>`_,
 … see `BioCypher’s
 documentation <https://biocypher.org/output/index.html>`__).
+
+To get access to those formats, you must install the corresponding software
+and Python modules.
 
 
 Graph visualization with Neo4j
