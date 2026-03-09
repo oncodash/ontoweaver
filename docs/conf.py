@@ -1,3 +1,22 @@
+def get_version_from_pyproject():
+    from pathlib import Path
+    import toml
+
+    version = "unknown"
+    # adopt path to your pyproject.toml
+    pyproject_toml_file = Path("../pyproject.toml")
+    print(pyproject_toml_file)
+    if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
+        data = toml.load(pyproject_toml_file)
+        # check project.version
+        if "project" in data and "version" in data["project"]:
+            version = data["project"]["version"]
+        else:
+            raise RuntimeError("No version tag found")
+    else:
+        raise RuntimeError("pyproject.toml not found")
+    return version
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -8,7 +27,7 @@
 
 project = 'OntoWeaver'
 author = 'Johann Dreo, Marko Baric, Claire Laudy, Matthieu Najm, Benno Schwikowski'
-release = '1.3.4'
+release = get_version_from_pyproject()
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -76,5 +95,5 @@ html_context = {
 }
 
 html_show_sphinx = False
-project_copyright = "%Y: Johann Dreo, Marko Baric, Matthieu Najm, Claire Laudy — license CC-BY-SA⁴"
+project_copyright = f"%Y: Johann Dreo, Marko Baric, Matthieu Najm, Claire Laudy — license CC-BY-SA⁴. Documentation for OntoWeaver version {get_version_from_pyproject()}"
 
