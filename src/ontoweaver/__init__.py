@@ -293,7 +293,7 @@ def autoschema(
     return extended_schema_filename
 
 
-def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, **kwargs):
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, progress_bar = False, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -317,7 +317,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     assert sort_key == None or callable(sort_key)
 
     logger.info("\tExtracting data...")
-    nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+    nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, **kwargs)
 
     # The fusion module is independant from OntoWeaver,
     # and thus operates on BioCypher's tuples.
@@ -326,7 +326,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     bc_edges = ow2bc(edges)
 
     logger.info("\tFusing data...")
-    fnodes, fedges = reconciliate(bc_nodes, bc_edges, reconciliate_sep, raise_errors)
+    fnodes, fedges = reconciliate(bc_nodes, bc_edges, reconciliate_sep, raise_errors, progress_bar)
 
     if sort_key:
         logger.info(f"Sort elements on: {sort_key}.")
@@ -372,7 +372,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
@@ -384,6 +384,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
             type_affix_sep: a string for separating the ID from the type affix
             validate_output: if True, calls the validate section of the mapping, if any
             raise_errors: if True, stop at the first error, if False, try to proceed anyway
+            progress_bar: if True, will show progress bars
             kwargs: arguments passed to the loader function
 
         Returns:
@@ -395,7 +396,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     nodes = []
     edges = []
 
-    data = with_loader([data], **kwargs)
+    data = with_loader([data], progress_bar = progress_bar, **kwargs)
     mapping_options = {}
 
     if with_mapping == "automap":
@@ -427,6 +428,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         type_affix_sep=type_affix_sep,
         parallel_mapping=parallel_mapping,
         raise_errors = raise_errors,
+        progress_bar = progress_bar,
     )
     logger.info(f"Run {type(adapter).__name__}...")
     if parallel_mapping > 0:
@@ -444,7 +446,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     return nodes, edges
 
 
-def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -456,6 +458,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
         validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
+        progress_bar: if True, will show progress bars
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
     Returns:
@@ -465,7 +468,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     nodes = []
     edges = []
 
-    lpf = loader.LoadPandasFile()
+    lpf = loader.LoadPandasFile(progress_bar)
     lpd = loader.LoadPandasDataframe()
     lrf = loader.LoadOWLFile()
     lrg = loader.LoadOWLGraph()
@@ -485,7 +488,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
                 logger.debug("  Loader allows this data type")
                 found_loader = True
                 try:
-                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, **kwargs)
+                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, **kwargs)
                 except Exception as e:
                     logger.error(f"While loading `{data}` and mapping with `{mapping}`.")
                     raise e
@@ -585,7 +588,7 @@ def reconciliate_write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_
     return import_file
 
 
-def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = "|", raise_errors = True) -> Tuple[str]:
+def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str = "|", raise_errors = True, progress_bar = False) -> Tuple[str]:
     """
     Reconciliates duplicated nodes and edges, then writes them using BioCypher.
 
@@ -593,6 +596,7 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
         nodes (list): A list of nodes to be reconciliated and written.
         edges (list): A list of edges to be reconciliated and written.
         reconciliate_sep (str): The separator to use for combining values in reconciliation. Defaults to None.
+        progress_bar: if True, will show progress bars
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
 
     Returns:
@@ -605,7 +609,7 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logging.info("Fuse duplicated nodes and edges...")
-    fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
+    fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors, progress_bar = progress_bar)
     logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
     return fnodes,fedges

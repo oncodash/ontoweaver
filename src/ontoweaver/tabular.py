@@ -49,6 +49,7 @@ class PandasAdapter(iterative.IterativeAdapter):
             type_affix_sep: Optional[str] = ":",
             parallel_mapping: int = 0,
             raise_errors = True,
+            progress_bar = False,
         ):
 
         super().__init__(
@@ -59,7 +60,8 @@ class PandasAdapter(iterative.IterativeAdapter):
             type_affix,
             type_affix_sep,
             parallel_mapping,
-            raise_errors
+            raise_errors,
+            progress_bar
         )
 
         # logger.info("DataFrame info:")
@@ -76,4 +78,8 @@ class PandasAdapter(iterative.IterativeAdapter):
 
     def iterate(self):
         return self.df.iterrows()
+
+
+    def __len__(self):
+        return len(self.df)
 

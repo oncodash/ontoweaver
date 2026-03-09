@@ -31,6 +31,7 @@ class JSONAdapter(iterative.IterativeAdapter):
             type_affix_sep: Optional[str] = ":",
             parallel_mapping: int = 0,
             raise_errors = True,
+            progress_bar = False,
         ):
 
         super().__init__(
@@ -41,7 +42,8 @@ class JSONAdapter(iterative.IterativeAdapter):
             type_affix,
             type_affix_sep,
             parallel_mapping,
-            raise_errors
+            raise_errors,
+            progress_bar, 
         )
 
         self.json_data = json.loads(json_str)

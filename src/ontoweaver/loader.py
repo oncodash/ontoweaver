@@ -1,11 +1,16 @@
 """ Classes related to loading input data.
 """
+
+import sys
 import glob
 import rdflib
 import pathlib
 import logging
+
 import json as pyjson
 import pandas as pd
+
+from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import tabular
@@ -23,6 +28,10 @@ class Loader(metaclass = ABSTRACT):
         Classes implementing this interface are in charge of checking if they can
         load the given data, and indicate which base.Adapter can manage what they load.
     """
+
+    def __init__(self, progress_bar = False):
+        self.progress_bar = progress_bar
+
     def __call__(self, data, **kwargs):
         """If the loader allows the passed data, then load and return them.
 
@@ -145,30 +154,30 @@ class LoadPandasFile(Loader):
         A Pandas DataFrame.
     """
 
-    def __init__(self):
+    def __init__(self, progress_bar = False):
             # We probably don't want NaN as a default,
             # since they tend to end up in a label.
             #'c' engine does not support regex separators (separators > 1 char and different
             # from '\s+' are interpreted as regex) which results in an error.
         self.read_funcs = {
-            '.csv'    : (pd.read_csv, {
+            '.csv'    : (self.read_csv_progress, {
                 'sep': ',',
                 'na_filter': True, # Do not load empty cells, if possible.
                 'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
                 'engine': 'python'
             }),
-            '.tsv'    : (pd.read_csv, {
+            '.tsv'    : (self.read_csv_progress, {
                 'sep': '\t',
                 'na_filter': True,
                 'dtype': str,
                 'engine': 'python'
             }),
-            '.txt'    : (pd.read_csv, {
+            '.txt'    : (self.read_csv_progress, {
                 'na_filter': True,
                 'dtype': str,
                 'engine': 'python'
             }),
-            '.dat'    : (pd.read_csv, {
+            '.dat'    : (self.read_csv_progress, {
                 'na_filter': True,
                 'dtype': str,
                 'engine': 'python'
@@ -194,6 +203,40 @@ class LoadPandasFile(Loader):
             '.hdf'    : (pd.read_hdf,     {'na_filter': True}),
             '.parquet': (pd.read_parquet, {}), # There's no na_filter in read_parquet.
         }
+
+        super().__init__(progress_bar)
+
+    def read_csv_progress(self, filename, hint=None, steps=100, estimate_lines=10, **kwargs):
+        if self.progress_bar:
+            del kwargs["progress_bar"]
+            chunks = []
+            if hint:
+                nb_lines = hint
+
+                # How many lines to read at each iteration.
+                if "chunksize" not in kwargs:
+                    chunksize = int(math.ceil(nb_lines / steps))
+
+                with alive_bar(steps, file=sys.stderr) as progress:
+                    for chunk in pd.read_csv(filename, chunksize=chunksize, **kwargs):
+                        chunks.append(chunk)
+                        progress()
+            else:
+                if "chunksize" not in kwargs:
+                    chunksize = 100
+
+                with alive_bar(file=sys.stderr) as progress:
+                    for chunk in pd.read_csv(filename, chunksize=chunksize, **kwargs):
+                        chunks.append(chunk)
+                        progress()
+
+            df = pd.concat(chunks, axis=0)
+
+            return df
+        else:
+            if "progress_bar" in kwargs:
+                del kwargs["progress_bar"]
+            return pd.read_csv(filename, **kwargs)
 
 
     def allows(self, filenames):
@@ -301,8 +344,9 @@ class LoadOWLFile(Loader):
         If you try to load several graphs, this will show a warning stating
         that it is quite improbable that this would work.
     """
-    def __init__(self):
+    def __init__(self, progress_bar = False):
         self.allowed = [".owl", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
+        super().__init__(progress_bar)
 
     def allows(self, filenames):
         # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
@@ -388,9 +432,10 @@ class LoadXMLFile(Loader):
         If you try to load several graphs, this will show a warning stating
         that it is quite improbable that this would work.
     """
-    def __init__(self):
+    def __init__(self, progress_bar = False):
         self.xl = LoadXMLString()
         self.allowed = [".xml"]
+        super().__init__(progress_bar)
 
     def allows(self, filenames):
         # assert type(data) != str and len(data) > 0 and all(i != '' for i in data), "A Loader expects a list (or an iterable) of data."
@@ -468,9 +513,10 @@ class LoadJSONString(Loader):
 class LoadJSONFile(Loader):
     """ Load the given JSON file.
     """
-    def __init__(self):
+    def __init__(self, progress_bar = False):
         self.allowed = [".json"]
         self.jl = LoadJSONString()
+        super().__init__(progress_bar)
 
     def allows(self, filenames):
         # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."

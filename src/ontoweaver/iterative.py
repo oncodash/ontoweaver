@@ -1,5 +1,7 @@
 """ Adapters managing iterable data.
 """
+
+import sys
 import logging
 import threading
 
@@ -7,6 +9,7 @@ import pandas as pd
 
 from typing import Optional
 from itertools import chain
+from alive_progress import alive_bar
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from abc import ABCMeta as ABSTRACT, abstractmethod
@@ -30,6 +33,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                  type_affix_sep: Optional[str] = ":",
                  parallel_mapping: int = 0,
                  raise_errors = True,
+                 progress_bar = False,
                  ):
         """
         Instantiate the adapter.
@@ -42,6 +46,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             type_affix_sep (Optional[str]): String used to separate a label from the type annotation (WARNING: double-check that your BioCypher config does not use the same character as a separator).
             parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
             raise_errors (bool): if True, will raise an exception when an error is encountered, else, will log the error and try to proceed.
+            progress_bar: if True, will show a progress bar while processing the data
         """
         super().__init__(raise_errors)
 
@@ -63,6 +68,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         self.parallel_mapping = parallel_mapping
 
         self.non_viable_rows = set()
+
+        self.progress_bar = progress_bar
 
 
     # FIXME not used, maybe will come in handy?
@@ -432,19 +439,37 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         elif self.parallel_mapping == 0:
             logger.debug("Processing data sequentially...")
-            for i, row in self.iterate():
-                local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
-                if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
-                    # logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
-                    self.non_viable_rows.add(i)
-                    continue
-                self.nodes_append(local_nodes)
-                self.edges_append(local_edges)
-                self.errors += local_errors
-                nb_rows += local_rows
-                nb_transformations += local_transformations
-                nb_nodes += local_nb_nodes
-                yield local_nodes, local_edges
+            if self.progress_bar:
+                with alive_bar(len(self), file=sys.stderr) as progress:
+                    for i, row in self.iterate():
+                        local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
+                        if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
+                            # logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                            self.non_viable_rows.add(i)
+                            continue
+                        self.nodes_append(local_nodes)
+                        self.edges_append(local_edges)
+                        self.errors += local_errors
+                        nb_rows += local_rows
+                        nb_transformations += local_transformations
+                        nb_nodes += local_nb_nodes
+                        yield local_nodes, local_edges
+                        progress()
+
+            else: # FIXME refactor to avoid duplicated code?
+                for i, row in self.iterate():
+                    local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes = process_row((i, row))
+                    if self._no_element(local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
+                        # logger.warning(f"Processing row {i} led to no viable element, I'll just skip it.")
+                        self.non_viable_rows.add(i)
+                        continue
+                    self.nodes_append(local_nodes)
+                    self.edges_append(local_edges)
+                    self.errors += local_errors
+                    nb_rows += local_rows
+                    nb_transformations += local_transformations
+                    nb_nodes += local_nb_nodes
+                    yield local_nodes, local_edges
 
         else:
             self.error(f"Invalid value for `parallel_mapping` ({self.parallel_mapping})."
@@ -638,6 +663,16 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 The index of the item and the item.
         """
         raise NotImplementedError
+
+
+    def __len__(self):
+        """ Return the (estimated) len of the data that the Adapter manages.
+
+            Returns:
+                An integer, or None if length is undefined.
+        """
+        return None
+
 
     def __del__(self):
         if self.non_viable_rows:

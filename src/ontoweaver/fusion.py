@@ -1,8 +1,12 @@
 """ High-level fusion module.
 """
+
+import sys
 import logging
-from abc import abstractmethod, ABCMeta
+
 from typing import Optional
+from alive_progress import alive_bar
+from abc import abstractmethod, ABCMeta
 
 from . import base
 from . import fuse
@@ -42,38 +46,55 @@ class Reduce(Fusioner):
     It returns a set of unique (fused) Elements.
     """
 
-    def __init__(self, fuser: fuse.Fuser):
+    def __init__(self,
+        fuser: fuse.Fuser,
+        progress_bar = False,
+    ):
         self.fuser = fuser
+        self.progress_bar = progress_bar
+
+
+    def step(self, key, elem_list):
+        self.fuser.reset()
+        assert(elem_list)
+        assert(len(elem_list) > 0)
+
+        # Manual functools.reduce without initial state.
+        it = iter(elem_list)
+        lhs = next(it)
+        logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
+        logger.debug(f"    with itself: {repr(lhs)}")
+        self.fuser(key, lhs, lhs)
+        logger.debug(f"lhs: {lhs}")
+        logger.debug(f"fuser.get: {self.fuser.get()}")
+        logger.debug(f"repr: {repr(self.fuser.get())}")
+        logger.debug(f"      = {repr(self.fuser.get())}")
+        for rhs in it:
+            logger.debug(f"    with `{rhs}`: {repr(rhs)}")
+            self.fuser(key, lhs, rhs)
+            logger.debug(f"      = {repr(self.fuser.get())}")
+
+        # Convert to final string.
+        f = self.fuser.get()
+        logger.debug(f"  Fused: {repr(f)}")
+        assert(issubclass(type(f), base.Element))
+
+        return f
+
 
     def __call__(self, congregater: congregate.Congregater) -> set[base.Element]:
-        # fusioned = set()
-        for key, elem_list in congregater.duplicates.items():
-            self.fuser.reset()
-            logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
-            assert(elem_list)
-            assert(len(elem_list) > 0)
-
-            # Manual functools.reduce without initial state.
-            it = iter(elem_list)
-            lhs = next(it)
-            logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
-            logger.debug(f"    with itself: {repr(lhs)}")
-            self.fuser(key, lhs, lhs)
-            logger.debug(f"lhs: {lhs}")
-            logger.debug(f"fuser.get: {self.fuser.get()}")
-            logger.debug(f"repr: {repr(self.fuser.get())}")
-            logger.debug(f"      = {repr(self.fuser.get())}")
-            for rhs in it:
-                logger.debug(f"    with `{rhs}`: {repr(rhs)}")
-                self.fuser(key, lhs, rhs)
-                logger.debug(f"      = {repr(self.fuser.get())}")
-
-            # Convert to final string.
-            f = self.fuser.get()
-            logger.debug(f"  Fused: {repr(f)}")
-            assert(issubclass(type(f), base.Element))
-            # fusioned.add(f)
-            yield f
+        if self.progress_bar:
+            with alive_bar(len(congregater), file=sys.stderr) as progress:
+                for key, elem_list in congregater.duplicates.items():
+                    logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
+                    f = self.step(key, elem_list)
+                    yield f
+                    progress()
+        else:
+            for key, elem_list in congregater.duplicates.items():
+                logger.debug(f"Fusion of {type(congregater).__name__} with {type(congregater.serializer).__name__} for key: `{key}`")
+                f = self.step(key, elem_list)
+                yield f
 
         logger.debug(f"Fusioned {len(congregater)} elements.")
 
@@ -108,7 +129,7 @@ def remap_edges(edges, ID_mapping):
         yield edge.as_tuple()
 
 
-def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
+def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True, progress_bar = False):
     """Operates a simple fusion on a list of nodes.
 
     A "reconciliation" finds nodes with duplicated IDs,
@@ -136,7 +157,7 @@ def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
     # NODES FUSION
     # Find duplicates
     on_ID = serialize.ID()
-    nodes_congregater = congregate.Nodes(on_ID)
+    nodes_congregater = congregate.Nodes(on_ID, progress_bar)
 
     for n in nodes_congregater(nodes):
         pass
@@ -151,7 +172,7 @@ def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
             merge_prop  = in_lists,
         )
 
-    nodes_fusioner = Reduce(node_fuser)
+    nodes_fusioner = Reduce(node_fuser, progress_bar)
     fusioned_nodes = set()
     for n in nodes_fusioner(nodes_congregater):
         fusioned_nodes.add(n)
@@ -163,7 +184,7 @@ def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True):
     return fusioned_nodes, node_fuser.ID_mapping
 
 
-def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
+def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True, progress_bar = False):
     """Operates a simple fusion on a list of edges.
 
     A "reconciliation" finds edges with duplicated source/target IDs & labels,
@@ -189,7 +210,7 @@ def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
     # EDGES FUSION
     # Find duplicates
     on_STL = serialize.edge.SourceTargetLabel()
-    edges_congregater = congregate.Edges(on_STL)
+    edges_congregater = congregate.Edges(on_STL, progress_bar)
 
     for e in edges_congregater(edges):
         pass
@@ -208,7 +229,7 @@ def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
             merge_target = use_last_target
         )
 
-    edges_fusioner = Reduce(edge_fuser)
+    edges_fusioner = Reduce(edge_fuser, progress_bar)
     fusioned_edges = set()
     for e in edges_fusioner(edges_congregater):
         fusioned_edges.add(e)
@@ -220,7 +241,7 @@ def reconciliate_edges(edges, reconciliate_sep = "|", raise_errors = True):
     return fusioned_edges
 
 
-def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True):
+def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True, progress_bar = False):
     """Operates a simple fusion on the given lists of elements.
 
     A "reconciliation" finds nodes with duplicated IDs
@@ -242,7 +263,7 @@ def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True):
     assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
-    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
+    fusioned_nodes, ID_mapping = reconciliate_nodes(nodes, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors, progress_bar = progress_bar)
 
     # EDGES REMAP
     # If we use on_ID/use_key,
@@ -259,7 +280,7 @@ def reconciliate(nodes, edges, reconciliate_sep = "|", raise_errors = True):
     else:
         remaped_edges = edges
 
-    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors)
+    fusioned_edges = reconciliate_edges(remaped_edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors, progress_bar = progress_bar)
 
     # Return as tuples
     return [n.as_tuple() for n in fusioned_nodes], [e.as_tuple() for e in fusioned_edges]

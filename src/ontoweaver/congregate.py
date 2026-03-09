@@ -1,6 +1,10 @@
 """ Information fusion features for finding duplicates.
 """
+
+import sys
 import logging
+
+from alive_progress import alive_bar
 from abc import ABCMeta as ABSTRACT, ABCMeta, abstractmethod
 
 from . import base
@@ -21,9 +25,13 @@ class Congregater(metaclass=ABCMeta):
     Derived classes should implement the __call__ method.
     """
 
-    def __init__(self, serializer: serialize.Serializer = serialize.All()):
+    def __init__(self,
+        serializer: serialize.Serializer = serialize.All(),
+        progress_bar = False,
+    ):
         self._serializer = serializer
         self._duplicates = {}
+        self.progress_bar = progress_bar
 
     def __len__(self):
         return len(self._duplicates)
@@ -36,8 +44,23 @@ class Congregater(metaclass=ABCMeta):
     def duplicates(self):
         return self._duplicates
 
-    @abstractmethod
     def __call__(self, biocypher_tuples):
+        """Call interface
+
+        Args:
+            biocypher_tuples: a list of tuples in the BioCypher format for nodes and/or edges.
+        """
+        if self.progress_bar:
+            with alive_bar(len(biocypher_tuples), file=sys.stderr) as progress:
+                for e in self.call(biocypher_tuples):
+                    yield e
+                    progress()
+        else:
+            for e in self.call(biocypher_tuples):
+                yield e
+
+    @abstractmethod
+    def call(self, biocypher_tuples):
         """Call interface
 
         Args:
@@ -49,7 +72,11 @@ class Congregater(metaclass=ABCMeta):
 class Congregate(Congregater):
     """A Congregater that detects duplicated elements of the given type (derivatirng from base.Element)."""
 
-    def __init__(self, elem_cls: base.Element, serializer: serialize.Serializer = serialize.All()):
+    def __init__(self,
+        elem_cls: base.Element,
+        serializer: serialize.Serializer = serialize.All(),
+        progress_bar = False,
+    ):
         """ Constructor.
 
         Args:
@@ -59,9 +86,9 @@ class Congregate(Congregater):
         logger.debug(f"Instantiate Congregate {type(self).__name__} for element {elem_cls.__name__} with serializer {type(serializer).__name__}")
         assert(issubclass(elem_cls, base.Element))
         self._elem_cls = elem_cls
-        super().__init__(serializer)
+        super().__init__(serializer, progress_bar)
 
-    def __call__(self, biocypher_tuples):
+    def call(self, biocypher_tuples):
         """Call interface
 
         Args:
@@ -82,23 +109,29 @@ class Congregate(Congregater):
 class Nodes(Congregate):
     """A Congregater that detects duplicated Nodes."""
 
-    def __init__(self, serializer: serialize.Serializer = serialize.All()):
+    def __init__(self,
+        serializer: serialize.Serializer = serialize.All(),
+        progress_bar = False,
+    ):
         """ Constructor.
 
         Args:
             serializer: a serialize.Serializer object giving the key on which to detect duplicated Nodes.
         """
-        super().__init__(base.Node, serializer)
+        super().__init__(base.Node, serializer, progress_bar)
 
 
 class Edges(Congregate):
     """A Congregater that detects duplicated Edges."""
 
-    def __init__(self, serializer: serialize.Serializer = serialize.All()):
+    def __init__(self,
+        serializer: serialize.Serializer = serialize.All(),
+        progress_bar = False,
+    ):
         """ Constructor.
 
         Args:
             serializer: a serialize.Serializer object giving the key on which to detect duplicated Nodes.
         """
-        super().__init__(base.GenericEdge, serializer)
+        super().__init__(base.GenericEdge, serializer, progress_bar)
 

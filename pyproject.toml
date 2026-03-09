@@ -46,7 +46,7 @@ dependencies = [
     "jsonargparse<5.0,>=4.39",
     "xdg-base-dirs<7.0.0,>=6.0.2",
     "pandera[io]<1.0.0,>=0.27.0",
-    "alive-progress<4.0,>=3.2",
+    "alive-progress>=3.2,<4.0",
     "fsspec<2026.0.0,>=2025.10.0",
     "natsort>5.0.0",
     "lxml>6.0.0",

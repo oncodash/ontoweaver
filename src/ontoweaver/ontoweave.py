@@ -172,8 +172,15 @@ def main():
         help="Overwrite the schema generated with --auto-schema" \
              " if it exists [default: do not overwrite the auto schema]")
 
+    do.add_argument("-P", "--progress-bars", action="store_true",
+        help="Show progress bars on potentially heavy processings" \
+        " (NOTE: using --log-level=DEBUG will mess up the display of progress bars).")
+
     do.add_argument("-p", "--parallel", metavar="NB_CORES", default="0",
-        help=f"Number of processor cores to use when processing with multi-threading. `0` means a sequential processing (no parallelization, the default). Use 'auto' to let {appname} do its best to use a good number. [default: %(default)s]")
+        help=f"Number of processor cores to use when processing with multi-threading." \
+         " `0` means a sequential processing (no parallelization, the default)." \
+        f" Use 'auto' to let {appname} do its best to use a good number." \
+         " NOTE: disables --progress-bars. [default: %(default)s]")
 
     do.add_argument("-i", "--import-script-run", action="store_true",
         help=f"If passed {appname} will call the import scripts created by Biocypher for you.")
@@ -211,7 +218,8 @@ def main():
         help="Character used by the Pandas module to separate values in the input file database. [default: guessed from the extension]")
 
     do.add_argument("-D", "--debug", action="store_true",
-        help="Run in debug mode. implies `--log-level DEBUG`, disables `--pass-errors`. NOTE: this will disable explicit return codes and show the call stack.")
+        help="Run in debug mode. Disables `--pass-errors`. NOTE: this will disable explicit error codes and show the call stack.")
+        # Implies `--log-level DEBUG`.
 
     asked = do.parse_args()
 
@@ -233,6 +241,7 @@ def main():
     logger.info(f"    config: `{asked.biocypher_config}`")
     logger.info(f"    schema: `{asked.biocypher_schema}`")
     logger.info(f"    auto-schema: `{asked.auto_schema}`")
+    logger.info(f"    progress-bars: `{asked.progress_bars}`")
     logger.info(f"    parallel: `{asked.parallel}`")
     logger.info(f"    prop-sep: `{asked.prop_sep}`")
     logger.info(f"    type-affix: `{asked.type_affix}`")
@@ -384,6 +393,7 @@ def main():
         validate_output = validate_output,
         sort_key = sort_key,
         raise_errors = not asked.pass_errors,
+        progress_bar = asked.progress_bars,
         **kw,
         # Error handling parameters
         debug = asked.debug,

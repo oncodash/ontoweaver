@@ -83,11 +83,12 @@ class OWLAutoAdapter(base.Adapter):
     def __init__(self,
                  graph: rdflib.Graph,
                  raise_errors = True,
+                 progress_bar = False,
                  **kwargs
                  ):
 
         super().__init__(
-            raise_errors
+            raise_errors,
         )
         self.graph = graph
         logger.debug(f"OWLAutoAdapter on {len(self.graph)} input RDF triples.")
@@ -159,7 +160,8 @@ class OWLAdapter(iterative.IterativeAdapter):
             type_affix: Optional[base.TypeAffixes] = base.TypeAffixes.suffix,
             type_affix_sep: Optional[str] = ":",
             parallel_mapping: int = 0,
-            raise_errors = True
+            raise_errors = True,
+            progress_bar = False,
         ):
 
         super().__init__(
@@ -170,8 +172,10 @@ class OWLAdapter(iterative.IterativeAdapter):
            type_affix,
            type_affix_sep,
            parallel_mapping,
-           raise_errors
+           raise_errors,
+           progress_bar,
         )
+
         self.graph = graph
         logger.debug(f"OWLAdapter on {len(self.graph)} input RDF triples.")
 
