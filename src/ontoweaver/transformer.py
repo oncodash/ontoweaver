@@ -1256,9 +1256,7 @@ class split_replace(base.Transformer):
 
         for value in self.split.value_maker(self.split.columns, row, i):
             if base.is_not_null(value):
-                logging.debug(f"VALUE {value}")
                 pseudorow = {"replace_column": value}
                 for val in self.replace.value_maker(["replace_column"], pseudorow, i):
-                    logging.debug(f"VAL {val}")
                     value, edge_type, node_type, reverse_edge = self.create(val, row)
                     yield value, edge_type, node_type, reverse_edge
