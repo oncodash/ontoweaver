@@ -180,9 +180,10 @@ class split(base.Transformer):
 
                 val = row[key]
                 if isinstance(val, str):
-                    items = val.split(self.separator)
+                    items = re.split(pattern=repr(self.separator)[1:-1],
+                                         string=val)
                     for item in items:
-                        yield item
+                        yield item.strip() # Remove leading and trailing whitespace
 
                 elif not base.is_not_null(val):
                     logger.debug(f"Value is null, I'll let my caller skip it.")
