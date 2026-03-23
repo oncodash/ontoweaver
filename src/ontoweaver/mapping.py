@@ -773,100 +773,124 @@ class YamlParser(base.MappingParser):
         logger.debug("Declare types...")
         # Iterate through the list of target transformers and extract the information needed to create the
         # corresponding classes.
-        for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
-            if not hasattr(target_transformer_yaml_dict, "items"):
-                target_transformer_yaml_dict = {target_transformer_yaml_dict: []}
+        try:
+            for transformer_index, target_transformer_yaml_dict in enumerate(transformers_list):
+                if not hasattr(target_transformer_yaml_dict, "items"):
+                    target_transformer_yaml_dict = {target_transformer_yaml_dict: []}
 
-            for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
+                for transformer_type, transformer_keyword_dict in target_transformer_yaml_dict.items():
 
-                target_branching = False
-                elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index, transformers, properties_of)
-                if elements is None:
-                    continue
-                # Transformer passed sanity check, unpack the returned elements.
-                else:
-                    # FIXME double-check why subject is unused here.
-                    columns, target, edge, subject, reverse_relation = elements
+                    target_branching = False
+                    elements = self._check_target_sanity(transformer_keyword_dict, transformer_type, transformer_index, transformers, properties_of)
+                    if elements is None:
+                        continue
+                    # Transformer passed sanity check, unpack the returned elements.
+                    else:
+                        # FIXME double-check why subject is unused here.
+                        columns, target, edge, subject, reverse_relation = elements
 
-                gen_data = self.get_not(base.MappingParser.k_target + base.MappingParser.k_edge + base.MappingParser.k_columns + base.MappingParser.k_final_type + base.MappingParser.k_reverse_edge, pconfig=transformer_keyword_dict)
+                    gen_data = self.get_not(base.MappingParser.k_target + base.MappingParser.k_edge + base.MappingParser.k_columns + base.MappingParser.k_final_type + base.MappingParser.k_reverse_edge, pconfig=transformer_keyword_dict)
 
-                # Extract the final type if defined in the mapping.
-                final_type = self.get(base.MappingParser.k_final_type, pconfig=transformer_keyword_dict)
-                final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
-                                                                  metadata_list, columns, properties_of)
+                    # Extract the final type if defined in the mapping.
+                    final_type = self.get(base.MappingParser.k_final_type, pconfig=transformer_keyword_dict)
+                    final_type_class = self._extract_final_type_class(final_type, possible_target_types, metadata,
+                                                                      metadata_list, columns, properties_of)
 
-                # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
-                # from_subject` is used in the transformer class to refer to the source node type.
-                if 'from_source' in gen_data:
-                    gen_data['from_subject'] = gen_data['from_source']
-                    del gen_data['from_source']
+                    # Harmonize the use of the `from_subject` and `from_source` synonyms in the configuration, because
+                    # from_subject` is used in the transformer class to refer to the source node type.
+                    if 'from_source' in gen_data:
+                        gen_data['from_subject'] = gen_data['from_source']
+                        del gen_data['from_source']
 
-                multi_type_dictionary = {}
+                    multi_type_dictionary = {}
 
-                # The target transformer is a simple transformer
-                # if it does not have a `match` clause.
-                # We create a simple multi_type_dictionary,
-                # with a "None" key, to indicate that no branching is needed.
-                if target and edge:
-                    # FIXME double-check why edge_t is unused here.
-                    edge_t, target_t = self._make_target_classes(target, properties_of, edge, source_t, final_type_class, reverse_relation, possible_target_types, possible_edge_types, multi_type_dictionary)
-                    # Parse the validation rules for the output of the transformer.
-                    # Each transformer gets its own
-                    # instance of the OutputValidator with (at least) the
-                    # default output validation rules.
+                    # The target transformer is a simple transformer
+                    # if it does not have a `match` clause.
+                    # We create a simple multi_type_dictionary,
+                    # with a "None" key, to indicate that no branching is needed.
+                    assert (target and edge) or (not target and not edge)
+                    if target and edge:
+                        # FIXME double-check why edge_t is unused here.
+                        edge_t, target_t = self._make_target_classes(
+                            target,
+                            properties_of,
+                            edge,
+                            source_t,
+                            final_type_class,
+                            reverse_relation,
+                            possible_target_types,
+                            possible_edge_types,
+                            multi_type_dictionary
+                        )
+                        # Parse the validation rules for the output of the transformer.
+                        # Each transformer gets its own
+                        # instance of the OutputValidator with (at least) the
+                        # default output validation rules.
+                        output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=transformer_keyword_dict)
+                        # output_validator = self._make_output_validator(output_validation_rules)
+                        logger.debug(f"\tDeclare transformer `{transformer_type}`...")
+
+                    # The target transformer is a branching transformer
+                    # if it has a `match` clause.
+                    # We create a branching dictionary.
+                    # The keys of the dictionary are the regex patterns to be matched
+                    # against the extracted value of the column.
+                    elif "match" in gen_data:
+
+                        target_branching = True
+                        self._make_branching_dict(
+                            subject = False,
+                            match_parser = gen_data["match"],
+                            properties_of = properties_of,
+                            metadata_list = metadata_list,
+                            metadata = metadata,
+                            columns = columns,
+                            final_type_class = final_type_class,
+                            multi_type_dictionary = multi_type_dictionary,
+                            possible_node_types = possible_target_types,
+                            possible_edge_types = possible_edge_types
+                        )
+
+                    else:
+                        self.error(
+                            "You must declare either a transformer with both"
+                            " `to_object` AND `via_relation`, or a transformer"
+                            " with a `match` section.",
+                            exception = exceptions.ParsingDeclarationsError
+                        )
+
+                    # Parse the validation rules for the output of the transformer. Each transformer gets its own
+                    # instance of the OutputValidator with (at least) the default output validation rules.
                     output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=transformer_keyword_dict)
-                    # output_validator = self._make_output_validator(output_validation_rules)
-                    logger.debug(f"\tDeclare transformer `{transformer_type}`...")
+                    output_validator = self._make_output_validator(output_validation_rules)
 
-                # The target transformer is a branching transformer
-                # if it has a `match` clause.
-                # We create a branching dictionary.
-                # The keys of the dictionary are the regex patterns to be matched
-                # against the extracted value of the column.
-                if "match" in gen_data:
-
-                    target_branching = True
-                    self._make_branching_dict(
-                        subject = False,
-                        match_parser = gen_data["match"],
-                        properties_of = properties_of,
-                        metadata_list = metadata_list,
-                        metadata = metadata,
-                        columns = columns,
-                        final_type_class = final_type_class,
+                    label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
+                    target_transformer = self.make_transformer(
+                        transformer_type = transformer_type,
                         multi_type_dictionary = multi_type_dictionary,
-                        possible_node_types = possible_target_types,
-                        possible_edge_types = possible_edge_types
+                        branching_properties = properties_of if target_branching else None,
+                        properties = properties_of.get(
+                            target_t.__name__,
+                            {}) if not target_branching else None,
+                        columns = columns,
+                        output_validator = output_validator,
+                        label_maker = label_maker,
+                        **gen_data
                     )
+                    transformers.append(target_transformer)
+                    # Declare the metadata for the target and edge types.
 
-                # Parse the validation rules for the output of the transformer. Each transformer gets its own
-                # instance of the OutputValidator with (at least) the default output validation rules.
-                output_validation_rules = self.get(base.MappingParser.k_validate_output, pconfig=transformer_keyword_dict)
-                output_validator = self._make_output_validator(output_validation_rules)
-
-                label_maker = self._make_target_label_maker(target, edge, gen_data, columns, transformer_index, multi_type_dictionary)
-                target_transformer = self.make_transformer(
-                    transformer_type = transformer_type,
-                    multi_type_dictionary = multi_type_dictionary,
-                    branching_properties = properties_of if target_branching else None,
-                    properties = properties_of.get(
-                        target_t.__name__,
-                        {}) if not target_branching else None,
-                    columns = columns,
-                    output_validator = output_validator,
-                    label_maker = label_maker,
-                    **gen_data
-                )
-                transformers.append(target_transformer)
-                # Declare the metadata for the target and edge types.
-
-                extracted_metadata = self._extract_metadata(base.MappingParser.k_metadata_column, metadata_list, metadata, target, columns)
-                if extracted_metadata:
-                    metadata.update(extracted_metadata)
-                if edge:
-                    extracted_metadata = self._extract_metadata(base.MappingParser.k_metadata_column, metadata_list, metadata, edge, None)
+                    extracted_metadata = self._extract_metadata(base.MappingParser.k_metadata_column, metadata_list, metadata, target, columns)
                     if extracted_metadata:
                         metadata.update(extracted_metadata)
+                    if edge:
+                        extracted_metadata = self._extract_metadata(base.MappingParser.k_metadata_column, metadata_list, metadata, edge, None)
+                        if extracted_metadata:
+                            metadata.update(extracted_metadata)
+
+        except Exception as err:
+            logger.error(f"ERROR for {transformer_index}th transformer of type `{transformer_type}`.")
+            raise err
 
         return transformers, possible_target_types, possible_edge_types, metadata
 
