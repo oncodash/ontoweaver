@@ -1,13 +1,10 @@
 # OntoWeaver
 
-OntoWeaver is a tool for transforming iterable data (like tables)
-in Semantic Knowledge Graphs (SKG) databases.
+OntoWeaver is a tool that **automatize** the creation of **knowledge graphs** from **existing data**.
 
-OntoWeaver allows writing a simple declarative mapping to express how columns from
-a table should be converted as typed nodes, edges or properties in an SKG.
+It is made for people who want to **easily define their own graph structure**. Why having to use a knowledge graph that does not fit the question you are asking when you can easily make one that you perfectly understands? OntoWeaver allows you to do that with just a **simple description** of the graph you want.
 
 ![Diagram showing that OntoWeaver needs ontologies, tabular data and graph schema to produce a Semantic Knowledge Graph.](https://raw.githubusercontent.com/oncodash/ontoweaver/refs/heads/main/docs/OntoWeaver__simple-summary.svg)
-
 
 SKG databases allows for an easy integration of very heterogeneous data, and
 OntoWeaver brings a reproducible approach to building them.
@@ -18,6 +15,15 @@ to automatically reconfigure a new SKG from the input data, each time you need i
 OntoWeaver has been tested on large scale biomedical use cases
 (think: millions of nodes), and we can guarantee that it is simple to operate
 by anyone having a basic knowledge of programming.
+
+
+## Why OntoWeaver and not others?
+
+OntoWeaver "killer features" that make it [better than other solutions](https://ontoweaver.readthedocs.io/en/latest/sections/comparison.html):
+- Reads *several data* file formats, tables or documents.
+- Lets you try various graph *structures* and contents.
+- Exports to *several knowkedge graph databases* and formats.
+- Allows *reusing* others' database mapping modules easily.
 
 
 ## Basics
@@ -53,19 +59,16 @@ metadata: # Optional properties added to every node and edge.
 ```
 
 OntoWeaver can read anything that [Pandas](https://pandas.pydata.org/) can load,
-which means a lot of tabular formats. It can also parse graphs from OWL files.
+which means a lot of tabular formats. It can also parse graphs from OWL, and query XML or JSON files.
 
 
 ### Usage
-
-To configure your SKG, you need input data, a mapping (see above), but also
-a BioCyhper configuration: a [schema.yaml](https://biocypher.org/BioCypher/learn/tutorials/tutorial001_basics/#schema-configuration) and a [ibiocypher_config.yaml](https://biocypher.org/BioCypher/reference/biocypher-config/).
 
 In most cases, you will just need to call the `ontoweave` command to build-up
 the SKG you prepared:
 
 ```sh
-ontoweave my_data.csv:my_mapping.yaml --import-script-run
+ontoweave my_data.csv:my_mapping.yaml --import-script-run --auto-schema
 ```
 
 If you're using OntoWeaver from its Git repository, you will have to us UV:
