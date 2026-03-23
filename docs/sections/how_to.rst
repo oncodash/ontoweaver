@@ -550,3 +550,40 @@ of the nesting. For instance:
             to_object: word  # The usual.
             via_relation: has_fr_translation
 
+
+How can I link from nodes created by a user-made transformer?
+-------------------------------------------------------------
+
+Let's say you want to use a `from_subject` clause targeting a node type that
+is created by a user-made transformer:
+
+.. code:: yaml
+
+    row:
+        map:
+            column: source
+            to_subject: source
+    transformers:
+        - My_Own_Transformer  # (sometime) output a `target_A`, sometime a `target_B`
+        - map:
+            from_subject: target_A
+            via_relation: edge
+
+In this case, the `map` transformer will create a `(source)-[edge]->(target_A)`,
+but ONLY if a node of type `target_A` has been created
+(here by the `My_Own Transformer`).
+
+.. warning::
+
+    If no node of the expected type has been created, such a transformation will
+    be silently ignored.
+
+.. note::
+    
+    If several nodes of the expected type are created, they will ALL be linked.
+
+.. warning::
+
+    The user-made transformer **MUST** be declared **BEFORE** the one willing to
+    use its created node types.
+
