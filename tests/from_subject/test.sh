@@ -27,11 +27,22 @@ echo "Extracting test data..." >&2
 csvcut --tabs --columns source,source_genesymbol,target_genesymbol,entity_type_source,entity_type_target,target,consensus_direction,consensus_stimulation --delete-empty-rows omnipath.tsv > cutpath.csv
 # From there, this is a csv
 
-csvgrep --columns entity_type_target --match protein  cutpath.csv | head -n $count >> path.csv
-csvgrep --columns entity_type_target --match complex  cutpath.csv | head -n $count >> path.csv
+# csvgrep --columns entity_type_target --match protein  cutpath.csv | head -n $count >> path.csv
+# csvgrep --columns entity_type_target --match complex  cutpath.csv | head -n $count >> path.csv
 
-csvgrep --columns entity_type_source --match protein  cutpath.csv | head -n $count >> path.csv
-csvgrep --columns entity_type_source --match complex  cutpath.csv | head -n $count >> path.csv
+# csvgrep --columns entity_type_source --match protein  cutpath.csv | head -n $count >> path.csv
+# csvgrep --columns entity_type_source --match complex  cutpath.csv | head -n $count >> path.csv
+
+python3 -c "
+import pandas as pd
+df = pd.read_csv('cutpath.csv')
+result = (
+    df.groupby(['entity_type_source', 'entity_type_target'], group_keys=False)
+      .apply(lambda x: x.sample(1))  # Take 1 random row per group
+      .reset_index(drop=True)
+)
+result.to_csv('path.csv', index=False)
+"
 
 echo "Weaving..." >&2
 if=$(uv run ontoweave path.csv:path.yaml --biocypher-schema schema.yaml  --register path.py --debug --log-level DEBUG)
