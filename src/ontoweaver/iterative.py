@@ -313,7 +313,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         exception = exceptions.DeclarationError ))
 
                 # return source_node_id
-                yield source_node_id
+                yield source_node_id, subject_node_type
 
             else:
                 local_errors.append(self.error(
@@ -352,16 +352,18 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         return target_node_id
 
+
     def _make_alternative_source_node_id(self, row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors):
         """
         Helper function to create an alternative source node id, in case the target transformer has a `from_subject` attribute.
         """
 
-        found_valid_subject = False
+        found_subject = False
+        made_edge = False
 
         for t in self.transformers:
             if transformer.from_subject == t.target_type:
-                found_valid_subject = True
+                found_subject = True
                 for s_id, s_edge, s_node, s_reverse_edge in t(row, i):
                     if s_id and s_edge and s_node:
                         if t.final_type:
@@ -369,29 +371,26 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         subject_id = s_id
                         subject_node_id = self.make_id(t.target_type, subject_id)
                         logger.debug(
-                            f"\t\tMake edge from {subject_node_id} toward {target_node_id}")
+                            f"\t\tMake edge from `{subject_node_id}` toward `{target_node_id}`")
                         local_edges.append(
                             self.make_edge(edge_t=target_edge, id_source=subject_node_id,
                                            id_target=target_node_id,
                                            properties=self.properties(target_edge.fields(),
                                                                       row, i, s_edge, s_node)))
+                        made_edge = True
 
                     else:
                         local_errors.append(self.error(
                             f"No valid identifiers from {t} for {i}th row, when trying to change default subject type",
-                            f"by {transformer} with `from_subject` attribute.",
+                            f"by `{transformer}` with `from_subject` attribute.",
                             indent=7, section="transformers", index=j,
                             exception=exceptions.TransformerDataError))
 
             else:
-                # The transformer instance type does not match the type in the `from_subject` attribute.
+                # This t's target_type does not match the type in the `from_subject` attribute.
                 continue
 
-        if not found_valid_subject:
-            local_errors.append(self.error(f"\t\t\tInvalid subject declared from {transformer}."
-                                           f" The subject you declared in the `from_subject` directive: `"
-                                           f"{transformer.from_subject}` must not be the same as the default subject type.",
-                                           exception=exceptions.ConfigError))
+        return found_subject, made_edge
 
 
     def _no_element(self, local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
@@ -495,6 +494,51 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             logger.info(
                 f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
 
+
+    def _make_this_edge(self,
+        local_edges,
+        i,
+        row,
+        source_node_id,
+        target_node_id,
+        target_edge,
+        target_node,
+        reverse_relation
+    ):
+        local_edges.append(
+            self.make_edge(
+                edge_t=target_edge,
+                id_target=target_node_id,
+                id_source=source_node_id,
+                properties=self.properties(
+                    target_edge.fields(),
+                    row,
+                    i,
+                    target_edge,
+                    target_node
+                )
+            )
+        )
+
+        if reverse_relation:
+            logger.info(f"\t\t\tMake reverse edge `{reverse_relation.__name__}` from `{target_node_id}` to `{source_node_id}`")
+            local_edges.append(
+                self.make_edge(
+                    edge_t=reverse_relation,
+                    id_target=source_node_id,
+                    id_source=target_node_id,
+                    properties=self.properties(
+                        reverse_relation.fields(),
+                        row,
+                        i,
+                        reverse_relation,
+                        source_node_id.__class__
+                    )
+                )
+            )
+
+
+
     # =============
     # Run function
     # =============
@@ -527,10 +571,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             logger.debug(f"Process row {i}...")
             local_rows += 1
 
-            # source_node_id = self._make_default_source_node_id(row, i, local_nodes, local_errors)
-            # if not source_node_id:
-            #     return None, None, None, None, None, None
-            for source_node_id in self._make_default_source_node_id(row, i, local_nodes, local_errors):
+            for source_node_id, subject_node_type in self._make_default_source_node_id(row, i, local_nodes, local_errors):
                 logger.debug(f"Got subject node id: `{source_node_id}`")
                 if source_node_id:
                     local_nb_nodes += 1
@@ -559,24 +600,19 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                 local_errors
                             )
 
-                            #If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
-                            #and we move to the next iteration of the loop.
+                            # If no valid target node id was created, an error is logged in the `_make_target_node_id` function,
+                            # and we move to the next iteration of the loop.
                             if target_node_id is None:
                                 continue
                             else:
                                 local_nb_nodes += 1
 
-                                # If a `from_subject` attribute is present in the transformer, loop over the transformer
-                                # list to find the transformer instance mapping to the correct type, and then label_maker new
-                                # subject id.
-
-                                # FIXME add hook functions to be overloaded.
-
-                                # FIXME: Make from_subject reference a list of subjects instead of using the add_edge function.
-
+                                # If a `from_subject` attribute is present in the transformer,
+                                # loop over the transformer list to find the transformer instance
+                                # mapping to the correct type.
                                 if hasattr(transformer, "from_subject"):
 
-                                    self._make_alternative_source_node_id(
+                                    found_subject_in_transformers, made_edge = self._make_alternative_source_node_id(
                                         row,
                                         i,
                                         transformer,
@@ -587,39 +623,81 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                         local_errors
                                     )
 
-                                else: # no attribute `from_subject` in `transformer`
-                                    logger.debug(f"\t\tMake edge {target_edge.__name__} from {source_node_id} toward {target_node_id}")
-                                    local_edges.append(
-                                        self.make_edge(
-                                            edge_t=target_edge,
-                                            id_target=target_node_id,
-                                            id_source=source_node_id,
-                                            properties=self.properties(
-                                                target_edge.fields(),
-                                                row,
-                                                i,
-                                                target_edge,
-                                                target_node
-                                            )
-                                        )
-                                    )
+                                    if found_subject_in_transformers:
+                                        logger.debug(f"\t\t\tFound from_subject in explicit transformers.")
+                                        # assert made_edge  # FIXME double-check
 
-                                    if reverse_relation:
-                                        logger.info(f"\t\t\tMake reverse edge {reverse_relation.__name__} from {target_node_id} to {source_node_id}")
-                                        local_edges.append(
-                                            self.make_edge(
-                                                edge_t=reverse_relation,
-                                                id_target=source_node_id,
-                                                id_source=target_node_id,
-                                                properties=self.properties(
-                                                    reverse_relation.fields(),
-                                                    row,
-                                                    i,
-                                                    reverse_relation,
-                                                    source_node_id.__class__
-                                                )
+                                    if not found_subject_in_transformers:
+                                        # No other transformer has a target_type that corresponds
+                                        # to the from_subject of this transformer.
+
+                                        if transformer.from_subject == subject_node_type.__name__:
+                                            # so, either the user asked to link from subject,
+                                            # (which is the default anyway),
+                                            # either they use a match in the subject and want to
+                                            # link only to one of the matching types,
+                                            # and at this row it appears this is the right one.
+                                            # In any case, we do want to make the edge.
+                                            self._make_this_edge(
+                                                local_edges,
+                                                i,
+                                                row,
+                                                source_node_id,
+                                                target_node_id,
+                                                target_edge,
+                                                target_node,
+                                                reverse_relation
                                             )
-                                        )
+                                            logger.debug(f"\t\t\tFound from_subject in current subject.")
+                                        else:
+                                            # Here, we found no explicitely declared transformer
+                                            # with the needed target type, so we rely on looking
+                                            # into the local nodes created so far, if there is one of
+                                            # the needed type.
+                                            implicit_nodes_found = []
+                                            for n in local_nodes:
+                                                logger.debug(f"{n}")
+                                                logger.debug(f"    {n.label} =? {transformer.from_subject}")
+                                                if n.label == transformer.from_subject:
+                                                    implicit_nodes_found.append(n)
+
+                                            if implicit_nodes_found:
+                                                for local_subject in implicit_nodes_found:
+                                                    self._make_this_edge(
+                                                        local_edges,
+                                                        i,
+                                                        row,
+                                                        local_subject.id,
+                                                        target_node_id,
+                                                        target_edge,
+                                                        target_node,
+                                                        reverse_relation
+                                                    )
+                                                logger.debug(f"\t\t\tFound from_subject in implicit node.")
+                                            else:
+                                                # self.error(
+                                                logger.debug(
+                                                    f"\t\t\tSubject declared from `{transformer}` with "
+                                                    f" `from_subject: {transformer.from_subject}`"
+                                                     " cannot be found in another transformer's `to_object`"
+                                                     " in a match section"
+                                                     " or in nodes created by a user-made transformers."
+                                                     " I'll just skip it silently",
+                                                     # exception = exceptions.TransformerConfigError
+                                                )
+
+                                else: # no attribute `from_subject` in `transformer`
+                                    logger.debug(f"\t\tMake edge `{target_edge.__name__}` from `{source_node_id}` toward `{target_node_id}`")
+                                    self._make_this_edge(
+                                        local_edges,
+                                        i,
+                                        row,
+                                        source_node_id,
+                                        target_node_id,
+                                        target_edge,
+                                        target_node,
+                                        reverse_relation
+                                    )
                     except Exception as err:
                         logger.error(f"Error while calling the {j}th transformer on the {i}th row, after having yielded {k} items.")
                         raise err
@@ -687,3 +765,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 " all possible values. Run with the DEBUG log level to see the row numbers.")
             logger.debug(", ".join(str(i) for i in self.non_viable_rows))
 
+        if self.errors:
+            logger.error(f"Recorded {len(self.errors)} errors:")
+            for err in set(self.errors):
+                logger.error(f"\t{err}")

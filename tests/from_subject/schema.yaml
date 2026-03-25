@@ -1,0 +1,66 @@
+########################
+# NODES
+########################
+
+# Defined in alphabetical order
+
+source gene:
+    is_a: gene
+    represented_as: node
+    label_in_input: source_gene
+target gene:
+    is_a: gene
+    represented_as: node
+    label_in_input: target_gene
+gene:
+    represented_as: node
+    label_in_input: gene
+source complex:
+    is_a: macromolecular_complex
+    represented_as: node
+    input_label: source_complex
+target complex:
+    is_a: macromolecular_complex
+    represented_as: node
+    input_label: target_complex
+macromolecular complex:
+    represented_as: node
+    input_label: macromolecular_complex 
+    # Protein
+
+source protein:
+    is_a: protein
+    represented_as: node
+    input_label: source_protein
+target protein:
+    is_a: protein
+    represented_as: node
+    input_label: target_protein
+protein:
+    represented_as: node
+    input_label: protein
+    ########################
+# EDGES
+########################
+
+### FUNCTIONAL PROTEIN PROTEIN INTERACTIONS
+
+undirected molecular interaction:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: undirected_molecular_interaction
+stimulation:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: stimulation
+inhibition:
+    is_a: pairwise molecular interaction
+    represented_as: edge
+    input_label: inhibition
+    ### TRASNCRIPT TO GENE RELATIONSHIP
+
+transcript to gene relationship:
+    # is_a: transcript to gene relationship
+    represented_as: edge
+    input_label: transcript_to_gene_relationship
+
