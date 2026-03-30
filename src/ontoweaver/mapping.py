@@ -2,6 +2,7 @@
 """
 import yaml
 import logging
+import inspect
 
 import pandera.pandas as pa
 
@@ -417,10 +418,13 @@ class YamlParser(base.MappingParser):
 
             for transformer_type, field_dict in transformer_types.items():
                 if not field_dict:
-                    logger.warning(f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
+                    if hasattr(transformer, transformer_type):
+                        trans_class = getattr(transformer, transformer_type)
+                        if not "transformer.py" in inspect.getfile(trans_class):
+                            logger.warning(
+                               f"There is no field for the {n_transformer}th transformer: '{transformer_type}',"
                                f" did you forget an indentation?"
-                               f" If it is a User defined trasnformer, please disregard this warning. ")
-
+                               f" If it is a User defined transformer, please disregard this warning. ")
                     continue
 
                 if any(field in field_dict for field in base.MappingParser.k_properties):
