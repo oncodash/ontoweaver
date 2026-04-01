@@ -12,7 +12,20 @@ row:
 
 transformers:
     - path
-    - map:
+    # - map:
+    #     id_from_column: source_genesymbol
+    #     match_type_from_column: entity_type_source
+    #     match:
+    #       - protein:
+    #             from_subject: source_protein
+    #             to_object: source_gene
+    #             final_type: gene
+    #             via_relation: transcript_to_gene_relationship
+    - translate:
+        translations_file: hgnc_complete_set.txt
+        translate_from: symbol
+        translate_to: ensembl_gene_id
+        sep: "\t"
         id_from_column: source_genesymbol
         match_type_from_column: entity_type_source
         match:
