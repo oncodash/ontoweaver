@@ -1065,7 +1065,7 @@ class boolean(base.Transformer):
 
     class ValueMaker(make_value.ValueMaker):
 
-        def __init__(self, raise_errors: bool = True, output_true = "True", output_false = "False", consider_true = None, consider_false = None):
+        def __init__(self, raise_errors: bool = True, output_true = "true", output_false = "false", consider_true = None, consider_false = None):
             if (not consider_true and consider_false) or (consider_true and not consider_false):
                 msg = "I can only handle both `consider_true` and `consider_false` being `None` at the same time. But here, one of them is `None` and the other is not."
                 logger.error(msg)
@@ -1108,7 +1108,7 @@ class boolean(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 value = row[key]
-                if not value:
+                if np.isnan(value):
                     continue
                 value = str(value)
 
@@ -1136,8 +1136,8 @@ class boolean(base.Transformer):
             output_validator: validate.OutputValidator = None,
             multi_type_dict = None,
             raise_errors = True,
-            output_true = "True",
-            output_false = "False",
+            output_true = "true",
+            output_false = "false",
             consider_true = None,
             consider_false = None,
             **kwargs
