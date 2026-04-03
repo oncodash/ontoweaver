@@ -1108,6 +1108,8 @@ class boolean(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 value = row[key]
+                if value is None:
+                    continue
                 if np.isnan(value):
                     continue
                 value = str(value)
