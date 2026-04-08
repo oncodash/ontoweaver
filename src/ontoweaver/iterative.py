@@ -385,11 +385,12 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             return transformer.from_subject
         else:
             fromsubject = []
-            for d in transformer.match:
-                for subd in d.values():
-                    for k in subd:
-                        if k == "from_subject":
-                            fromsubject.append(subd[k])
+            if hasattr(transformer, "match"):
+                for d in transformer.match:
+                    for subd in d.values():
+                        for k in subd:
+                            if k == "from_subject":
+                                fromsubject.append(subd[k])
             if len(fromsubject) == 1:
                 return fromsubject[0]
             else:
@@ -653,7 +654,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                     k = 0
                     try:
                         for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
-                            logger.debug(f"\t\t{k}th element yielded by transformer")
+                            logger.debug(f"\t\t{k}th element yielded by transformer:")
                             k += 1
                             target_node_id = self._make_target_node_id(
                                 row,
