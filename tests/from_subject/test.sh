@@ -34,16 +34,7 @@ fi
 if [[ -f "path.csv" ]] ; then
     echo "Reuse existing 'path.csv'" >&2
 else
-    python3 -c "
-    import pandas as pd
-    df = pd.read_csv('cutpath.csv')
-    result = (
-        df.groupby(['entity_type_source', 'entity_type_target'], group_keys=False)
-          .apply(lambda x: x.sample(1))  # Take 1 random row per group
-          .reset_index(drop=True)
-    )
-    result.to_csv('path.csv', index=False)
-    "
+    python3 subset_data_for_test.py
 fi
 
 echo "Weaving..." >&2
