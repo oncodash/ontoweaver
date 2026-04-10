@@ -309,7 +309,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                     node = True
                                 )
                             ),
-                            final_type
+                            final_type.__name__
                         )
                     )
                 else:
@@ -358,7 +358,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             i, target_edge, target_node, node=True
                         )
                     ),
-                    final_type
+                    final_type.__name__
                 )
             )
 
@@ -375,6 +375,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
     def _map_final_types(self, local_nodes, local_edges):
         final_local_nodes = []
         for n,t in local_nodes:
+            assert isinstance(t, str)
             n.label = t
             final_local_nodes.append(n)
         return final_local_nodes, local_edges
