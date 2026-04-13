@@ -277,7 +277,8 @@ class LoadPandasFile(Loader):
             
             # Overwrite default named arguments with the passed ones.
             if loadfunc.__name__ == "read_excel":
-                del kwargs["progress_bar"]
+                if "progress_bar" in kwargs:
+                    del kwargs["progress_bar"]
             kw.update(kwargs)
 
             if not kw:
