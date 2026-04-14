@@ -127,7 +127,7 @@ class Element(metaclass = ABSTRACT):
         if not label:
             # Do not change the name here, or BioCypher will have problem
             # finding back labels.
-            self._label = self.__class__.__name__ 
+            self._label = self.__class__.__name__
         else:
             self._label = str(label)
 
@@ -172,6 +172,10 @@ class Element(metaclass = ABSTRACT):
     @property
     def label(self) -> str:
         return self._label
+
+    @label.setter
+    def label(self, label: str):
+        self._label = label
 
     @property
     def properties(self) -> dict[str,str]:

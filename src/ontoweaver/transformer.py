@@ -807,7 +807,7 @@ class translate(base.Transformer):
                         try:
                             self.df = with_loader.load([self.translations_file], **more_args)
                         except exceptions.InputDataError as err:
-                            logging.error(f"I cannot load the translations_file: `{self.translations_file}`")
+                            logging.error(f"I cannot load the translations_file `{self.translations_file}`. Maybe you forgot that the path is the one from the working directory?")
                             raise err
                         break
 

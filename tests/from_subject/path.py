@@ -1,6 +1,9 @@
+import logging
 from ontoweaver import base
 from ontoweaver import types as owtypes
 
+logger = logging.getLogger("ontoweaver")
+logging.getLogger("ontoweaver")
 class path(base.Transformer):
     """Custom end-user transformer, used to create elements for OmniPath KG database."""
 
@@ -33,43 +36,51 @@ class path(base.Transformer):
         # Extract branching information from the current row, as well as node ID.
 
         node_id = row["target"]
-        consensus_direction = row["consensus_direction"]
-        consensus_stimulation = row["consensus_stimulation"]
+        consensus_direction = bool(int(row["consensus_direction"]))
+        consensus_stimulation = bool(int(row["consensus_stimulation"]))
         entity = row["entity_type_target"]
 
         # Create branching logic and return correct elements.
 
-        if consensus_direction == 0:
+        if not consensus_direction:
             if entity == "protein":
                 self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
+                logger.debug("\t\tConsensus direction absent on protein")
                 yield node_id, getattr(owtypes, "undirected_molecular_interaction"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
                 self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
+                logger.debug("\t\tConsensus direction absent on complex")
                 yield node_id,  getattr(owtypes, "undirected_molecular_interaction"), getattr(owtypes, "target_complex"), None
 
 
-        elif consensus_direction == 1 and consensus_stimulation == 1:
+        elif consensus_direction and consensus_stimulation:
             if entity == "protein":
                 self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
+                logger.debug("\t\tConsensus direction & stimulation on protein")
                 yield node_id, getattr(owtypes, "stimulation"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
                 self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
+                logger.debug("\t\tConsensus direction & stimulation on complex")
                 yield node_id,  getattr(owtypes, "stimulation"), getattr(owtypes, "target_complex"), None
 
-        elif consensus_direction == 1 and consensus_stimulation == 0:
+        elif consensus_direction and not consensus_stimulation:
             if entity == "protein":
                 self.final_type = getattr(owtypes, "protein")
                 self.properties_of = self.branching_properties.get("target_protein", {})
+                logger.debug("\t\tConsensus direction & no stimulation on protein")
                 yield node_id, getattr(owtypes, "inhibition"), getattr(owtypes, "target_protein"), None
 
             elif entity == "complex":
                 self.final_type = getattr(owtypes, "macromolecular_complex")
                 self.properties_of = self.branching_properties.get("target_complex", {})
+                logger.debug("\t\tConsensus direction & no stimulation on complex")
                 yield node_id,  getattr(owtypes, "inhibition"), getattr(owtypes, "target_complex"), None
 
+        else:
+            logger.debug("\t\tConsensus direction not supported")
