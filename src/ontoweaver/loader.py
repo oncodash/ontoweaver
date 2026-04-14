@@ -273,7 +273,12 @@ class LoadPandasFile(Loader):
             loadfunc  = self.read_funcs[pathlib.Path(filename).suffix][0]
             kw = self.read_funcs[pathlib.Path(filename).suffix][1]
 
+            logger.debug(f"Loading function loadfunc = {loadfunc.__name__}")
+            
             # Overwrite default named arguments with the passed ones.
+            if loadfunc.__name__ == "read_excel":
+                if "progress_bar" in kwargs:
+                    del kwargs["progress_bar"]
             kw.update(kwargs)
 
             if not kw:
