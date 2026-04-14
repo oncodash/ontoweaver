@@ -1110,7 +1110,7 @@ class boolean(base.Transformer):
                 value = row[key]
                 if value is None:
                     continue
-                if np.isnan(value):
+                if pd.isnull(value):
                     continue
                 value = str(value)
 
