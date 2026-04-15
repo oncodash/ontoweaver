@@ -613,13 +613,13 @@ class Declare(errormanager.ErrorManager):
 class MappingParser(Declare):
     # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
     k_row = ["row", "entry", "line", "subject", "source"]
-    k_subject_type = ["to_subject", "to_object', 'to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
+    k_subject_type = ["to_subject", "to_object", "to_node", "to_label", "to_type", "id_from_column", "id_from_element"]
     k_columns = ["columns", "fields", "column", "field", "element", "match_column", "id_from_column", "match_element", "id_from_element", "key", "keys"]
     k_target = ["to_target", "to_object", "to_node", "to_label", "to_type"]
     k_subject = ["from_subject", "from_source", "to_subject", "to_source", "to_node", "to_label", "to_type"]
     k_edge = ["via_edge", "via_relation", "via_predicate"]
     k_properties = ["to_properties", "to_property"]
-    k_prop_to_object = ["for_objects", "for_object", "for_relation", "for_relations", "for_edge", "for_edges"]
+    k_prop_to_object = ["for_objects", "for_object", "for_relation", "for_relations", "for_edge", "for_edges", "for_node", "for_nodes"]
     k_transformer = ["transformers"]
     k_metadata = ["metadata"]
     k_metadata_column = ["add_source_column_names_as"]
