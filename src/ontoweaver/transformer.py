@@ -97,7 +97,7 @@ class map(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    self.error(f"Column '{key}' not found in data", section="map.call",
+                    self.error(f"Column '{key}' not found in data. Available columns:\n\t`{'`\n\t`'.join(row.keys())}`\n", section="map.call",
                                exception=exceptions.TransformerDataError)
                 else:
                     yield row[key]
