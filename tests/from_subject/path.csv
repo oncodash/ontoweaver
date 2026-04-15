@@ -1,0 +1,11 @@
+source,source_genesymbol,target_genesymbol,entity_type_source,entity_type_target,target,consensus_direction,consensus_stimulation
+COMPLEX:CHEBI:166824_CHEBI:53000_P01906_P01911,CHEBI:166824_CHEBI:53000_HLA-DQA2_HLA-DRB1,CD247_CD3D_CD3E_CD3G_TRAC_TRBC1,complex,complex,COMPLEX:P01848_P01850_P04234_P07766_P09693_P20963,1,1
+COMPLEX:P05412_P15407,FOSL1_JUN,hsa-miR-206,complex,mirna,MIMAT0000462,1,1
+COMPLEX:P61077_P62987,UBA52_UBE2D3,RNF216,complex,protein,Q9NWF9,1,1
+PSF inhibiting RNA,PSF inhibiting RNA,APH1A,lncrna,protein,Q96BI3,0,0
+MIMAT0000075,hsa-miR-20;hsa-miR-20a,PKD1,mirna,protein,P98161,0,0
+Q9UHV2,SERTAD1,CDK4_CDKN2A,protein,complex,COMPLEX:P11802_Q8N726,1,0
+Q16665,HIF1A,hsa-miR-361-3p,protein,mirna,MIMAT0004682,1,0
+Q6P1H7,Q6P1H7,Wwtr1,protein,protein,Q9EPK5,0,0
+5202,5202,HTR3A_HTR3B,small_molecule,complex,COMPLEX:O95264_P46098,0,0
+3385,3385,MLH1,small_molecule,protein,P40692,0,0
