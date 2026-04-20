@@ -1,7 +1,7 @@
 
 [project]
 name = "ontoweaver"
-version = "1.5.4"
+version = "1.6.1"
 description = "Convert iterable data to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
 authors = [
