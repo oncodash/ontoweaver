@@ -274,14 +274,14 @@ def main():
         asked_mapping = asked.mapping
 
     logger.info("    parsed mappings:")
-    mappings = {}
+    mappings = []
     for data_map in asked_mapping:
         if ":" not in data_map:
             msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
             logger.error(msg)
             sys.exit(ontoweaver.exceptions.ConfigError.code)
         data,map = data_map.split(":")
-        mappings[data] = map
+        mappings.append((data, map))
         logger.info(f"    `{data}` => `{map}`")
 
     if asked.parallel == "auto":

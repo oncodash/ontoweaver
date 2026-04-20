@@ -1,10 +1,10 @@
 row:
     map:
         column: id
-        to_subject: individual
+        to_subject: person
 transformers:
     - split:
         column: children
         separator: ";"
-        to_object: individual
+        to_object: person
         via_relation: parentOf

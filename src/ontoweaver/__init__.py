@@ -302,7 +302,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
        Args:
            biocypher_config_path: the BioCypher configuration file.
            schema_path: the assembling schema file.
-           filename_to_mapping: a dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+           filename_to_mapping: a list of 2-tuples mapping data file path to the OntoWeaver mapping yaml file to extract them.
            parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
            reconciliate_sep (str): The separator to use for combining values in reconciliation. Defaults to None.
            affix (str): The affix to use for type inclusion. Defaults to "none".
@@ -451,7 +451,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        filename_to_mapping (dict): A dictionary mapping data file path to the OntoWeaver mapping yaml file to extract them.
+        filename_to_mapping (list): A list of 2-tuples mapping data file path to the OntoWeaver mapping yaml file to extract them.
         data_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str): The affix to use for type inclusion. Defaults to "none".
@@ -651,12 +651,12 @@ def write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, sc
         return import_file
 
 
-def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs) -> bool:
+def validate_input_data(filename_to_mapping: list, raise_errors = True, **kwargs) -> bool:
     """
     Validates the data files based on provided rules in configuration.
 
     Args:
-        filename_to_mapping (dict): a dictionary mapping data file path to the OntoWeaver mapping yaml file.
+        filename_to_mapping (list): a list of 2-tuples mapping data file path to the OntoWeaver mapping yaml file.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
         kwargs: A dictionary of arguments to pass to pandas.read_* functions.
 
@@ -664,9 +664,9 @@ def validate_input_data(filename_to_mapping: dict, raise_errors = True, **kwargs
         bool: True if the data is valid, False otherwise.
     """
 
-    assert isinstance(filename_to_mapping, dict) # data_file => mapping_file
+    assert isinstance(filename_to_mapping, list) # list[ (data_file,mapping_file) ]
 
-    for data_file, mapping_file in filename_to_mapping.items():
+    for data_file, mapping_file in filename_to_mapping:
         table = read_table_file(data_file, **kwargs)
 
         with open(mapping_file, 'r') as fd:
