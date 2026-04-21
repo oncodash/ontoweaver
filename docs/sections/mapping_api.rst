@@ -571,6 +571,32 @@ Is equivalent to:
         raise exceptions.TransformerConfigError("Unknown value")
 
 
+maths
+~~~~~
+
+The *maths* transformer allows to compute arithmetic operations on its
+configured columns.
+
+Its main configuration variable is the ``operation``, which is a format string
+involving the names of the columns.
+
+This transformer returns a floating-point number which is the result of the
+arithmetic operation.
+
+For example:
+
+.. code:: yaml
+    - maths:
+        columns:
+            - x
+            - y
+            - z
+        operation: "{x} * {y} + sin({z})"
+        to_object: result
+        via_relation: has_result
+
+
+
 Case manipulation transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
