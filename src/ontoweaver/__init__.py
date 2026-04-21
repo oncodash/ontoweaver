@@ -190,10 +190,18 @@ def autoschema(
                 auto_schema[t]["represented_as"] = "node"
                 auto_schema[t]["label_in_input"] = t
                 auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
-                for p in item.fields():
-                    if p not in auto_schema[t]["properties"]:
-                        auto_schema[t]["properties"][p] = "str"
-                        logger.debug(f"\t\t\tproperty: {p}")
+                props = []
+                for trans in item.fields():
+                    if trans.properties_of:
+                        for p,c in trans.properties_of.items():
+                            props.append( (p,c) )
+                    elif trans.branching_properties:
+                        for p,c in trans.branching_properties:
+                            props.append( (p,c) )
+                    for p,c in props:
+                        if p not in auto_schema[t]["properties"]:
+                            auto_schema[t]["properties"][p] = c.__name__
+                            logger.debug(f"\t\t\tproperty: {p}")
 
             elif issubclass(item, base.Edge):
                 t = item.__name__
@@ -210,14 +218,18 @@ def autoschema(
                     auto_schema[t]["target"].append(target.__name__)
 
                 auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
-                for p in item.fields():
-                    if p not in auto_schema[t]["properties"]:
-                        # FIXME properties does not seem to be attached to edges.
-                        # if isinstance(p, base.Transformer):
-                        #    p = p.properties_of[t]
-                        # auto_schema[t]["properties"][p] = "str"
-                        # logger.debug(f"\t\t\tproperty: {p}")
-                        pass
+                props = []
+                for f in item.fields():
+                    if trans.properties_of:
+                        for p,c in trans.properties_of.items():
+                            props.append( (p,c) )
+                    elif trans.branching_properties:
+                        for p,c in trans.branching_properties:
+                            props.append( (p,c) )
+                    for p,c in props:
+                        if p not in auto_schema[t]["properties"]:
+                            auto_schema[t]["properties"][p] = c.__name__
+                            logger.debug(f"\t\t\tproperty: {p}")
 
             else:
                 logger.warning(f"\t\tUnknown type `{item}`, I'll just ignore it, but you may want to double-check.")
@@ -233,6 +245,7 @@ def autoschema(
 
     # Filter out empty keys.
     logger.debug(f"Checking consistency...")
+    logger.debug(auto_schema)
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         if not section:

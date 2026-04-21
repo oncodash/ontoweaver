@@ -492,6 +492,29 @@ class Declare(errormanager.ErrorManager):
         self.declared = []
 
 
+    def _check_properties_fields(self, cls, properties):
+        if cls == properties:
+            return []
+
+        missing_fields = []
+        for k,p in properties.items():
+            if p not in cls.fields().values():
+                logger.debug(
+                    f"\t\t\tProperty `{p}` not found in declared fields for "
+                    f"previously declared node class `{cls.__name__}`. I'll add it."
+                )
+                missing_fields.append( (k,p) )
+
+        for k,p in cls.fields().items():
+            if p not in properties.values():
+                logger.debug(
+                    f"\t\t\tExisting field `{p}` not found in properties given for "
+                    f"creating node class `{cls.__name__}`. I'll keep it."
+                )
+
+        return missing_fields
+
+
     def make_node_class(self, name, properties={}, base=Node):
         """
         LabelMaker a node class with the given name and properties.
@@ -507,15 +530,18 @@ class Declare(errormanager.ErrorManager):
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
-            logger.debug(
-                f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
-            for p in properties.values():
-                if p not in cls.fields():
-                    logger.warning(f"\t\t\tProperty `{p}` not found in declared fields for node class `{cls.__name__}`.")
-            return cls
+            # logger.debug(
+            #     f"\t\tNode class `{name}` (prop: `{cls.fields()}`) already exists, I will not create another one.")
+            missing_fields = self._check_properties_fields(cls, properties)
+            if not missing_fields:
+                return cls
+            else:
+                # Adds any fields in the existing class that should also be in the properties.
+                properties.update({k:p for k,p in missing_fields})
 
         def fields():
-            return list(properties.values())
+            # return list(properties.values())
+            return properties
 
         attrs = {
             "__module__": self.module.__name__,
@@ -550,20 +576,13 @@ class Declare(errormanager.ErrorManager):
         # If type already exists, check if the fields are the same.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
-            cls_fields = cls.fields()
 
-            # Compare the properties with the existing class fields
-            if properties == cls_fields:
-                logger.debug(
-                    f"\t\tEdge class `{name}` already exists with the same properties,"
-                     " I will not create another one."
-                 )
-                logger.debug(f"\t\t\tProperties: `{cls_fields}`")
+            missing_fields = self._check_properties_fields(cls, properties)
+            if not missing_fields:
                 return cls
-
-            logger.warning(f"\t\tEdge class `{name}` already exists, but properties do not match.")
-            # If properties do not match, we proceed to create a new class with the new properties.
-            # FIXME: Would make much more sense to just append(?) new properties to existing class instead of creating new class.
+            else:
+                # Adds any fields in the existing class that should also be in the properties.
+                properties.update({k:p for k,p in missing_fields})
 
         def fields():
             return properties

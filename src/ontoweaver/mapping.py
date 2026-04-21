@@ -122,7 +122,7 @@ class YamlParser(base.MappingParser):
             )
         else:
             # logger.debug(dir(generators))
-            self.error(f"Cannot find a transformer class with name `{transformer_type}`.", exception = exceptions.DeclarationError)
+            self.error(f"Cannot find a transformer class with name `{transformer_type}`. Did you forget to register your transformer module?", exception = exceptions.DeclarationError)
 
 
     def _get_input_validation_rules(self,):

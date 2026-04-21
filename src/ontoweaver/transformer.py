@@ -98,8 +98,7 @@ class map(base.Transformer):
             for key in columns:
                 if key not in row:
                     available = "`\n\t`".join(row.keys())
-                    self.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n", section="map.call",
-                               exception=exceptions.TransformerDataError)
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
                 else:
                     yield row[key]
 
@@ -175,9 +174,9 @@ class split(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    self.error(f"Column `{key}` not found in row:\n{row}",
-                        "transformer.split",
-                        exception = exceptions.TransformerConfigError)
+                    available = "`\n\t`".join(row.keys())
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    continue
 
                 val = row[key]
                 if isinstance(val, str):
@@ -256,6 +255,10 @@ class cat(base.Transformer):
         def __call__(self, columns, row, i):
             formatted_items = ""
             for key in columns:
+                if key not in row:
+                    available = "`\n\t`".join(row.keys())
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    continue
                 formatted_items += str(row[key])
 
             yield formatted_items
@@ -330,7 +333,7 @@ class cat_format(base.Transformer):
             try:
                 formatted_string = self.format_string.format_map(row)
             except KeyError as err:
-                self.error(f"{err}, available keys: {row}",
+                self.error(f"{err}, available keys:\n{row}",
                     exception = exceptions.TransformerConfigError,
                     index = i,
                     section = "cat_format"
@@ -703,8 +706,9 @@ class translate(base.Transformer):
 
             for key in columns:
                 if key not in row:
-                    self.error(f"Column '{key}' not found in data", section="translate",
-                               exception = exceptions.TransformerDataError)
+                    available = "`\n\t`".join(row.keys())
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    continue
                 cell = row[key]
                 if cell in self.translate:
                     yield self.translate[cell]
@@ -967,10 +971,14 @@ class replace(base.Transformer):
 
         def __call__(self, columns, row, i):
             for key in columns:
+                if key not in row:
+                    available = "`\n\t`".join(row.keys())
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    continue
 
                 if not base.is_not_null(row[key]):
                     yield row[key]
-                else: 
+                else:
                     logger.debug(
                         f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
                     formatted = re.sub(self.forbidden, self.substitute, row[key])
@@ -1108,6 +1116,10 @@ class boolean(base.Transformer):
 
         def __call__(self, columns, row, i):
             for key in columns:
+                if key not in row:
+                    available = "`\n\t`".join(row.keys())
+                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    continue
                 value = row[key]
                 if value is None:
                     continue
