@@ -48,9 +48,6 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
         """
         super().__init__(raise_errors)
 
-        self.local_errors = set()
-        self.local_warnings = set()
-
     @abc.abstractmethod
     def __call__(self, validate, returned_value, multi_type_dict, branching_properties = None, row = None):
         """
@@ -66,17 +63,6 @@ class LabelMaker(errormanager.ErrorManager, metaclass=abc.ABCMeta):
             ReturnCreate: An object containing the defined values.
         """
         return NotImplementedError("The call method must be implemented in a subclass.")
-
-    def __del__(self):
-        if self.local_errors:
-            logger.error("Got errors while making some labels:")
-            for e in self.local_errors:
-                logger.error(f"\t{e}")
-
-        if self.local_warnings:
-            logger.warning(f"Got {len(self.local_warnings)} warnings while making some labels:")
-            for i,w in enumerate(self.local_warnings):
-                logger.warning(f"\t{i+1}) {w}")
 
 
 class SimpleLabelMaker(LabelMaker):
@@ -139,7 +125,7 @@ class MultiTypeLabelMaker(LabelMaker):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.local_warnings.add(f"No type pattern matching value: `{label}` during extraction in a match section. This cell value is skipped.")
+                    self.delay_warning(f"No type pattern matching value: `{label}` during extraction in a match section. This cell value is skipped.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(label)
@@ -180,7 +166,7 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.local_warnings.add(f"No type pattern matching value: `{row[self.match_type_from_column]}` during extraction in a match section. This cell value is skipped.")
+                    self.delay_warning(f"No type pattern matching value: `{row[self.match_type_from_column]}` during extraction in a match section. This cell value is skipped.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(label)

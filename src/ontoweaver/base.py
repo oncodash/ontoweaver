@@ -420,7 +420,6 @@ class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
         """
         self._nodes = []
         self._edges = []
-        self.errors = []
         super().__init__(raise_errors)
 
 

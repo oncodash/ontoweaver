@@ -495,7 +495,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 with self._edges_lock:
                     self.edges_append(local_edges)
                 with self._errors_lock:
-                    self.errors += local_errors
+                    self.delayed_errors += local_errors
                 with self._row_lock:
                     nb_rows += local_rows
                 with self._transformations_lock:
@@ -517,7 +517,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             continue
                         self.nodes_append(local_nodes)
                         self.edges_append(local_edges)
-                        self.errors += local_errors
+                        self.delayed_errors += local_errors
                         nb_rows += local_rows
                         nb_transformations += local_transformations
                         nb_nodes += local_nb_nodes
@@ -533,7 +533,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         continue
                     self.nodes_append(local_nodes)
                     self.edges_append(local_edges)
-                    self.errors += local_errors
+                    self.delayed_errors += local_errors
                     nb_rows += local_rows
                     nb_transformations += local_transformations
                     nb_nodes += local_nb_nodes
@@ -555,10 +555,10 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         for desc,count in error_count.items():
             logger.error(f"Recorded {count} times a validation error {desc}")
 
-        if self.errors:
+        if self.delayed_errors:
             logger.error(
-                f"Recorded {len(self.errors)} errors while processing {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
-            # logger.debug("\n".join(self.errors))
+                f"Recorded {len(self.delayed_errors)} errors while processing {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+            # logger.debug("\n".join(self.delayed_errors))
         else:
             logger.info(
                 f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
@@ -605,7 +605,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                     )
                 )
             )
-
 
 
     # =============
@@ -849,7 +848,3 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 " all possible values. Run with the DEBUG log level to see the row numbers.")
             logger.debug(", ".join(str(i) for i in self.non_viable_rows))
 
-        if self.errors:
-            logger.error(f"Recorded {len(self.errors)} errors:")
-            for err in set(self.errors):
-                logger.error(f"\t{err}")

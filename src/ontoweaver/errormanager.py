@@ -5,10 +5,14 @@ import logging
 logger = logging.getLogger("ontoweaver")
 
 class ErrorManager:
-    def __init__(self, raise_errors = True):
+    def __init__(self, raise_errors = True, delayed_print_limit = 50):
         self.raise_errors = raise_errors
+        self.delayed_errors = []
+        self.delayed_warnings = []
+        self.delayed_print_limit = delayed_print_limit
 
-    def error(self, msg, section = None, index = None, exception = RuntimeError, indent = 0):
+
+    def format_msg(self, msg, section = None, index = None, exception = RuntimeError, indent = 0):
         location = ""
         if section:
             location = f" [for {section}"
@@ -21,10 +25,51 @@ class ErrorManager:
         err += msg
         err += location
 
+        return err
+
+
+    def error(self, msg, section = None, index = None, exception = RuntimeError, indent = 0):
+        err = self.format_msg(msg, section, index, exception, indent)
         logger.error(err)
 
         if self.raise_errors:
             raise exception(err)
 
         return err
+
+
+    def delay_error(self, msg, section = None, index = None, indent = 0):
+        err = self.format_msg(msg, section = section, index = index, indent = indent)
+        self.delayed_errors.append(err)
+
+
+    def delay_warning(self, msg, section = None, index = None, indent = 0):
+        warn = self.format_msg(msg, section = section, index = index, indent = indent)
+        self.delayed_warnings.append(warn)
+
+
+    def __del__(self):
+        msg = "There's more than {self.delayed_print_limit} delayed {}, I will stop printing them here. Run in DEBUG mode to see them all, or increase `delayed_print_limit` to see more."
+
+        if self.delayed_warnings:
+            logger.warning(f"Delayed {len(self.delayed_warnings)} warnings from `{type(self).__name__}`:")
+            delayed = set(self.delayed_warnings)
+            for i,warn in enumerate(delayed):
+                if i <= self.delayed_print_limit or logger.isEnabledFor(logging.DEBUG):
+                    logger.warning(f"\t{warn}")
+                else:
+                    logger.warning("[...]")
+                    logger.warning(msg.format("warnings"))
+                    break
+
+        if self.delayed_errors:
+            logger.error(f"Delayed {len(self.delayed_errors)} errors from `{type(self).__name__}`:")
+            delayed = set(self.delayed_errors)
+            for i,err in enumerate(delayed):
+                if i <= self.delayed_print_limit or logger.isEnabledFor(logging.DEBUG):
+                    logger.error(f"\t{err}")
+                else:
+                    logger.warning("[...]")
+                    logger.warning(msg.format("errors"))
+                    break
 

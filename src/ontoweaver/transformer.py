@@ -92,6 +92,12 @@ def register_all(module_path):
                     register(cls)
 
 
+def log_missing_key(key, row):
+    """Helper function for logging a common problem in a standardized way."""
+    available = "`, `".join(row.keys())
+    logger.warning(f"Column `{key}` not found in data. Available columns: `{available}`")
+
+
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
@@ -103,8 +109,7 @@ class map(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                 else:
                     yield row[key]
 
@@ -180,8 +185,7 @@ class split(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                     continue
 
                 val = row[key]
@@ -262,8 +266,7 @@ class cat(base.Transformer):
             formatted_items = ""
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                     continue
                 formatted_items += str(row[key])
 
@@ -705,30 +708,22 @@ class translate(base.Transformer):
             self.translate = translate
             self.translate_from = translate_from
             self.translate_to = translate_to
-            self.warn_lines = {}
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
 
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                     continue
                 cell = row[key]
                 if cell in self.translate:
                     yield self.translate[cell]
                 else:
-                    msg = f"Some rows does not contain something to be translated"
+                    msg = f"There's nothing to be translated"
                     f" from `{self.translate_from}` to `{self.translate_to}`"
                     f" at column `{key}`"
-                    self.warn_lines.get(msg, []).append(i)
-
-        def __del__(self):  # FIXME make warnings management a common interface
-            if len(self.warn_lines) > 0:
-                logging.warning(f"There was warnings in a translate transformer, on {len(self.warn_lines)} lines:")
-                for w in self.warn_lines:
-                    logging.warning(f"{w}: {', '.join(self.warn_lines[w])}")
+                    self.delay_warning(msg, section = "row", index = i)
 
 
     def __init__(self,
@@ -978,8 +973,7 @@ class replace(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                     continue
 
                 if not base.is_not_null(row[key]):
@@ -1123,8 +1117,7 @@ class boolean(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    available = "`\n\t`".join(row.keys())
-                    logger.error(f"Column '{key}' not found in data. Available columns:\n\t`{available}`\n")
+                    log_missing_key(key, row)
                     continue
                 value = row[key]
                 if value is None:
