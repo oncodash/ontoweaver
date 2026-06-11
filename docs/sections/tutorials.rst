@@ -107,9 +107,8 @@ Now, you have to run OntoWeaver, using all those files::
    
    ontoweave -C config.yaml -m schema.yaml data.csv:mapping.yaml
 
-This will print in which directory is the populated OWL file.
-
-The output file should look like this populated OWL file:
+This will print in which directory is the output file,
+which should look like this populated OWL file:
 
 .. code-block:: ttl
    :caption: The ``ontology.ttl`` file.
@@ -137,7 +136,7 @@ The output file should look like this populated OWL file:
 
    # This part contains the actual graph data:
    :S1 a owl:NamedIndividual,
-           owl:hing ;
+           owl:thing ;
        rdfs:label "S1" ;
        biocypher:id "S1" ;
        biocypher:preferred_id "id" ;
@@ -145,7 +144,7 @@ The output file should look like this populated OWL file:
            :GO .
 
    :S2 a owl:NamedIndividual,
-           owl:hing ;
+           owl:thing ;
        rdfs:label "S2" ;
        biocypher:id "S2" ;
        biocypher:preferred_id "id" ;
@@ -162,6 +161,26 @@ The output file should look like this populated OWL file:
        rdfs:label "GO" ;
        biocypher:id "GO" ;
        biocypher:preferred_id "id" .
+
+
+Which encodes a knowledge graph that looks like:
+
+.. graphviz::
+   :caption: Graph encoded by the simple example.
+
+   digraph {
+       fontname="Courier New"
+
+       S1 [label="S1\ntype:thing"]
+       S2 [label="S2\ntype:thing"]
+       GA [label="GA\ntype:node"]
+       GO [label="GO\ntype:node"]
+
+       S1 -> GA [label="type:edge"]
+       S1 -> GO [label="type:edge"]
+       S2 -> GO [label="type:edge"]
+   }
+
 
 
 .. _fully_fledged_demo:

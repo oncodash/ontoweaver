@@ -1,6 +1,8 @@
+Frequently Asked Questions
+--------------------------
 
 I'm having trouble using `nested` transformers with Parquet files
------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It seems that the backend used by Pandas to load Parquets files changes the way
 a nested data structure is represented.
@@ -29,7 +31,7 @@ then maybe try:
 
 
 How is the `from_subject` clause handled?
------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is 3 ways in which a `from_subject` clause finds the node(s) to which add
 a link:

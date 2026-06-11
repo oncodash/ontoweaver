@@ -147,7 +147,7 @@ Conclusion: chose OntoWeaver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-A carrefullydesigned  mapping approach
+A carrefully designed mapping approach
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 OntoWeaver brings a *very* simple (yet powerful enough) declarative mapping

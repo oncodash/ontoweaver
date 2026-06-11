@@ -552,7 +552,7 @@ of the nesting. For instance:
 
 
 How can I link from nodes created by a user-made transformer?
--------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Let's say you want to use a `from_subject` clause targeting a node type that
 is created by a user-made transformer:
