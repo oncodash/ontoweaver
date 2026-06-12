@@ -1,0 +1,15 @@
+biocypher:
+    dbms: owl
+
+    # Ontology configuration
+    head_ontology:
+        url: demo.ttl
+        root_node: BioCypherRoot
+
+owl:
+    edge_model: ObjectProperty
+    file_format: turtle
+    labels_order: Leaves
+    node_labels_order: Leaves
+    edge_labels_order: Leaves
+

@@ -1,0 +1,9 @@
+row:
+   rowIndex:
+      to_subject: variant
+transformers:
+    - map:
+        column: patient
+        to_object: patient
+        via_relation: patient_has_variant
+

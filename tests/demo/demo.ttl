@@ -1,0 +1,24 @@
+@prefix : <https://my.domain.tld/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix biocypher: <https://biocypher.org/biocypher#> .
+
+biocypher:BioCypherRoot a rdfs:Class ;
+     rdfs:label "BioCypherRoot" .
+
+owl:thing a rdfs:Class ;
+    rdfs:label "thing" ; # Note how labels are lowercased.
+    rdfs:subClassOf biocypher:BioCypherRoot .
+
+:variant a rdfs:Class ;
+    rdfs:label "variant" ;
+    rdfs:subClassOf owl:thing .
+
+:patient a rdfs:Class ;
+    rdfs:label "patient" ;
+    rdfs:subClassOf owl:thing .
+
+:patient_has_variant a owl:ObjectProperty ;
+    rdfs:label "patient_has_variant" ;
+    rdfs:subPropertyOf biocypher:BioCypherRoot .
+
