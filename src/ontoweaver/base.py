@@ -847,6 +847,7 @@ class Transformer(errormanager.ErrorManager):
         return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
 
+
 class All:
     """Gathers lists of subclasses of Element and their fields
     existing in a given module.

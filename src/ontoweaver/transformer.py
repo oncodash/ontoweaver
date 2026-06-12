@@ -92,12 +92,6 @@ def register_all(module_path):
                     register(cls)
 
 
-def log_missing_key(key, row):
-    """Helper function for logging a common problem in a standardized way."""
-    available = "`, `".join(row.keys())
-    logger.warning(f"Column `{key}` not found in data. Available columns: `{available}`")
-
-
 class map(base.Transformer):
     """Transformer subclass used for the simple mapping of cell values of defined columns and creating
     nodes with their respective values as id."""
@@ -109,7 +103,7 @@ class map(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                 else:
                     yield row[key]
 
@@ -185,7 +179,7 @@ class split(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                     continue
 
                 val = row[key]
@@ -266,7 +260,7 @@ class cat(base.Transformer):
             formatted_items = ""
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                     continue
                 formatted_items += str(row[key])
 
@@ -714,7 +708,7 @@ class translate(base.Transformer):
 
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                     continue
                 cell = row[key]
                 if cell in self.translate:
@@ -973,7 +967,7 @@ class replace(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                     continue
 
                 if not base.is_not_null(row[key]):
@@ -1117,7 +1111,7 @@ class boolean(base.Transformer):
         def __call__(self, columns, row, i):
             for key in columns:
                 if key not in row:
-                    log_missing_key(key, row)
+                    self.log_missing_key(key, row)
                     continue
                 value = row[key]
                 if value is None:

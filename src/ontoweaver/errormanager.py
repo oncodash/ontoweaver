@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger("ontoweaver")
 
 class ErrorManager:
-    def __init__(self, raise_errors = True, delayed_print_limit = 50):
+    def __init__(self, raise_errors = True, delayed_print_limit = 20):
         self.raise_errors = raise_errors
         self.delayed_errors = []
         self.delayed_warnings = []
@@ -48,8 +48,14 @@ class ErrorManager:
         self.delayed_warnings.append(warn)
 
 
+    def log_missing_key(self, key, row):
+        """Helper function for logging a common problem in a standardized way."""
+        available = "`, `".join(row.keys())
+        self.delay_warning(f"Column `{key}` not found in data. Available columns: `{available}`")
+
+
     def __del__(self):
-        msg = "There's more than {self.delayed_print_limit} delayed {}, I will stop printing them here. Run in DEBUG mode to see them all, or increase `delayed_print_limit` to see more."
+        msg = "There's more than " + str(self.delayed_print_limit) + " delayed {}, I will stop printing them here. Run in DEBUG mode to see them all, or increase `delayed_print_limit` to see more."
 
         if self.delayed_warnings:
             logger.warning(f"Delayed {len(self.delayed_warnings)} warnings from `{type(self).__name__}`:")
