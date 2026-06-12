@@ -306,3 +306,32 @@ A minimal implementation of this would look like:
     # Call BioCypher to write the import files.
     importfile = write(nodes, edges, biocypher_config_path, schema_path)
 
+
+OntoWeaver versus BioCypher
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generally speaking, OntoWeaver operates at a higher level of abstraction than
+Biocypher. This means that it is usually simpler to design a knowledge graph
+using OntoWeaver than having to code an adapter for BioCypher, for the same
+task.
+
+However, if your input data is very complex or heavy, if you have to do a lot
+of pre-processing or if the input data does not fit in memory, chances are that
+you will need to implement your SKG creation directly as a raw BioCypher adapter.
+
+However, note that when you develop a raw Biocypher adapter, you will have to
+manage the information fusion by yourself. BioCypher can ony remove duplicate
+nodes, but is not able to handle complex fusion problems.
+
+.. note::
+    In a nutshell: if you have structured data that fits in memory, and you
+    prefer to have independent modules for each input data source, use
+    OntoWeaver. But if you have complex and heavy data, consider developping a
+    whole adapter code directly with Biocypher.
+
+
+.. figure:: ../OntoWeaver_layer_BioCypher.svg
+    
+    A diagram showing where OntoWeaver and BioCypher modules sit across two
+    axis (interface abstraction and data complexity).
+
