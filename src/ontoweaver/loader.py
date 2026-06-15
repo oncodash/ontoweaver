@@ -197,7 +197,7 @@ class LoadPandasFile(Loader):
             '.stata'  : (pd.read_stata,   {'na_filter': True, 'dtype': str}),
 
             # Allow multiple dtypes for the others.
-            '.json'   : (pd.read_json,    {'na_filter': True}),
+            # '.json'   : (pd.read_json,    {}),
             '.feather': (pd.read_feather, {'na_filter': True}),
             '.pickle' : (pd.read_pickle,  {'na_filter': True}),
             '.hdf'    : (pd.read_hdf,     {'na_filter': True}),
@@ -274,9 +274,9 @@ class LoadPandasFile(Loader):
             kw = self.read_funcs[pathlib.Path(filename).suffix][1]
 
             logger.debug(f"Loading function loadfunc = {loadfunc.__name__}")
-            
+
             # Overwrite default named arguments with the passed ones.
-            if loadfunc.__name__ == "read_excel":
+            if loadfunc.__name__ == "read_excel" or loadfunc.__name__ == "read_json":
                 if "progress_bar" in kwargs:
                     del kwargs["progress_bar"]
             kw.update(kwargs)

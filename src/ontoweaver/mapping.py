@@ -489,6 +489,7 @@ class YamlParser(base.MappingParser):
             raise RuntimeError(msg)
 
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
+        assert subject_transformer_class
         subject_kwargs = self.get_not(base.MappingParser.k_subject_type + base.MappingParser.k_columns, subject_transformer_dict[
             subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
         subject_columns = self.get(
@@ -562,6 +563,7 @@ class YamlParser(base.MappingParser):
                     base.MappingParser.k_subject_type,
                     subject_transformer_dict[subject_transformer_class]
                 )
+                assert subject_type
                 source_t = self.make_node_class(
                     subject_type,
                     properties_of.get(subject_type, {})

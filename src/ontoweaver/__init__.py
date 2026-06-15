@@ -485,6 +485,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lpd = loader.LoadPandasDataframe()
     lrf = loader.LoadOWLFile()
     lrg = loader.LoadOWLGraph()
+    ljf = loader.LoadJSONFile()
 
     def pairs(iterable):
         if isinstance(iterable, dict):
@@ -495,7 +496,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     for d2m in pairs(data_to_mapping):
         data, mapping = d2m
         found_loader = False
-        for with_loader in [lpf, lpd, lrf, lrg]:
+        for with_loader in [lpf, lpd, lrf, lrg, ljf]:
             logger.debug(f"Trying loader: {type(with_loader).__name__}")
             if with_loader.allows([data]):
                 logger.debug("  Loader allows this data type")

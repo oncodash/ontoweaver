@@ -526,6 +526,7 @@ class Declare(errormanager.ErrorManager):
         Returns:
             The created node class.
         """
+        assert name
         # If type already exists, return it.
         if hasattr(self.module, name):
             cls = getattr(self.module, name)
