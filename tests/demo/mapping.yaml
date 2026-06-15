@@ -13,5 +13,5 @@ transformers:
         # JSON:
         # element: data[*].patient
         to_object: patient
-        via_relation: patient_has_variant
+        via_relation: patient has variant
 

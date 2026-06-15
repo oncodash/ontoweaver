@@ -14,7 +14,7 @@ patient:
 
 patient has variant:
     represented_as: edge
-    label_in_input: patient_has_variant
+    label_in_input: patient has variant
     source: variant
     target: patient
     properties:
