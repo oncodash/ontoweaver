@@ -1,9 +1,17 @@
 row:
+   # For table file:
    rowIndex:
       to_subject: variant
+   # For JSON file:
+   # map:
+   #     element: data[*].variant
+   #     to_subject: variant
 transformers:
     - map:
+        # Table:
         column: patient
+        # JSON:
+        # element: data[*].patient
         to_object: patient
         via_relation: patient_has_variant
 
