@@ -94,17 +94,17 @@ def check_file(filename):
 
 def config_directories(appname = "ontoweave"):
     """Yield standard configuration directories (as defined by XDG under MocOS/Unix)."""
-    os = platform.system()
+    myos = platform.system()
     logging.debug(f"Detected OS: {os}")
 
     #NOTE: All matched config files will be parsed and applied in the given order.
-    if os == "Windows":
+    if myos == "Windows":
         if "APPDATA" in os.environ:
             yield pathlib.Path(os.environ["APPDATA"])
         yield pathlib.Path("~")/pathlib.Path("AppData")/pathlib.Path("Roaming")/pathlib.Path(appname)
 
-    elif os == "Java" or os == "":
-        logging.warning(f"I don't know where to search for configuration files on platform `{os}`, I'll only search in current directory")
+    elif myos == "Java" or myos == "":
+        logging.warning(f"I don't know where to search for configuration files on platform `{myos}`, I'll only search in current directory")
 
     else: # Probably an Unix flavor (Darwin, Linux, Solaris, IRIX, etc.)
         # XDG will return the default defined in the specification
