@@ -1,0 +1,7 @@
+{
+    "data": [
+        {"variant": 0, "patient": "A" },
+        {"variant": 1, "patient": "B" },
+        {"variant": 2, "patient": "C" }
+    ]
+}
