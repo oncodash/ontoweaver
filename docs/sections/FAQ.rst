@@ -96,3 +96,13 @@ Example showing cases 2, 3 and 4:
             to_object: complex_involved_in
             via_relation: has_involvement
 
+
+I am having errors about encoding when running ``ontoweave`` under Microsoft Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are probably using Power Shell, try running the following command first:
+
+.. code:: powershell
+
+    $env:PYTHONUTF8="1"
+
