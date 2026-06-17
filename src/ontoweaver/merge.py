@@ -112,6 +112,9 @@ class dictry:
         Basically implements `precheck` with asserting that key is a base.Element
         and lhs & rhs are dict.
         """
+        def __init__(self):
+            self.merged = {}
+
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
             assert(isinstance(lhs, dict))
@@ -128,6 +131,10 @@ class dictry:
         def get(self) -> dict[str,str]:
             return self.merged
 
+        def reset(self):
+            self.merged = {}
+
+
     class Append(DictryMerger):
         """Merge dictionaries by removing duplicated values
         and aggregating values that are different in a list.
@@ -137,9 +144,6 @@ class dictry:
 
         def __init__(self, reconciliate_sep = "|"):
             self.reconciliate_sep = reconciliate_sep
-            self.merged = {}
-
-        def reset(self):
             self.merged = {}
 
         def set(self, merged) -> None:
@@ -168,6 +172,7 @@ class dictry:
                 # Convert sets as str.
                 merged[k] = self.reconciliate_sep.join(v)
             return merged
+
 
 class string:
     """Mergers operating on strings."""
