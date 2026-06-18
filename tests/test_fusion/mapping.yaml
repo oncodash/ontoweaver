@@ -1,0 +1,22 @@
+row:
+    map:
+        id_from_column: alteration
+        match_type_from_column: alt_type
+        match:
+            - SNP:
+                to_subject: SNP
+            - CNV:
+                to_subject: CNV
+transformers:
+    - map:
+        column: drug
+        to_object: drug
+        via_relation: biomarker
+    - map:
+        column: ref
+        to_property: ref
+        for_object: drug
+    - map:
+        column: escat
+        to_property: escat
+        for_object: drug

@@ -1,0 +1,19 @@
+SNP:
+    represented_as: node
+    label_in_input: SNP
+
+CNV:
+    represented_as: node
+    label_in_input: CNV
+
+drug:
+    represented_as: node
+    label_in_input: drug
+    properties:
+        ref: str
+        escat: str
+
+biomarker:
+    represented_as: edge
+    label_in_input: biomarker
+

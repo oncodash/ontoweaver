@@ -1,0 +1,14 @@
+biocypher:
+    dbms: owl # For example, here, we output in an OWL file.
+
+    head_ontology:
+        url: tests/test_fusion/ontology.ttl
+        root_node: BioCypherRoot
+
+owl: # Options for the chosen OWL DBMS.
+    rdf_format: turtle
+    edge_model: ObjectProperty
+    labels_order: Leaves
+    node_labels_order: Leaves
+    edge_labels_order: Leaves
+

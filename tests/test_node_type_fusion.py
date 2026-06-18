@@ -12,12 +12,12 @@ logger =logging.getLogger("ontoweaver")
 def test_node_type_fusion():
 
     data_file = "tests/test_node_type_fusion/test.csv"
-    
-    # Test of the most generic common subtype fusion 
+
+    # Test of the most generic common subtype fusion
 
     filename_to_mapping = {data_file : "tests/test_node_type_fusion/mapping.yaml"}
     logger.debug("Load data...")
-        
+
     nodes, edges = ontoweaver.extract(filename_to_mapping)
 
     bc_nodes, bc_edges = ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges)
@@ -58,7 +58,7 @@ def test_node_type_fusion():
     with open(data_file) as f:
         nb_persons = sum(1 for line in f) - 1
     assert nb_persons == len(fused)
-    
+
     data_df = pd.read_csv(data_file)
     nb_male = len(data_df[data_df['genre'] == 'male'])
     nb_female = len(data_df[data_df['genre'] == 'female'])
@@ -69,11 +69,13 @@ def test_node_type_fusion():
     assert nb_male == nb_fused_male
     assert nb_female == nb_fused_female
 
+
+def test_generic_common_subtype_multiple_inheritance():
     # Test of the most generic common subtype fusion with multiple inheritance (intersex example)
 
     filename_to_mapping = {data_file : "tests/test_node_type_fusion/mapping_only_mothers.yaml"}
     logger.debug("Load data...")
-        
+
     nodes, edges = ontoweaver.extract(filename_to_mapping)
 
     bc_nodes, bc_edges = ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges)
@@ -114,7 +116,7 @@ def test_node_type_fusion():
     with open(data_file) as f:
         nb_persons = sum(1 for line in f) - 1
     assert nb_persons == len(fused)
-    
+
     data_df = pd.read_csv(data_file)
     nb_female = len(data_df[data_df['genre'] == 'female'])
     nb_intersex = int(data_df.notna().sum()['children'])
@@ -129,12 +131,12 @@ def test_node_type_fusion():
     assert nb_intersex == nb_fused_intersex
 
 
-
-    # Test of the most specific common supertype fusion 
+def test_most_specific_common_supertype():
+    # Test of the most specific common supertype fusion
 
     filename_to_mapping = {data_file : "tests/test_node_type_fusion/mapping_only_mothers.yaml"}
     logger.debug("Load data...")
-        
+
     nodes, edges = ontoweaver.extract(filename_to_mapping)
 
     bc_nodes, bc_edges = ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges)
@@ -176,7 +178,7 @@ def test_node_type_fusion():
     with open(data_file) as f:
         nb_persons = sum(1 for line in f) - 1
     assert nb_persons == len(fused)
-    
+
     data_df = pd.read_csv(data_file)
     nb_female = len(data_df[data_df['genre'] == 'female'])
     nb_person = data_df.notna().sum()['children']
@@ -190,7 +192,9 @@ def test_node_type_fusion():
     assert nb_female == nb_fused_female
     assert nb_person == nb_fused_person
 
+
 if __name__ == "__main__":
     test_node_type_fusion()
+    test_generic_common_subtype_multiple_inheritance():
+    test_most_specific_common_supertype():
 
-    
