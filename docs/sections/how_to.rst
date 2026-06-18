@@ -3,8 +3,11 @@
 How To
 ------
 
+Map stuff
+~~~~~~~~~
+
 How to Add Properties to Nodes and Edges
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you do not need to create a new node, but simply attach some data to
 an existing node, use the ``to_property`` predicate, for example:
@@ -49,7 +52,7 @@ This will add a “patient_age” property to nodes of type “case”.
    string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
 
 How to Extract Additional Edges
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Edges can be extracted from the mapping configuration, by defining a
 ``from_subject`` and ``to_object`` in the mapping configuration, where
@@ -101,7 +104,7 @@ following section to the transformers in the mapping configuration:
        via_relation: sample_to_patient
 
 How to add the same metadata properties to all nodes and edges
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Metadata can be added to nodes and edges by defining a ``metadata``
 section in the mapping configuration. You can specify all the property
@@ -120,7 +123,7 @@ The metadata defined in the ``metadata`` section will be added to all
 nodes and edges created during the mapping process.
 
 How to add the column of origin as a property to all nodes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In addition to the user-defined metadata, a property field
 ``add_source_column_names_as`` is also available. It allows to indicate
@@ -153,7 +156,7 @@ include all the added node properties in the schema configuration file,
 to ensure that the properties are correctly added to the nodes.
 
 How to create user-defined adapters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You may manually define your own adapter class, inheriting from the
 OntoWeaver’s class that manages tabular mappings.
@@ -191,7 +194,7 @@ and if you wish to define affix type as ``suffix``, use
 ``type_affix: Optional[ontoweaver.tabular.TypeAffixes] = ontoweaver.tabular.TypeAffixes.suffix``.
 
 How to access dynamic Node and Edge Types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 OntoWeaver relies a lot on meta-programming, as it actually creates
 Python types while parsing the mapping configuration. By default, those
@@ -210,7 +213,7 @@ accessing the list of node and edge types:
    edge_types  = types.all.edges()
 
 How to map properties on several nodes of the same type
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In some cases there might be a need to filter properties of the same ontological type.
 For example, if you have a table of proteins defining sources and targets of interactions, and  you want to have the uniProt IDs as a property of these nodes:
@@ -292,7 +295,7 @@ node ``A`` to node ``B``, as well as from node ``C`` to node ``A``.
 
 
 How to Extract Reverse Relations For Declared Edges
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Reverse relations can be extracted for each edge in a declarative manner.
 Let's assume you have a mapping file mapping each row index to the node type `disease`, and each cell value from the
@@ -315,7 +318,7 @@ may consult the ``Keyword Synonyms`` section for more synonyms.
            reverse_relation: patient_has_disease
 
 How to Compose Multiple Transformers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Custom transformers (See the ``User-defined Transformers`` and ``User-defined Transformer-Like Functions`` sections) can
 be configured to compose multiple transformers together. This is useful when you want to apply a series of transformations
@@ -417,7 +420,7 @@ method to concatenate the values of the desired columns before yielding the resu
 
 
 How to Declare Properties On-the-Fly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Similarly as with the composition of transformers and their declaration on-the-fly within custom transformers, property
 transformers can also be declared on-the-fly within custom transformers.
@@ -503,13 +506,13 @@ In case of using this feature, remember to include all the dynamically created p
 
 
 How to load multiple Parquet files?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. include:: glob.rst
 
 
 How to access several keys in nested dictionaries?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The *nested* transformer allows you to access a value located in nested key-stores.
 But it can only access *one* value.
@@ -552,7 +555,7 @@ of the nesting. For instance:
 
 
 How can I link from nodes created by a user-made transformer?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say you want to use a `from_subject` clause targeting a node type that
 is created by a user-made transformer:
@@ -586,4 +589,89 @@ but ONLY if a node of type `target_A` has been created
 
     The user-made transformer **MUST** be declared **BEFORE** the one willing to
     use its created node types.
+
+
+Fuse stuff
+~~~~~~~~~~
+
+How can I implement my own fusion mergers?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You need to create a class that implements the interface of a merge.Meger.
+
+For instance, let's say that you want to fuse properties representing a number,
+and you want to keep only the larger value.
+
+A merge.Merger is an abstract class, which has an "abstract method" that
+needs to be implemented before one can use one of its instance.
+This "merge" member functions takes three arguments: the key on which the nodes
+have been considered duplicated, a first item to fuse, and a second item to fuse.
+
+Then, you need to merge.Merger.set() the value that is fused, for instance:
+
+.. code:: python
+
+    class MyMax(ontoweaver.merge.Merger):
+        def merge(self, key, lhs, rhs):
+            self.set( max(int(lhs), int(rhs)) )
+
+You can then use this "MyMax" class into a fuse.Fuser, to merge whatever
+property value you want.
+
+For instance, if we want to merge values of a property named "escat", we would do:
+
+.. code:: python
+
+    on_ID = ontoweaver.serialize.ID()
+    nodes_congregater = ontoweaver.congregate.Nodes(on_ID)
+
+    for n in nodes_congregater(nodes):
+        pass
+
+    howto_merge = {
+        "escat": MyMax(),  # Our own Merger
+    }
+    props_merger= ontoweaver.merge.dictry.PerProperty(howto_merge)
+    use_key     = ontoweaver.merge.string.UseKey()
+    identicals  = ontoweaver.merge.string.EnsureIdentical()
+
+    node_fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
+            merge_ID    = use_key,
+            merge_label = identicals,
+            merge_prop  = props_merger,
+        )
+
+    nodes_fusioner = ontoweaver.fusion.Reduce(node_fuser)
+
+    fusioned_nodes = set()
+    for n in nodes_fusioner(nodes_congregater):
+        fusioned_nodes.add(n)
+
+
+How can I fuse elements from raw BioCypher adapters?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+OntoWeaver's fusion engine takes BioCypher's tuples as its input.
+Thus, if you have access to the output of your BioCypher adapter, you can just
+put everything in nodes and edges lists, and pass them to the fusion engine.
+
+.. code:: python
+
+    # Nodes from OntoWeaver needs to be converted to BioCypher tuples.
+    ow_nodes, ow_edges = ontoweaver.extract(...)
+    bc_nodes, bc_edges = ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges)
+
+    # Nodes from a raw BioCypher adapter can be used as is.
+    raw_nodes, raw_edges = my_adapter.get_nodes_and_edges()
+
+    # Just put them all together and pass them to the fusion.
+    all_nodes = bc_nodes + raw_nodes
+
+    # Start with finding duplicates...
+    on_ID = ontoweaver.serialize.ID()
+    nodes_congregater = ontoweaver.congregate.Nodes(on_ID)
+    for n in nodes_congregater(all_nodes):
+        pass
+
+    # ... and proceeed from there...
 

@@ -6,6 +6,12 @@ import pandas as pd
 
 logger =logging.getLogger("ontoweaver")
 
+
+class Max(ontoweaver.merge.string.StringMerger):
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            self.set( max(int(lhs), int(rhs)) )
+
+
 def test_fusion():
 
     data_file = "tests/test_fusion/data.csv"
@@ -40,7 +46,7 @@ def test_fusion():
     identicals = ontoweaver.merge.string.EnsureIdentical()
 
     howto_merge = {
-        "escat": ontoweaver.merge.string.UseFirst(),
+        "escat": Max(),  # Our own Merger
           "ref": ontoweaver.merge.string.OrderedSet(reconciliate_sep),
     }
     props_merger   = ontoweaver.merge.dictry.PerProperty(howto_merge)
