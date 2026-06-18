@@ -135,6 +135,33 @@ class dictry:
             self.merged = {}
 
 
+    class PerProperty(DictryMerger):
+        def __init__(self, pmergers: dict[str,Merger] = {}):
+            self.pmergers = pmergers
+
+        def add(self, property_name, merger):
+            self.pmergers[property_name] = merger
+
+        def reset(self):
+            self.merged = {}
+            for p,m in self.pmergers.items():
+                m.reset()
+
+        def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> dict[str,str]:
+            for p,v in rhs.items():
+                if p in lhs:
+                    self.pmergers[p].merge(p, lhs[p], rhs[p])
+                    v = self.pmergers[p].get()
+                    self.merged[p] = v
+                else:
+                    self.merged[p] = drhs[p]
+
+            # Properties only in lhs
+            for p,v in lhs.items():
+                if p not in self.merged:
+                    self.merged[p] = lhs[p]
+
+
     class Append(DictryMerger):
         """Merge dictionaries by removing duplicated values
         and aggregating values that are different in a list.

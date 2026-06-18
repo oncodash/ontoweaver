@@ -38,11 +38,17 @@ def test_fusion():
     # Fuse them
     use_key    = ontoweaver.merge.string.UseKey()
     identicals = ontoweaver.merge.string.EnsureIdentical()
-    in_lists   = ontoweaver.merge.dictry.Append(reconciliate_sep)
+
+    howto_merge = {
+        "escat": ontoweaver.merge.string.UseFirst(),
+          "ref": ontoweaver.merge.string.OrderedSet(reconciliate_sep),
+    }
+    props_merger   = ontoweaver.merge.dictry.PerProperty(howto_merge)
+
     node_fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
             merge_ID    = use_key,
             merge_label = identicals,
-            merge_prop  = in_lists,
+            merge_prop  = props_merger,
         )
 
     nodes_fusioner = ontoweaver.fusion.Reduce(node_fuser)
