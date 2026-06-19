@@ -334,6 +334,41 @@ Fusing properties separately
 
 Using the ``merge.dictry.PerProperty`` merger, you can apply different mergers
 to different properties.
+
+While the ``Append`` merger operates on the whole dictionary of the properties,
+you may want to apply atomic string mergers to each property, separately.
+Thus, each property value pair is merged differently.
+
+To do so, the ``PerProperty`` merger needs to be instantiated with a dictionary
+mapping the property name to the corresponding merger.
+
+For example:
+
+.. code:: python
+
+    props_merger = merge.dictry.PerProperty({
+        "source": merge.string.OrderedSet(),
+        "version": merge.string.UseFirst()
+        "level": merge.string.UseLast()
+    })
+
+    # You can then pass it as a property merger:
+    node_fuser = fuse.Members(base.Node,
+        merge_ID    = whatever,
+        merge_label = something,
+        merge_prop  = props_merger  # <-- here.
+    )
+
+
+Fusing with any bynary functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``string.Function`` merger allows to use any Python function to perform the
+merge between two string values.
+
+That is, any function taking two strings and returning a single one can be used
+as a merger.
+
 For instance, in order to apply Python's ``max`` function, you would do:
 
 .. code::
@@ -350,8 +385,10 @@ For instance, in order to apply Python's ``max`` function, you would do:
 
     As of now, OntoWeaver operates on property values that are always strings.
 
-Calling Python's ``max`` function on two strings will return the farthests in
-alphabetical order.
+.. note:: 
+    
+    Calling Python's ``max`` function on two strings will return the farthests
+    in alphabetical order.
 
 If you need to convert the property values to something else before calling the
 binary function, ``Function`` allows a second parameter that is a unary function,
@@ -369,7 +406,8 @@ you would do:
         def merge(self, key, lhs, rhs):
             self.set( max( int(lhs), int(rhs) ) )
 
-Here is a diagram that shows an example, similar to the previous ones:
+A merger instantiated with ``Function`` can be used just as any other merger.
+For instance, in order to generate the following example:
 
 ::
 
@@ -382,6 +420,16 @@ Here is a diagram that shows an example, similar to the previous ones:
       ⎜            │⎨version: 1⎬│ │⎨version: 3  ⎬│ ⎟   ┄Function(max,int)┄▷  │⎨version: 3    ⎬│
       ⎜            │⎩  level: I⎭│ │⎩  level: II ⎭│ ⎟   ┄┄┄Function(max)┄┄┄▷  │⎩  level: II   ⎭│
       ⎝            └────────────┘ └──────────────┘ ⎠                         └────────────────┘
+
+You would need to define a merger for the properties as follow:
+
+.. code:: python
+
+    props_merger = PerProperty({
+        "source": OrderedSet(),
+        "version": Function(max, int),
+        "level": Function(max)
+    })
 
 
 Remaping edges
