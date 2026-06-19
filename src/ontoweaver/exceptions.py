@@ -21,6 +21,8 @@ The exceptions taxonomy is::
        ├─ FileError
        │  ├─ FileAccessError
        │  └─ FileOverwriteError
+       ├─ FusionError
+       │  └─ FusionConfigurationError
        ├─ InputDataError
        ├─ SubprocessError
        └─ TransformerError

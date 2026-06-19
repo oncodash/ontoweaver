@@ -16,8 +16,8 @@ adapter, which reconciliate the data before producing nodes, which makes
 the task difficult and the adapter code even harder to understand.
 
 
-Reconciliation
-~~~~~~~~~~~~~~
+Reconciliation (default behaviour)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 OntoWeaver provides a way to solve the reconciliation problem with its
 *high-level information fusion* feature. The fusion features allow to
@@ -45,9 +45,6 @@ edges:
    # Then you can pass those to biocypher.write_nodes and biocypher.write_edges...
 
 
-High-level Interface
-^^^^^^^^^^^^^^^^^^^^
-
 OntoWeaver provides the ``fusion.reconciliate`` function, that
 implements a sane default reconciliation of nodes. It merges nodes
 having the same identifier and the same type, taking care of not losing
@@ -65,6 +62,8 @@ sources:
 
    # From source B:
    ("id_1", "type_A", {"prop_1": "z"})
+   ("id_2", "type_A", {"prop_1": "z"})
+   ("id_1", "type_b", {"prop_1": "z"})
 
 Then, the result of the reconciliation step above would be:
 
@@ -72,10 +71,15 @@ Then, the result of the reconciliation step above would be:
 
    # Note how "x" and "z" are separated by reconciliate_sep=";".
    ("id_1", "type_A", {"prop_1": "x;z", "prop_2": "y"})
+   ("id_2", "type_A", {"prop_1": "z"})
+   ("id_1", "type_B", {"prop_1": "z"})
 
 
 Generic fusion
 ~~~~~~~~~~~~~~
+
+Introduction
+^^^^^^^^^^^^
 
 OntoWeaver brings a set of features that also help solving fusion problems
 that goes beyond properties reconciliation.
@@ -102,9 +106,6 @@ wants to fuse. For fusing:
    duplicated elements, use the mid-level interface ``merge.Merger``.
 
 
-Mid-level Interfaces
-^^^^^^^^^^^^^^^^^^^^
-
 The simplest approach to fusion is to define how to:
 
 1. decide that two nodes are identical,
@@ -115,7 +116,7 @@ The simplest approach to fusion is to define how to:
 
 
 Detecting duplicates
-""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^
 
 For step 1, OntoWeaver provides the ``serialize`` module, which allows to extract
 the part of a node (or an edge) that should be used when checking equality.
@@ -196,8 +197,8 @@ For example:
    # congregarter now holds a dictionary of duplicated nodes.
 
 
-Fuse duplicates
-"""""""""""""""
+Fusing duplicates
+^^^^^^^^^^^^^^^^^
 
 For steps 2 to 4, OntoWeaver provides the ``merge`` module, which
 provides ways to merge two nodes’ components into a single one. It is
@@ -209,6 +210,12 @@ separated into two submodules, depending on the type of the component:
 
 The ``string`` submodule provides:
 
+- ``Function``: this is a generic merger that you instantiate by passing a
+  function that takes two argument and returns a result. This way, you can use
+  any existing binary function (i.e. that takes two argument and returns a
+  single result) as a merger. Optionally, it can be instanciated with an additional
+  unary function (i.e. that takes one argument and returns a single result), that
+  is applied before the binary function, on both arguments of the merger call.
 - ``UseKey``: replace the identifier with the serialization used at the
   congregation step,
 - ``UseFirst``/``UseLast``: replace the type label with the first/last
@@ -218,9 +225,45 @@ The ``string`` submodule provides:
 - ``OrderedSet``: aggregate all the components of all the seen nodes
   into a single, lexicographically ordered list (joined by a
   user-defined separator).
+- ``SpecificType``: looks for the type that brings a more precise information.
+  It sets the value to the most generic common *subtype*
+  (among the two given elements) in the taxonomy hierarchy.
+  This is really only useful for merging labels.
+- ``GenericType``: looks for the type that brings a more generic information.
+  sets the value to the most specific common *supertype*
+  (among the two given elements) in the taxonomy hierarchy.
+  This is really only useful for merging labels.
+
+Those two last labels mergers may be tricky to grasp.
+The diagram below is an example, showing two fusions of two pairs of nodes,
+coming from different sources. The nodes have different types (labels),
+from the same taxonomy tree.
+
+::
+ 
+       Taxonomy                Graph nodes     Fusion operators  Merged labels
+    ┌──────┴────────┐        ┌──────┴───────┐   ┌──────┴─────┐   ┌─────┴────┐
+      root
+      └ feature
+        └ alteration ┄┄label┄ (Node {src:1}) ⎫
+          ├ mutation                         ⎬┄┄ SpecificType ┄┄⏵ SNP
+          │ └ SNP ┄┄┄┄┄label┄ (Node {src:2}) ⎭⎫
+          │                                   ⎬┄ GenericType ┄┄┄⏵ alteration
+          └ CNV ┄┄┄┄┄┄┄label┄ (Node {src:3})  ⎭
+            └ CNA
+
+If the two merged elements have incompatible types, both mergers will
+raise an error.
+
+
 
 The ``dictry`` submodule provides:
 
+- ``PerProperty``: merge properties one by one, each with a different merger.
+  This is somehow a "meta-merger", that encapsulates string mergers and apply
+  them on the dictionary of properties. To be instantiated, it needs a
+  dictionary mapping the name of each properties toward an instance of a
+  StringMerger.
 - ``Append``: merge all seen dictionaries in a single one, and aggregate
   all the values of all the duplicated fields into a single
   lexicographically ordered list (joined by a user-defined separator).
@@ -285,6 +328,64 @@ members, for example, for the second step:
       ⎜            │⎩  level: I⎭│ │⎩  level: I  ⎭│ ⎟   ┄┄┄┄{I}+{I}┄┄┄┄▷  │⎩  level: I    ⎭│
       ⎝            └────────────┘ └──────────────┘ ⎠                     └────────────────┘
 
+
+Fusing properties separately
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using the ``merge.dictry.PerProperty`` merger, you can apply different mergers
+to different properties.
+For instance, in order to apply Python's ``max`` function, you would do:
+
+.. code::
+
+    my_max = ontoweaver.merge.string.Function(max)
+    # And pass my_max to the fusion engine.
+
+    # This equivalent to instantiating the following class:
+    class MyMax(ontoweaver.merge.string.StringMerger):
+        def merge(self, key, lhs, rhs):
+            self.set( max(lhs, rhs) )
+
+.. note::
+
+    As of now, OntoWeaver operates on property values that are always strings.
+
+Calling Python's ``max`` function on two strings will return the farthests in
+alphabetical order.
+
+If you need to convert the property values to something else before calling the
+binary function, ``Function`` allows a second parameter that is a unary function,
+that will be called before the binary one.
+
+That way, to select the max of the two property values interpreted as integers,
+you would do:
+
+.. code::
+
+    my_max = ontoweaver.merge.string.Function(max, int)
+
+    # This equivalent to instantiating the following class:
+    class MyMax(ontoweaver.merge.string.StringMerger):
+        def merge(self, key, lhs, rhs):
+            self.set( max( int(lhs), int(rhs) ) )
+
+Here is a diagram that shows an example, similar to the previous ones:
+
+::
+
+    fuse.Members.merge \
+      ⎛            ┌node1───────┐ ┌node2─────────┐ ⎞                         ┌node────────────┐
+      ⎜            │   ID: BRCA2│ │   ID: BRCA2  │ ⎟ ────────UseFirst───────▶│   ID: BRCA2    │
+      ⎜┌key──────┐ │Label: gene │ │Label: gene   │ ⎟ ────EnsureIdenticals───▶│Label: gene     │
+      ⎜│BRCA2gene│,│Props:      │,│Props:        │ ⎟ ──────PerProperty──────▶│Props:          │
+      ⎜└─────────┘ │⎧ source: A⎫│ │⎧ source: B  ⎫│ ⎟   ┄┄┄┄OrderedSet┄┄┄┄┄▷  │⎧ source: A,B  ⎫│
+      ⎜            │⎨version: 1⎬│ │⎨version: 3  ⎬│ ⎟   ┄Function(max,int)┄▷  │⎨version: 3    ⎬│
+      ⎜            │⎩  level: I⎭│ │⎩  level: II ⎭│ ⎟   ┄┄┄Function(max)┄┄┄▷  │⎩  level: II   ⎭│
+      ⎝            └────────────┘ └──────────────┘ ⎠                         └────────────────┘
+
+
+Remaping edges
+^^^^^^^^^^^^^^
 
 Once this fusion step is done, is it possible that the edges that were
 defined by the initial adapters refer to node IDs that do not exist
