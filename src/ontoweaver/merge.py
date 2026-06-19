@@ -10,6 +10,7 @@ import rdflib
 from rdflib.extras.external_graph_libs import rdflib_to_networkx_digraph
 
 from . import base
+from . import exceptions
 
 logger = logging.getLogger("ontoweaver")
 
@@ -222,6 +223,19 @@ class string:
         def get(self) -> str:
             return str(self.merged)
 
+
+    class Function(StringMerger):
+        def __init__(self, binary_function = None, unary_function = lambda x:x):
+            if not binary_function:
+                msg = f"merge.Function needs at least one binary function to works."
+                logger.error(msg)
+                raise exceptions.FusionConfigurationError(msg)
+            self.bf = binary_function
+            self.uf = unary_function
+
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            self.set( self.bf( self.uf(lhs), self.uf(rhs)) )
+
     class UseKey(StringMerger):
         """Use the key when merging"""
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -238,20 +252,20 @@ class string:
             self.set(rhs)
 
     class EnsureIdentical(StringMerger):
-        """If the merged values are not all identical, raise a ValueError.
+        """If the merged values are not all identical, raise a exceptions.FusionError.
         If no error is raised, the last seen value is returned."""
 
         def merge(self, key, lhs: str, rhs: str) -> str:
             if self.merged:
                 if self.merged != lhs or self.merged != rhs:
-                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` not identical to previously seen one: `{self.merged}`.")
+                    raise exceptions.FusionError(f"Merged value `{lhs}`/`{rhs}` not identical to previously seen one: `{self.merged}`.")
             else:
                 if lhs != rhs:
-                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` not identical.`")
+                    raise exceptions.FusionError(f"Merged value `{lhs}`/`{rhs}` not identical.`")
             self.set(lhs) # Should be equal to rhs.
 
 
-    class CommonSubType(StringMerger):
+    class SpecificType(StringMerger):
         """If the merged values are not all identical, sets the most generic common subtype
         in the ontology hierarchy as the value."""
 
@@ -270,14 +284,14 @@ class string:
             if self.merged:
                 merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, lhs)
                 if merge is None:
-                    raise ValueError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                    raise exceptions.FusionError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
                 self.set(merge)
                 self.merged = merge
                 logger.debug(f"`{merge}`")
 
                 merge = nx.lowest_common_ancestor(graph_hierarchy, self.merged, rhs)
                 if merge is None:
-                    raise ValueError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                    raise exceptions.FusionError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
                 self.set(merge)
                 self.merged = merge
                 logger.debug(f"`{merge}`")
@@ -285,13 +299,13 @@ class string:
             else :
                 merge = nx.lowest_common_ancestor(graph_hierarchy, lhs, rhs)
                 if merge is None:
-                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
+                    raise exceptions.FusionError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
                 self.merged = merge
                 self.set(merge)
                 logger.debug(f"`{merge}`")
 
 
-    class CommonSuperType(StringMerger):
+    class GenericType(StringMerger):
         """If the merged values are not all identical, sets the most specific common supertype
         in the ontology hierarchy as the value."""
 
@@ -310,14 +324,14 @@ class string:
             if self.merged:
                 merge = nx.lowest_common_ancestor(nx.reverse(graph_hierarchy), self.merged, lhs)
                 if merge is None:
-                    raise ValueError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                    raise exceptions.FusionError(f" Value `{lhs}` has no common subtype with previously seen one: `{self.merged}`.`")
                 self.set(merge)
                 self.merged = merge
                 logger.debug(f"`{merge}`")
 
                 merge = nx.lowest_common_ancestor(nx.reverse(graph_hierarchy), self.merged, rhs)
                 if merge is None:
-                    raise ValueError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
+                    raise exceptions.FusionError(f"Value `{rhs}` has no common subtype with previously seen one: `{self.merged}`.`")
                 self.set(merge)
                 self.merged = merge
                 logger.debug(f"`{merge}`")
@@ -325,7 +339,7 @@ class string:
             else :
                 merge = nx.lowest_common_ancestor(graph_hierarchy, lhs, rhs)
                 if merge is None:
-                    raise ValueError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
+                    raise exceptions.FusionError(f"Merged value `{lhs}`/`{rhs}` has no common subtype.`")
                 self.merged = merge
                 self.set(merge)
                 logger.debug(f"`{merge}`")
