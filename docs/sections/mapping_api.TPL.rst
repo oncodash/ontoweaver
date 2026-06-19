@@ -593,6 +593,7 @@ arithmetic operation.
 For example:
 
 .. code:: yaml
+
     - maths:
         columns:
             - x

@@ -3,8 +3,8 @@
 How To
 ------
 
-Map stuff
-~~~~~~~~~
+Mapping
+~~~~~~~
 
 How to Add Properties to Nodes and Edges
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -591,8 +591,18 @@ but ONLY if a node of type `target_A` has been created
     use its created node types.
 
 
-Fuse stuff
-~~~~~~~~~~
+Fusion
+~~~~~~
+
+How can I implement my own fusion function?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the default "reconciliate" function does not suits your need, you can
+assemble your own fusion function and manage all the details.
+
+.. literalinclude:: ../../tests/test_fusion.py
+   :language: python
+
 
 How can I implement my own fusion mergers?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -662,7 +672,7 @@ put everything in nodes and edges lists, and pass them to the fusion engine.
     bc_nodes, bc_edges = ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges)
 
     # Nodes from a raw BioCypher adapter can be used as is.
-    raw_nodes, raw_edges = my_adapter.get_nodes_and_edges()
+    raw_nodes, raw_edges = my_adapter.get_nodes_and_edges() # This may depends on your own adapter.
 
     # Just put them all together and pass them to the fusion.
     all_nodes = bc_nodes + raw_nodes
