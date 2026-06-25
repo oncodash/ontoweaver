@@ -204,6 +204,10 @@ def main():
     do.add_argument("-E", "--pass-errors", action="store_true",
         help="When an error occurs, log is, and then try to continue processing. If not passed, the default behavior is to raise errors immediatly and stop execution.")
 
+    do.add_argument("-", "--sub-sample", type=float, default=100.0,
+        help="Reduce the size of input data by random sampling of the given percentage of items" \
+        "(e.g. lines, for tabular data). '100' means no sub-sampling. [default: %(default)s]")
+
     do.add_argument("-l", "--log-level", default="WARNING",
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help="Configure the log level. [default: %(default)s]")
@@ -394,6 +398,7 @@ def main():
         sort_key = sort_key,
         raise_errors = not asked.pass_errors,
         progress_bar = asked.progress_bars,
+        sub_sample = asked.sub_sample,
         **kw,
         # Error handling parameters
         debug = asked.debug,

@@ -306,7 +306,7 @@ def autoschema(
     return extended_schema_filename
 
 
-def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, progress_bar = False, **kwargs):
+def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapping = 0, reconciliate_sep = "|", affix = "none", type_affix_sep = ":", validate_output = False, sort_key = None, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs):
     """Calls several mappings, each on the related Pandas-readable tabular data file,
        then reconciliate duplicated nodes and edges (on nodes' IDs, merging properties in lists),
        then export everything with BioCypher.
@@ -330,7 +330,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     assert sort_key == None or callable(sort_key)
 
     logger.info("\tExtracting data...")
-    nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, **kwargs)
+    nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **kwargs)
 
     # The fusion module is independant from OntoWeaver,
     # and thus operates on BioCypher's tuples.
@@ -385,7 +385,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
@@ -411,6 +411,13 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
 
     data = with_loader([data], progress_bar = progress_bar, **kwargs)
     mapping_options = {}
+
+    assert 0.0 < sub_sample and sub_sample <= 100.0, "sub-sample mut be a percentage"
+    if sub_sample < 100.0:
+        logger.info( f"Sub-sampling {sub_sample}% of {len(data)} rows of input data.")
+        data = data.sample(frac = sub_sample)
+    else:
+        logger.debug("No sub-sampling.")
 
     if with_mapping == "automap":
         logger.debug("\twith auto mapping")
@@ -459,7 +466,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     return nodes, edges
 
 
-def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
@@ -502,7 +509,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
                 logger.debug("  Loader allows this data type")
                 found_loader = True
                 try:
-                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, **kwargs)
+                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **kwargs)
                 except Exception as e:
                     logger.error(f"While loading `{data}` and mapping with `{mapping}`.")
                     raise e

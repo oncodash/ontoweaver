@@ -126,6 +126,30 @@ handy if you run *ontoweave* in a script:
    $script  # Run the import script.
 
 
+Sub-sample every input data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``--sub-sample`` options allows to draw a random sample from each input
+data file, during their loading. It takes as argument a percentage of items
+(e.g. rows, for tabular data).
+
+.. note::
+
+    This option is applied independently to each input data.
+    This means that if you integrate two data files, they both will be
+    sub-sampled by the given percentage, withut regards for their relative
+    sizes.
+
+For example, the following command:
+
+.. code:: sh
+
+    ontoweave small.csv:map_s.yaml large.csv:map_l.yaml --sub-sample 50
+
+will randomly draw 50% of rows from ``small.csv``, and then draw 50% of rows
+from ``large.csv``.
+
+
 Typical example
 ~~~~~~~~~~~~~~~
 
