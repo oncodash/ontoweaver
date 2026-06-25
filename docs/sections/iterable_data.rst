@@ -267,7 +267,7 @@ JSON Example
 ^^^^^^^^^^^^
 
 You will most probably want to extract data from a JSON list, which means you
-will just need to understand the `wilcard expression <https://jmespath.org/specification.html#wildcards>`_.
+will just need to understand the `wildcards expression <https://jmespath.org/specification.html#wildcards>`_.
 
 Imagine that you have the following JSON document, containing a table:
 
