@@ -106,3 +106,28 @@ You are probably using Power Shell, try running the following command first:
 
     $env:PYTHONUTF8="1"
 
+
+Can I filter the input tables from the mapping?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It would be theoretically possible to use a Pandas query or filtering condition
+in the subject section of the mapping files.
+
+However, the OntoWeaver generic approach is to allow anyone (else) to implement
+a mapping, that you then apply to (your own) data without thinking (too much)
+about it.
+
+This makes it mandatory to trust that the configuration coming from someone
+else is guaranteed not to introduce a security breach.
+
+Sadly, the way Pandas implements its query function is not secure enough.
+Pandas basically takes whatever query string is given to it, and executes it
+through its Python interpreter.
+
+If OntoWeaver was allowing mapping file to use such queries, it would be able to
+run arbitrary code which can make you vulnerable to code injection.
+
+Hence, it is not possible to allow table filtering from the mappings, and all
+you have left is to pre-process your tabular data before passing them to
+OntoWeaver.
+
