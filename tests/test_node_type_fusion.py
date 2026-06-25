@@ -35,7 +35,7 @@ def test_node_type_fusion():
     )
 
     as_keys  = ontoweaver.merge.string.UseKey()
-    as_sub_type = ontoweaver.merge.string.CommonSubType(bc._get_ontology())
+    as_sub_type = ontoweaver.merge.string.SpecificType(bc._get_ontology())
     in_lists = ontoweaver.merge.dictry.Append()
     fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
             merge_ID    = as_keys,
@@ -73,6 +73,7 @@ def test_node_type_fusion():
 def test_generic_common_subtype_multiple_inheritance():
     # Test of the most generic common subtype fusion with multiple inheritance (intersex example)
 
+    data_file = "tests/test_node_type_fusion/test.csv"
     filename_to_mapping = {data_file : "tests/test_node_type_fusion/mapping_only_mothers.yaml"}
     logger.debug("Load data...")
 
@@ -93,7 +94,7 @@ def test_generic_common_subtype_multiple_inheritance():
     )
 
     as_keys  = ontoweaver.merge.string.UseKey()
-    as_sub_type = ontoweaver.merge.string.CommonSubType(bc._get_ontology())
+    as_sub_type = ontoweaver.merge.string.SpecificType(bc._get_ontology())
     in_lists = ontoweaver.merge.dictry.Append()
     fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
             merge_ID    = as_keys,
@@ -134,6 +135,7 @@ def test_generic_common_subtype_multiple_inheritance():
 def test_most_specific_common_supertype():
     # Test of the most specific common supertype fusion
 
+    data_file = "tests/test_node_type_fusion/test.csv"
     filename_to_mapping = {data_file : "tests/test_node_type_fusion/mapping_only_mothers.yaml"}
     logger.debug("Load data...")
 
@@ -155,7 +157,7 @@ def test_most_specific_common_supertype():
     # bc.show_ontology_structure()
 
     as_keys  = ontoweaver.merge.string.UseKey()
-    as_sub_type = ontoweaver.merge.string.CommonSuperType(bc._get_ontology())
+    as_sub_type = ontoweaver.merge.string.GenericType(bc._get_ontology())
     in_lists = ontoweaver.merge.dictry.Append()
     fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
             merge_ID    = as_keys,
@@ -195,6 +197,6 @@ def test_most_specific_common_supertype():
 
 if __name__ == "__main__":
     test_node_type_fusion()
-    test_generic_common_subtype_multiple_inheritance():
-    test_most_specific_common_supertype():
+    test_generic_common_subtype_multiple_inheritance()
+    test_most_specific_common_supertype()
 
