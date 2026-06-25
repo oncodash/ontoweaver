@@ -208,7 +208,8 @@ class LoadPandasFile(Loader):
 
     def read_csv_progress(self, filename, hint=None, steps=100, estimate_lines=10, **kwargs):
         if self.progress_bar:
-            del kwargs["progress_bar"]
+            if "progress_bar" in kwargs:
+                del kwargs["progress_bar"]
             chunks = []
             if hint:
                 nb_lines = hint
