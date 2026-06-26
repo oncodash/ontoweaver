@@ -560,8 +560,9 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 f"Recorded {len(self.delayed_errors)} errors while processing {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
             # logger.debug("\n".join(self.delayed_errors))
         else:
-            logger.info(
-                f"Performed {nb_transformations} transformations with {1+len(self.transformers)} node transformers, producing {nb_nodes} nodes for {nb_rows} rows.")
+            msg = f"Created {nb_nodes} nodes from {nb_transformations} transformations with {1+len(self.transformers)} transformers on {nb_rows} rows."
+            logger.debug(msg)
+            self.delay_info(msg)
 
 
     def _make_this_edge(self,

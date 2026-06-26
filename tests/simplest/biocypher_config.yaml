@@ -22,3 +22,4 @@ neo4j:
     multi_db: false
 
     import_call_bin_prefix: ''
+    edge_labels_order: Leaves

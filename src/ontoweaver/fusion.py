@@ -13,10 +13,11 @@ from . import fuse
 from . import merge
 from . import congregate
 from . import serialize
+from . import errormanager
 
 logger = logging.getLogger("ontoweaver")
 
-class Fusioner(metaclass=ABCMeta):
+class Fusioner(errormanager.ErrorManager, metaclass=ABCMeta):
     """"Interface for classes going over a list of duplicates to decide how to fuse them.
 
     The contract is to be called on a congregate.Congregater object,
@@ -30,6 +31,9 @@ class Fusioner(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, congregater: congregate.Congregater) -> set[base.Element]:
         raise NotImplementedError
+
+    def __init__(self, raise_errors = True):
+        super().__init__(raise_errors)
 
 
 class Reduce(Fusioner):
@@ -49,9 +53,12 @@ class Reduce(Fusioner):
     def __init__(self,
         fuser: fuse.Fuser,
         progress_bar = False,
+        raise_errors = True,
     ):
         self.fuser = fuser
         self.progress_bar = progress_bar
+        self.nb_fusions = 0
+        super().__init__(raise_errors)
 
 
     def step(self, key, elem_list):
@@ -65,6 +72,7 @@ class Reduce(Fusioner):
         logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
         logger.debug(f"    with itself: {repr(lhs)}")
         self.fuser(key, lhs, lhs)
+        self.nb_fusions += 1
         logger.debug(f"lhs: {lhs}")
         logger.debug(f"fuser.get: {self.fuser.get()}")
         logger.debug(f"repr: {repr(self.fuser.get())}")
@@ -72,6 +80,7 @@ class Reduce(Fusioner):
         for rhs in it:
             logger.debug(f"    with `{rhs}`: {repr(rhs)}")
             self.fuser(key, lhs, rhs)
+            self.nb_fusions += 1
             logger.debug(f"      = {repr(self.fuser.get())}")
 
         # Convert to final string.
@@ -96,7 +105,8 @@ class Reduce(Fusioner):
                 f = self.step(key, elem_list)
                 yield f
 
-        logger.debug(f"Fusioned {len(congregater)} elements.")
+        self.delay_info(f"Congregated {len(congregater)} unique {type(congregater).__name__}.")
+        self.delay_info(f"Performed {self.nb_fusions} fusion operations.")
 
 
 def remap_edges(edges, ID_mapping):
@@ -114,19 +124,23 @@ def remap_edges(edges, ID_mapping):
     Returns:
         the list of remaped edges tuples
     """
-
+    nb_remaps = 0
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
 
         s = ID_mapping.get(edge.id_source, None)
         if s:
             edge.id_source = s
+            nb_remaps += 1
 
         t = ID_mapping.get(edge.id_target, None)
         if t:
             edge.id_target = t
+            nb_remaps += 1
 
         yield edge.as_tuple()
+
+    logger.info(f"Remapped {nb_remaps} tips over {len(edges)} edges.")
 
 
 def reconciliate_nodes(nodes, reconciliate_sep = "|", raise_errors = True, progress_bar = False):

@@ -942,7 +942,7 @@ class YamlParser(base.MappingParser):
                 skipped_columns += t.columns
 
         if skipped_columns:
-            logger.warning(f"Skip output validation for columns: `{'`, `'.join(str(i) for i in skipped_columns)}`." \
+            logger.info(f"Skip output validation for columns: `{'`, `'.join(str(i) for i in skipped_columns)}`." \
                            " This could result in some empty or `nan` nodes." \
                            " To enable output validation set `validate_output` to `True`.")
 

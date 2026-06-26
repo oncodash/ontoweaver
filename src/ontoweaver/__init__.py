@@ -329,7 +329,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
    """
     assert sort_key == None or callable(sort_key)
 
-    logger.info("\tExtracting data...")
+    logger.info("Extracting data...")
     nodes, edges = extract(filename_to_mapping, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **kwargs)
 
     # The fusion module is independant from OntoWeaver,
@@ -338,7 +338,7 @@ def weave(biocypher_config_path, schema_path, filename_to_mapping, parallel_mapp
     bc_nodes = ow2bc(nodes)
     bc_edges = ow2bc(edges)
 
-    logger.info("\tFusing data...")
+    logger.info("Fusing data...")
     fnodes, fedges = reconciliate(bc_nodes, bc_edges, reconciliate_sep, raise_errors, progress_bar)
 
     if sort_key:
@@ -403,7 +403,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         Returns:
             a pair of lists, the first one are nodes, the second one are egdes
     """
-    logger.info(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
+    logger.debug(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
 
     assert with_loader.allows([data]), "This loader cannot handle this data"
     nodes = []
@@ -463,6 +463,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
             edges += le
     logger.debug("OK — adapter ran.")
 
+    adapter.log_all()
     return nodes, edges
 
 

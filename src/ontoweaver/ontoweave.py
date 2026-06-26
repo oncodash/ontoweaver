@@ -123,6 +123,30 @@ def config_paths(appname = "ontoweave"):
     for p in dirs:
         yield str(p / (appname+".yaml"))
 
+def config_logger(name):
+    logger = logging.getLogger(name)
+
+    logger.propagate = False
+
+    # Clear existing handlers (optional, avoids duplicates)
+    logger.handlers.clear()
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+
+    # Define and set formatter with clean timestamp
+    formatter = logging.Formatter(
+        style = '{',
+        fmt = "{levelname:>7s} ⎹ {message}",
+        # datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    console_handler.setFormatter(formatter)
+
+    # Add handler to logger
+    logger.addHandler(console_handler)
+
+    return logger
+
 
 def main():
     import jsonargparse
@@ -132,9 +156,7 @@ def main():
 
     appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
-    logging.basicConfig()
-    # logger = logging.getLogger(appname)
-    logger = logging.getLogger("ontoweaver")
+    logger = config_logger("ontoweaver")
 
     config_files = list(config_paths(appname))
 
@@ -237,30 +259,28 @@ def main():
         asked.pass_errors = False
 
     logger.setLevel(asked.log_level)
-    logging.getLogger("ontoweaver").setLevel(asked.log_level)
 
-    logger.info("OntoWeave parameters:")
+    logger.debug("OntoWeave parameters:")
 
-    logger.info(f"    config files: {config_files}")
-    logger.info(f"    config: `{asked.biocypher_config}`")
-    logger.info(f"    schema: `{asked.biocypher_schema}`")
-    logger.info(f"    auto-schema: `{asked.auto_schema}`")
-    logger.info(f"    progress-bars: `{asked.progress_bars}`")
-    logger.info(f"    parallel: `{asked.parallel}`")
-    logger.info(f"    prop-sep: `{asked.prop_sep}`")
-    logger.info(f"    type-affix: `{asked.type_affix}`")
-    logger.info(f"    type-affix-sep: `{asked.type_affix_sep}`")
-    logger.info(f"    pandas-sep: `{asked.pandas_sep}`")
-    logger.info(f"    import-script-run: `{asked.import_script_run}`")
-    logger.info(f"    sort: `{asked.sort}`")
-    logger.info(f"    register: `{asked.register}`")
-    logger.info(f"    debug: `{asked.debug}`")
-    logger.info(f"    log-level: `{asked.log_level}`")
-    logger.info(f"    pass-errors: `{asked.pass_errors}`")
-    logger.info(f"    validate-only: `{asked.validate_only}`")
-    logger.info(f"    validate-output: `{asked.validate_output}`")
+    logger.debug(f"    config files: {config_files}")
+    logger.debug(f"    config: `{asked.biocypher_config}`")
+    logger.debug(f"    schema: `{asked.biocypher_schema}`")
+    logger.debug(f"    auto-schema: `{asked.auto_schema}`")
+    logger.debug(f"    progress-bars: `{asked.progress_bars}`")
+    logger.debug(f"    prop-sep: `{asked.prop_sep}`")
+    logger.debug(f"    type-affix: `{asked.type_affix}`")
+    logger.debug(f"    type-affix-sep: `{asked.type_affix_sep}`")
+    logger.debug(f"    pandas-sep: `{asked.pandas_sep}`")
+    logger.debug(f"    import-script-run: `{asked.import_script_run}`")
+    logger.debug(f"    sort: `{asked.sort}`")
+    logger.debug(f"    register: `{asked.register}`")
+    logger.debug(f"    debug: `{asked.debug}`")
+    logger.debug(f"    log-level: `{asked.log_level}`")
+    logger.debug(f"    pass-errors: `{asked.pass_errors}`")
+    logger.debug(f"    validate-only: `{asked.validate_only}`")
+    logger.debug(f"    validate-output: `{asked.validate_output}`")
 
-    logger.info(f"    asked mappings: `{asked.mapping}`")
+    logger.debug(f"    asked mappings: `{asked.mapping}`")
     asked_mapping = []
 
     if asked.mapping == ["STDIN"]:
@@ -277,7 +297,7 @@ def main():
     else:
         asked_mapping = asked.mapping
 
-    logger.info("    parsed mappings:")
+    logger.debug("    parsed mappings:")
     mappings = []
     for data_map in asked_mapping:
         if ":" not in data_map:
@@ -286,17 +306,20 @@ def main():
             sys.exit(ontoweaver.exceptions.ConfigError.code)
         data,map = data_map.split(":")
         mappings.append((data, map))
-        logger.info(f"    `{data}` => `{map}`")
+        logger.debug(f"    `{data}` => `{map}`")
 
     if asked.parallel == "auto":
         parallel = min(32, (os.process_cpu_count() or 1) + 4)
     else:
         parallel = int(asked.parallel)
-    logger.info(f"    parallel: `{asked.parallel}`")
+    logger.debug(f"    parallel: `{asked.parallel}`")
 
     # Late import to avoid useless Biocypher's logs when asking for --help.
     from biocypher._logger import get_logger as biocypher_logger
-    biocypher_logger("biocypher").setLevel(asked.log_level)
+
+    config_logger("biocypher")
+    # biocypher_logger("biocypher").setLevel(asked.log_level)
+    biocypher_logger("biocypher").setLevel("WARNING")
 
     # Validate the input data if asked.
     if asked.validate_only:
