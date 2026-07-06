@@ -3,6 +3,8 @@
 import logging
 import abc
 import re
+from typing import override
+from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import errormanager, exceptions
 
@@ -95,21 +97,21 @@ class SimpleLabelMaker(LabelMaker):
             return None
 
 
-class MultiTypeLabelMaker(LabelMaker):
-    """
-    The class is used when the transformer has type branching logic based on the value that will become the ID of the element.
-    """
-    def __init__(self,raise_errors: bool = True):
-        super().__init__(raise_errors)
+class MultiTypeLabelMakerInterface(LabelMaker, metaclass = ABSTRACT):
+
+    @abstractmethod
+    def get_value_from(self, value: str, row: list) -> str:
+        raise NotImplementedError
 
     def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
-        label = str(returned_value)
-        if validate(label):
+        value = str(returned_value)
+        value_to_match = self.get_value_from(value, row)
+        if validate(value):
             if multi_type_dict:
                 has_match = False
                 for pattern, types in multi_type_dict.items():
                     # Branching is performed on the regex patterns.
-                    if re.search(pattern, label):
+                    if re.search(pattern, value_to_match):
                         has_match = True
                         if branching_properties:
                             properties_of = branching_properties.get(types["to_object"].__name__, {})
@@ -117,7 +119,7 @@ class MultiTypeLabelMaker(LabelMaker):
                             properties_of = {}
                         assert types["to_object"]
                         return ReturnCreate(
-                            label,
+                            value,
                             types["via_relation"],
                             types["to_object"],
                             properties_of,
@@ -125,16 +127,28 @@ class MultiTypeLabelMaker(LabelMaker):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.delay_warning(f"No type pattern matching value: `{label}` during extraction in a match section. This cell value is skipped.")
+                    self.delay_warning(f"No type pattern matching value: `{value_to_match}` during extraction in a match section. This cell value is skipped.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
-                return ReturnCreate(label)
+                return ReturnCreate(value)
         else:
             # Validation failed, return empty object with None values.
             return ReturnCreate()
 
 
-class MultiTypeOnColumnLabelMaker(LabelMaker):
+class MultiTypeLabelMaker(MultiTypeLabelMakerInterface):
+    """
+    The class is used when the transformer has type branching logic based on the value that will become the ID of the element.
+    """
+    def __init__(self,raise_errors: bool = True):
+        super().__init__(raise_errors)
+
+    @override
+    def get_value_from(self, value: str, row: list) -> str:
+        return value
+
+
+class MultiTypeOnColumnLabelMaker(MultiTypeLabelMakerInterface):
     """
     The class is used when the transformer has type branching logic based on the value of a column in the dataframe,
     not the value that will become the ID of the element.
@@ -143,33 +157,7 @@ class MultiTypeOnColumnLabelMaker(LabelMaker):
         self.match_type_from_column = match_type_from_column
         super().__init__(raise_errors)
 
-    def __call__(self, validate, returned_value, multi_type_dict = None, branching_properties = None, row = None):
-        label = str(returned_value)
-        if validate(label):
-            if multi_type_dict:
-                has_match = False
-                for pattern, types in multi_type_dict.items():
-                    # Branching is performed on the regex patterns.
-                    if re.search(pattern, str(row[self.match_type_from_column])):
-                        has_match = True
-                        if branching_properties:
-                            properties_of = branching_properties.get(types["to_object"].__name__, {})
-                        else:
-                            properties_of = {}
-                        assert types["to_object"]
-                        return ReturnCreate(
-                            label,
-                            types["via_relation"],
-                            types["to_object"],
-                            properties_of,
-                            types["final_type"],
-                            types["reverse_relation"]
-                        )
-                if not has_match:
-                    self.delay_warning(f"No type pattern matching value: `{row[self.match_type_from_column]}` during extraction in a match section. This cell value is skipped.")
-            else:
-                # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
-                return ReturnCreate(label)
-        else:
-            return ReturnCreate()
+    @override
+    def get_value_from(self, value: str, row: list) -> str:
+        return str(row[self.match_type_from_column])
 
