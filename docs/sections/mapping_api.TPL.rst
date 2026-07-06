@@ -461,6 +461,38 @@ Then, to declare a translation using this table, you would do:
    table. For example: ``translations_file: my_table-part*.parquet``.
 
 
+Handle unknown values
+.....................
+
+The translation table may not contain some values encountered in the input data.
+In such case, the default behaviour is to skip those values, and thus to **NOT**
+create the related element.
+
+If you want to change this behaviour, you can configure the ``on_unknown_value``
+option, with one of the following string:
+
+- ``skip``: do not create the related element (the default),
+- ``keep``: create the related element, using the cell value itself,
+  even if it is not found in the translation table.
+- ``error``: raise an error if the cell value is not found in the translation
+  table.
+
+For instance:
+
+.. code:: yaml
+
+   - translate:
+       column: Gene
+       to_object: gene
+       translations_file: translate.csv
+       translate_from: Ensembl
+       translate_to: HGCN
+       on_unknown_value: error
+
+This will raise an error for any cell value in the input data that does not
+match a value in the 'Ensembl' column of the 'translate.csv' file.
+
+
 replace
 ~~~~~~~
 

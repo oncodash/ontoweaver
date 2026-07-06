@@ -698,10 +698,11 @@ class translate(base.Transformer):
     """Translate the targeted cell value using a tabular mapping and yield a node with using the translated ID."""
 
     class ValueMaker(make_value.ValueMaker):
-        def __init__(self, translate, translate_from, translate_to, raise_errors: bool = True):
+        def __init__(self, translate, translate_from, translate_to, on_unknown_value, raise_errors: bool = True):
             self.translate = translate
             self.translate_from = translate_from
             self.translate_to = translate_to
+            self.on_unknown_value = on_unknown_value
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
@@ -714,10 +715,18 @@ class translate(base.Transformer):
                 if cell in self.translate:
                     yield self.translate[cell]
                 else:
-                    msg = f"There's nothing to be translated"
-                    f" from `{self.translate_from}` to `{self.translate_to}`"
-                    f" at column `{key}`"
-                    self.delay_warning(msg, section = "row", index = i)
+                    if self.on_unknown_value == "skip":
+                        continue
+                    elif self.on_unknown_value == "keep":
+                        yield cell
+                    else:
+                        assert self.on_unknown_value == "error"
+                        self.error(f"The cell value `{cell}` at column `{key}`" \
+                            f" is not found in the translation table" \
+                            f" (`{self.translate_from}` => `{self.translate_to}`)" \
+                            f" I'll skip this value.",
+                            exception = exceptions.TransformerDataError
+                        )
 
 
     def __init__(self,
@@ -763,6 +772,27 @@ class translate(base.Transformer):
         self.translations_file = kwargs.get("translations_file", None)
         self.translate_from = kwargs.get("translate_from", None)
         self.translate_to = kwargs.get("translate_to", None)
+
+        if "on_unknown_value" not in kwargs:
+            if self.translations_file:
+                msg = "You did not specify how a translate transformer" \
+                    f" (`{self.translate_from}` => `{self.translate_to}`) should" \
+                    " handle values that are not in translate tables." \
+                    " The default is to `on_unknown_value: skip` them."
+            else:
+                msg = "You did not specify how a manual translate transformer should" \
+                    " handle values that are not in translate tables." \
+                    " The default is to `on_unknown_value: skip` them."
+            logger.warning(msg)
+
+        self.on_unknown_value = kwargs.get("on_unknown_value", "skip")
+        behaviors = ["skip", "keep", "error"]
+        if self.on_unknown_value not in behaviors:
+            self.error(
+                f"Option `on_unknown_value` cannot be `{self.on_unknown_value}`," \
+                f" possible values are: {', '.join(behaviors)}",
+                exception = exceptions.TransformerConfigError
+            )
 
         if self.translations and self.translations_file:
             self.error(f"Cannot have both `translations` (=`{self.translations}`) and `translations_file` (=`{self.translations_file}`) defined in a {type(self).__name__} transformer.", section="translate", exception = exceptions.TransformerInterfaceError)
@@ -844,6 +874,7 @@ class translate(base.Transformer):
             self.translate,
             self.translate_from,
             self.translate_to,
+            self.on_unknown_value,
             raise_errors=raise_errors
         )
 
