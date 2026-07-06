@@ -108,15 +108,15 @@ class Congregate(Congregater):
 
             yield elem
 
-        logger.info(f"Congregated {len(self._duplicates)} unique {self._elem_cls.__name__}s")
+        logger.info(f"Congregated {len(self._duplicates)} unique {self._elem_cls.__name__}s.")
         if logger.level == "DEBUG":
             for k,l in self._duplicates.items():
                 logger.debug(f"  Key `{k}` => {len(l)} elements")
 
         if self.types_duplicates:
-            logging.info(f"Duplicates for {len(self.types_duplicates.keys())} types:")
+            logger.info(f"Duplicates for {len(self.types_duplicates.keys())} types:")
             for t,n in self.types_duplicates.items():
-                logging.info(f"    `{t}`: {n}")
+                logger.info(f"    `{t}`: {n}")
 
 
 class Nodes(Congregate):
