@@ -45,7 +45,7 @@ class ErrorManager:
         self.delayed_errors.append(err)
 
     def delay_warning(self, msg, section = None, index = None, indent = 0):
-        warn = self.format_msg(msg, section = section, index = index, indent = indent)
+        warn = self.format_msg(msg, section = section, index = index, indent = indent, exception = None)
         self.delayed_warnings.append(warn)
 
     def delay_info(self, msg, section = None, indent = 0):
