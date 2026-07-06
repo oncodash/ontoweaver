@@ -76,6 +76,7 @@ class Congregate(Congregater):
         elem_cls: base.Element,
         serializer: serialize.Serializer = serialize.All(),
         progress_bar = False,
+        statistics = True,
     ):
         """ Constructor.
 
@@ -86,6 +87,8 @@ class Congregate(Congregater):
         logger.debug(f"Instantiate Congregate {type(self).__name__} for element {elem_cls.__name__} with serializer {type(serializer).__name__}")
         assert(issubclass(elem_cls, base.Element))
         self._elem_cls = elem_cls
+        self.statistics = statistics
+        self.types_duplicates = {}
         super().__init__(serializer, progress_bar)
 
     def call(self, biocypher_tuples):
@@ -97,13 +100,23 @@ class Congregate(Congregater):
         logger.debug("Call Congregate...")
         for t in biocypher_tuples:
             elem = self._elem_cls.from_tuple(t, serializer = self.serializer)
+
+            if self.statistics and elem in self._duplicates:
+                self.types_duplicates[elem.label] = self.types_duplicates.get(elem.label, 0) + 1
+
             self._duplicates[elem] = self._duplicates.get(elem, []) + [elem]
+
             yield elem
 
+        logger.info(f"Congregated {len(self._duplicates)} unique {self._elem_cls.__name__}s")
         if logger.level == "DEBUG":
-            logger.debug(f"Congregated in {len(self._duplicates)} keys:")
             for k,l in self._duplicates.items():
                 logger.debug(f"  Key `{k}` => {len(l)} elements")
+
+        if self.types_duplicates:
+            logging.info(f"Duplicates for {len(self.types_duplicates.keys())} types:")
+            for t,n in self.types_duplicates.items():
+                logging.info(f"    `{t}`: {n}")
 
 
 class Nodes(Congregate):
