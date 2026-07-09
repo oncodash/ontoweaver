@@ -3,9 +3,11 @@
 
 import sys
 import glob
+import copy
 import rdflib
 import pathlib
 import logging
+import inspect
 
 import json as pyjson
 import pandas as pd
@@ -116,6 +118,15 @@ class Loader(metaclass = ABSTRACT):
                 logger.warning(f"I don't know how to handle the filename `{filename}` of type `{type(filename)}`. I'll pretend I saw nothing, but this may generate errors later on.")
         return extensions
 
+    def remove_unknown_args(self, kwargs, func):
+        """Remove any argument in kwargs that is unknown to func."""
+        spec = inspect.getfullargspec(func)
+        kw = copy.copy(kwargs)
+        for key in kwargs:
+            if key not in spec.kwonlyargs:
+                logger.debug(f"Remove argument `{key}` from call to `{func.__name__}{inspect.signature(func)}`")
+                del kw[key]
+        return kw
 
 class LoadPandasDataframe(Loader):
     """ Load Pandas DataFrame
@@ -207,9 +218,8 @@ class LoadPandasFile(Loader):
         super().__init__(progress_bar)
 
     def read_csv_progress(self, filename, hint=None, steps=100, estimate_lines=10, **kwargs):
+        kwargs = self.remove_unknown_args(kwargs, pd.read_csv)
         if self.progress_bar:
-            if "progress_bar" in kwargs:
-                del kwargs["progress_bar"]
             chunks = []
             if hint:
                 nb_lines = hint
@@ -235,8 +245,6 @@ class LoadPandasFile(Loader):
 
             return df
         else:
-            if "progress_bar" in kwargs:
-                del kwargs["progress_bar"]
             return pd.read_csv(filename, **kwargs)
 
 
@@ -277,8 +285,10 @@ class LoadPandasFile(Loader):
             logger.debug(f"Loading function loadfunc = {loadfunc.__name__}")
 
             # Overwrite default named arguments with the passed ones.
-            if "progress_bar" in kwargs:
-                del kwargs["progress_bar"]
+            if loadfunc.__name__ == "read_csv_progress":
+                kwargs = self.remove_unknown_args(kwargs, pd.read_csv)
+            else:
+                kwargs = self.remove_unknown_args(kwargs, loadfunc)
             kw.update(kwargs)
 
             if not kw:
