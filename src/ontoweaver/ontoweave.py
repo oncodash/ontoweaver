@@ -260,6 +260,12 @@ def main():
 
     logger.setLevel(asked.log_level)
 
+    if not sys.stderr.isatty():
+        logger.warning("You asked for --progress-bars," \
+        " but the standard error output is not in a virtual terminal." \
+        " This would prevent their correct display. I'll disable them.")
+        asked.progress_bars = False
+
     logger.debug("OntoWeave parameters:")
 
     logger.debug(f"    config files: {config_files}")
