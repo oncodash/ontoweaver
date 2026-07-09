@@ -127,7 +127,7 @@ class MultiTypeLabelMakerInterface(LabelMaker, metaclass = ABSTRACT):
                             types["reverse_relation"]
                         )
                 if not has_match:
-                    self.delay_warning(f"No type pattern matching value: `{value_to_match}` during extraction in a match section. This cell value is skipped.")
+                    self.delay_warning(f"No type pattern matching value: `{value_to_match}` during extraction in a match section. I'll skip the related cell values.")
             else:
                 # No multi-type dictionary. The transformer returns only the extracted value of the cell. Used for properties.
                 return ReturnCreate(value)
