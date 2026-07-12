@@ -13,7 +13,7 @@ runs:
     #----------------------------------------------
     - name: Load cached venv
       id: cached-uv-dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ inputs.PYTHON_VERSION }}-${{ hashFiles('**/uv.lock') }}
