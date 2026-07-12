@@ -1,7 +1,7 @@
 
 [project]
 name = "ontoweaver"
-version = "1.7.0"
+version = "1.8.0"
 description = "Convert iterable data to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
 authors = [
@@ -9,6 +9,7 @@ authors = [
     { name = "Marko Baric", email = "marko.baric@pasteur.fr" },
     { name = "Claire Laudy", email = "claire.laudy@thalesgroup.com" },
     { name = "Matthieu Najm", email = "matthieu.najm@pasteur.fr" },
+    { name = "Claire Laudy", email = "claire.laudy@pasteur.fr" },
     { name = "Benno Schwikowski", email = "benno.schwikowski@pasteur.fr" },
 ]
 requires-python = "<4.0,>=3.11"
