@@ -30,6 +30,7 @@ dependencies = [
     "pyaml>=25.7.0",
     "fastparquet>=2025.12.0",
     "csvkit>=2.2.0",
+    "typing_extensions>=4.0.0",
 ]
 
 [dependency-groups]

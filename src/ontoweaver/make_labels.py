@@ -3,7 +3,7 @@
 import logging
 import abc
 import re
-from typing import override
+from typing_extensions import override
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 from . import errormanager, exceptions
@@ -160,4 +160,3 @@ class MultiTypeOnColumnLabelMaker(MultiTypeLabelMakerInterface):
     @override
     def get_value_from(self, value: str, row: list) -> str:
         return str(row[self.match_type_from_column])
-
