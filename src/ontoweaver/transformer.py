@@ -812,7 +812,7 @@ class translate(base.Transformer):
                 # self.translate_to = translate_to
 
                 # Possible arguments from the `translate` section.
-                mapping_args = ["translations", "translations_file", "translate_from", "translate_to"]
+                mapping_args = ["translations", "translations_file", "translate_from", "translate_to", "on_unknown_value"]
                 # Possible Python attributes.
                 mapping_args += ["subclass"]
                 # Discard match
