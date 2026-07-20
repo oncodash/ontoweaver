@@ -443,8 +443,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                             local_edges.append(
                                 self.make_edge(
                                     edge_t = reverse_edge,
-                                    id_source = subject_node_id,
-                                    id_target = target_node_id,
+                                    id_target = subject_node_id,
+                                    id_source = target_node_id,
                                     properties = self.properties(
                                         reverse_edge.fields(),
                                         row, i, s_edge, s_node
