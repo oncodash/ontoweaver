@@ -1,11 +1,15 @@
+import io
+import yaml
+import logging
+import ontoweaver
+import pandas as pd
+from . import testing_functions
+
+logger = logging.getLogger("ontoweaver")
+logger.setLevel(logging.DEBUG)
+
+
 def test_reverse_edge():
-    from . import testing_functions
-    import logging
-    import ontoweaver
-
-    logger = logging.getLogger("ontoweaver")
-    logger.setLevel(logging.DEBUG)
-
     directory_name = "reverse_edge"
 
     expected_nodes = [
@@ -31,11 +35,61 @@ def test_reverse_edge():
 
     fnodes, fedges = ontoweaver.fusion.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges), reconciliate_sep=",")
 
-    logging.debug(fnodes)
-    logging.debug(fedges)
+    logger.debug(fnodes)
+    logger.debug(fedges)
     testing_functions.assert_equals(fnodes, expected_nodes)
     testing_functions.assert_equals(fedges, expected_edges)
 
 
+def test_reverse_edges_from_subject():
+
+    logger.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """s,x,y
+sA,x1,y1
+sB,x2,y2"""
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logger.debug("Load mappings...")
+
+    mapping = """
+row:
+    map:
+        column: s
+        to_subject: s
+transformers:
+    - map:
+        columns: x
+        to_object: x
+        via_relation: s_x
+        reverse_relation: x_s
+    - map:
+        column: y
+        from_subject: x
+        to_object: y
+        via_relation: x_y
+        reverse_relation: y_x
+    """
+
+    map = yaml.safe_load(mapping)
+
+    logger.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for node in nodes:
+        logger.debug(node.as_tuple()[0])
+
+    for edge in edges:
+        logger.debug(edge.as_tuple()[0])
+
+    assert len(nodes) == 2*3  # 2 s, 2 x, 2 y
+    assert len(edges) == 2*2*2
+
+
 if __name__ == "__main__":
     test_reverse_edge()
+    test_reverse_edges_from_subject()
+

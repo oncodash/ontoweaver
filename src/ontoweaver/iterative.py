@@ -398,7 +398,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 return fromsubject
 
 
-    def _make_alternative_source_node_id(self, row, i, transformer, j, target_node_id, target_edge, local_edges, local_errors):
+    def _make_alternative_source_node_id(self, row, i, transformer, j, target_node_id, target_edge, reverse_edge, local_edges, local_errors):
         """
         Helper function to create an alternative source node id, in case the target transformer has a `from_subject` attribute.
         """
@@ -424,7 +424,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         subject_id = s_id
                         subject_node_id = self.make_id(t.target_type, subject_id)
                         logger.debug(
-                            f"\t\tMake ({subject_node_id})-[{target_edge}]->({target_node_id})")
+                            f"\t\tMake ({subject_node_id})-[{target_edge.__name__}]->({target_node_id})")
                         local_edges.append(
                             self.make_edge(
                                 edge_t = target_edge,
@@ -436,6 +436,22 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                 )
                             )
                         )
+
+                        if reverse_edge:
+                            logger.debug(
+                                f"\t\tMake reverse: ({subject_node_id})-[{reverse_edge.__name__}]->({target_node_id})")
+                            local_edges.append(
+                                self.make_edge(
+                                    edge_t = reverse_edge,
+                                    id_source = subject_node_id,
+                                    id_target = target_node_id,
+                                    properties = self.properties(
+                                        reverse_edge.fields(),
+                                        row, i, s_edge, s_node
+                                    )
+                                )
+                            )
+
                         found_subject = t.target_type
                         made_edge = target_edge
 
@@ -695,6 +711,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                             j,
                                             target_node_id,
                                             target_edge,
+                                            reverse_relation,
                                             local_edges,
                                             local_errors
                                         )

@@ -649,6 +649,42 @@ The following transformers can change the case of the string within the cells:
   to uppercase.
 
 
+Symmetric relations
+^^^^^^^^^^^^^^^^^^^
+
+OntoWeaver allows to add an edge directed from the target to the subject with
+the keyword: ``reverse_relation``.
+
+By default, only the edge from subject to target is created, with
+``via_relation``. If your SKG engine does only support non-directed edges, you
+will not see the difference. But in some case, direction matters and it would
+be cumbersome to forge queries taking into account an edge going in the "wrong"
+direction.
+
+This keyword can be used wherever the ``via_relation`` keyword is used,
+including when you use a ``from_subject``. For instance:
+
+.. code:: yaml
+
+    row:
+        map:
+            column: my_subject
+            to_subject: subject
+    transformers:
+        - map:
+            columns: my_target
+            to_object: target
+            via_relation: subject_to_target
+            reverse_relation: target_to_subject
+        - map:
+            column: my_object
+            from_subject: target
+            to_object: object
+            via_relation: target_to_object
+            reverse_relation: object_to_target
+
+
+
 Advanced type management
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
