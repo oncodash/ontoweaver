@@ -12,7 +12,7 @@ authors = [
     { name = "Claire Laudy", email = "claire.laudy@pasteur.fr" },
     { name = "Benno Schwikowski", email = "benno.schwikowski@pasteur.fr" },
 ]
-requires-python = "<4.0,>=3.11"
+requires-python = "<4.0,>=3.12"
 dependencies = [
     "biocypher<1.0.0,>=0.11.0",
     "pooch<2.0.0,>=1.7.0",
