@@ -1,4 +1,4 @@
-#!/usr/bin/env uv run --script
+#!/usr/bin/env -S uv run --script
 import re
 import ontoweaver
 
