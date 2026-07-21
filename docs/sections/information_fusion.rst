@@ -78,8 +78,8 @@ Then, the result of the reconciliation step above would be:
 Generic fusion
 ~~~~~~~~~~~~~~
 
-Introduction
-^^^^^^^^^^^^
+Introduction to fusion
+^^^^^^^^^^^^^^^^^^^^^^
 
 OntoWeaver brings a set of features that also help solving fusion problems
 that goes beyond properties reconciliation.

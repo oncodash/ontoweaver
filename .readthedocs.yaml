@@ -11,6 +11,10 @@ build:
     python: "3.12"
   apt_packages:
     - graphviz
+  jobs:
+    build:
+      html:
+        - bash ./make_doc.sh
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
