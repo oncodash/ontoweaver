@@ -20,7 +20,9 @@ build:
 sphinx:
   configuration: docs/conf.py
 
-# Specify the Furo theme as a requirement to be installed
 python:
   install:
-    - requirements: ./docs/requirements.txt
+    - method: uv
+      command: pip
+      requirements: ./docs/requirements.txt
+
