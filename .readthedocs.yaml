@@ -15,7 +15,7 @@ build:
     build:
       html:
         - bash ./make_doc.sh
-        - mv doc_built/* .
+        - mv -f doc_built $READTHEDOCS_OUTPUT
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
