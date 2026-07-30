@@ -607,7 +607,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         )
 
         if reverse_relation:
-            logger.info(f"\t\t\tMake reverse edge `{reverse_relation.__name__}` from `{target_node_id}` to `{source_node_id}`")
+            logger.debug(f"\t\t\tMake reverse edge `{reverse_relation.__name__}` from `{target_node_id}` to `{source_node_id}`")
             local_edges.append(
                 self.make_edge(
                     edge_t=reverse_relation,
