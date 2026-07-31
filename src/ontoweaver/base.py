@@ -410,7 +410,6 @@ class GenericEdge(Edge):
         return Node
 
 
-
 class Adapter(errormanager.ErrorManager, metaclass = ABSTRACT):
     """Base class for implementing an adapter that consumes tabular data."""
 
@@ -487,7 +486,6 @@ class Declare(errormanager.ErrorManager):
                  ):
         super().__init__(raise_errors)
         self.module = module
-
         self.declared = []
 
 
@@ -611,6 +609,18 @@ class Declare(errormanager.ErrorManager):
         return getattr(self.module, name)
 
 
+    def __del__(self):
+        # We need to remove the classes we declared in the module, or else
+        # they will remain there, and would conflict with
+        # any next call to another mapping.
+        # For instance, property transformers attached to element class
+        # may map the wring properties, or try to map from columns that
+        # are unknown to the new mapping.
+        for cls in self.declared:
+            logger.debug(f"Deallocate {cls} from {self.module}")
+            delattr(self.module, cls.__name__)
+
+
 class MappingParser(Declare):
     # Various keys are allowed in the config to allow the user to use their favorite ontology vocabulary.
     k_row = ["row", "entry", "line", "subject", "source"]
@@ -628,6 +638,9 @@ class MappingParser(Declare):
     k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
     k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
     k_match_type_from = ["match_type_from_column", "match_type_from_element"]
+
+    def __init__(self, module, raise_errors = True):
+        super().__init__(module, raise_errors = raise_errors)
 
 
 class Transformer(errormanager.ErrorManager):

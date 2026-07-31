@@ -411,9 +411,15 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         found_subject = None
         nt = 0
+        logger.debug(f"Looking into {len(self.transformers)} transformers:")
+        if logging.getLevelName(logger.level) == "DEBUG":
+            for t in self.transformers:
+                logger.debug(t)
         for t in self.transformers:
             nt += 1
+            logger.debug(f"{nt}: {t}")
             if t.target_type == fromsubject:
+                logger.debug(f"compatible with {fromsubject}")
                 # Call this transformer.
                 tn = 0
                 for s_id, s_edge, s_node, s_reverse_edge in t(row, i):
@@ -701,6 +707,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                 if fromsubject:
                                     logger.debug(f"\t\tThis transformer have a `from_subject: {fromsubject}`")
                                     logger.debug(f"\t\tSearch a transformer having `{fromsubject}` as a target")
+                                    logger.debug(f"with target edge: {target_edge}")
+                                    logger.debug(f"{target_edge.fields()}")
 
                                     found_subject_in_transformers, \
                                     made_edge                      \

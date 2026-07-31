@@ -42,14 +42,20 @@ class ErrorManager:
 
     def delay_error(self, msg, section = None, index = None, indent = 0):
         err = self.format_msg(msg, section = section, index = index, indent = indent)
+        if logging.getLevelName(logger.level) == "DEBUG":
+            logger.error(err)
         self.delayed_errors.append(err)
 
     def delay_warning(self, msg, section = None, index = None, indent = 0):
         warn = self.format_msg(msg, section = section, index = index, indent = indent, exception = None)
+        if logging.getLevelName(logger.level) == "DEBUG":
+            logger.warning(warn)
         self.delayed_warnings.append(warn)
 
     def delay_info(self, msg, section = None, indent = 0):
         info = self.format_msg(msg, section = section, indent = indent, exception = None)
+        if logging.getLevelName(logger.level) == "DEBUG":
+            logger.info(info)
         self.delayed_infos.append(info)
 
 
