@@ -101,10 +101,10 @@ class Congregate(Congregater):
         for t in biocypher_tuples:
             elem = self._elem_cls.from_tuple(t, serializer = self.serializer)
 
-            if self.statistics and elem in self._duplicates:
+            if self.statistics:
                 self.types_duplicates[elem.label] = self.types_duplicates.get(elem.label, 0) + 1
 
-            self._duplicates[elem] = self._duplicates.get(elem, []) + [elem]
+            self._duplicates.setdefault(elem, []).append(elem)
 
             yield elem
 
