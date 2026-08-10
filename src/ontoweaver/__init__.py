@@ -219,7 +219,7 @@ def autoschema(
 
                 auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
                 props = []
-                for f in item.fields():
+                for trans in item.fields():
                     if trans.properties_of:
                         for p,c in trans.properties_of.items():
                             props.append( (p,c) )
