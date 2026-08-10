@@ -603,6 +603,16 @@ with the id of the node being ``01234567``, connected to a node of type
     a call to Python's ``re.sub(forbidden, substitute, x)`` function.
     Thus, you can use regexp's back references in the ``substitute`` field.
 
+    For example:
+
+    .. code:: yaml
+    
+        - replace:
+            # Replace "DOE John" by "John DOE":
+            forbidden: '([A-Z\s]+)\s([A-Z][a-z\s]+)'
+            substitute: '\2 \1'
+            [...]
+
 .. warning::
 
     The YAML parser interprets the escape sequences in strings that are in
