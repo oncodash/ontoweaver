@@ -618,7 +618,8 @@ class Declare(errormanager.ErrorManager):
         # are unknown to the new mapping.
         for cls in self.declared:
             logger.debug(f"Deallocate {cls} from {self.module}")
-            delattr(self.module, cls.__name__)
+            if hasattr(self.module, cls.__name__):
+                delattr(self.module, cls.__name__)
 
 
 class MappingParser(Declare):
