@@ -10,7 +10,8 @@ How to Add Properties to Nodes and Edges
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you do not need to create a new node, but simply attach some data to
-an existing node, use the ``to_property`` predicate, for example:
+an existing node or edge, use the ``to_property`` & ``for_object`` keywords,
+for example:
 
 .. code:: yaml
 
@@ -25,14 +26,19 @@ an existing node, use the ``to_property`` predicate, for example:
        - map:
            column: age
            to_property: patient_age
-           for_object: case
+           for_object: case  # This is a node type.
+       - map:
+           column: date
+           to_property: date
+           for_object: case_to_phenotype  # This is an edge type.
 
-This will add a “patient_age” property to nodes of type “case”.
+This will add a “patient_age” property to nodes of type “case”, and
+a “date” property to edges of type “case_to_phenotype”.
 
 .. note::
 
    Note that you can add the same property value to several property fields
-   of several node types:
+   of several element types:
 
 .. code:: yaml
 
@@ -45,11 +51,17 @@ This will add a “patient_age” property to nodes of type “case”.
            - case
            - phenotype
 
-.. note::
+.. warning::
 
-   Note that the properties declared in the BioCypher ``schema_config.yaml`` must match the properties declared in the mapping configuration file.
-   Furthermore, when declaring the properties in the schema configuration file, take care that the property must always be a
-   string (``str``) type - in order to avoid errors when importing the data into the Neo4j graph database.
+   Properties must be declared in the schema file, as well as
+   in the mapping configuration file.
+   If a property is not in the schema, BioCypher will ignore them,
+   even it you mapped them in the OntoWeaver mapping (this is actually a feature
+   allowing to filter out some properties).
+   You can use the auto-schema feature to create the schema for you and
+   avoid any mistake.
+   See :ref:`How are config files related?`.
+
 
 How to Extract Additional Edges
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -154,6 +166,34 @@ Now each of the nodes contains a property ``sources`` that contains the
 names of the source columns from which it was extracted. Be sure to
 include all the added node properties in the schema configuration file,
 to ensure that the properties are correctly added to the nodes.
+
+
+How to manually add a node with a static identifier?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the :ref:`string` transformer.
+
+There is no need to add a column with the same value for all elements to your
+table. The ``string`` transformer is compatible with other features, like
+subject redirection. For example:
+
+.. code:: yaml
+
+    row:
+        map:
+            column: Someone_in_our_department
+            to_subject: people
+    transformers:
+        - map:
+            column: Team
+            to_object: team
+            via_relation: people_in_team
+        - string:
+            from_subject: team
+            to_object: department
+            value: "Our Department"
+            via_relation: team_in_department
+
 
 How to create user-defined adapters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
