@@ -365,6 +365,39 @@ It only needs the string *value*, and then a regular property mapping:
            - patient
            - variant
 
+This can also be used to create a hard-coded node. For instance, this is useful
+if all the objects an input data table are linked to the same static subject,
+that is not represented in the data:
+
+.. code:: yaml
+
+    - string:
+        value: "Static_object"
+        to_object: my_node_type
+        via_relation: my_subject_to_object_link
+
+This will create a node with the ID: "Static_object" and link the subject to it.
+
+More often, you will want to link all created object to the static node.
+To do that, you can use the ``from_subject`` keyword:
+
+.. code:: yaml
+
+    row:
+        map:
+            column: Someone_in_our_department
+            to_subject: people
+    transformers:
+        - map:
+            column: Team
+            to_object: team
+            via_relation: people_in_team
+        - string:
+            from_subject: team
+            to_object: department
+            value: "Our Department"
+            via_relation: team_in_department
+
 
 translate
 ~~~~~~~~~
@@ -557,12 +590,24 @@ and not replaced by another character. The mapping would look like this:
            column: phone_number
            to_object: phone_number
            via_relation: phone_number_of_person
-           forbidden: '[^0-9]'
+           forbidden: '[^0-9]'  # Any character that is not a number.
 
 The result of this mapping would be a node of type ``phone_number``,
 with the id of the node being ``01234567``, connected to a node of type
 ``id`` with the id ``Jennifer``, via an edge of type
 ``phone_number_of_person``.
+
+.. note::
+
+    For advanced users, note that the ``replace`` transformer boils down to
+    a call to Python's ``re.sub(forbidden, substitute, x)`` function.
+    Thus, you can use regexp's back references in the ``substitute`` field.
+
+.. warning::
+
+    The YAML parser interprets the escape sequences in strings that are in
+    double-quotes, so when working with regexps, you probably want to always use
+    single-quoted strings.
 
 
 boolean
