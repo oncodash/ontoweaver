@@ -624,7 +624,7 @@ class capitalize(map):
         """
         for item in super().__call__(row, i):
             value, edge_type, node_type, reverse_edge = item
-            val = value.capitalize()
+            val = " ".join(w.capitalize() for w in value.split(" "))
             yield val, edge_type, node_type, reverse_edge
 
 
@@ -646,7 +646,7 @@ class lower(map):
         """
         for item in super().__call__(row, i):
             value, edge_type, node_type, reverse_edge = item
-            val = value.lower()
+            val = " ".join(w.lower() for w in value.split(" "))
             yield val, edge_type, node_type, reverse_edge
 
 
@@ -668,7 +668,7 @@ class upper(map):
         """
         for item in super().__call__(row, i):
             value, edge_type, node_type, reverse_edge = item
-            val = value.lower()
+            val = " ".join(w.upper() for w in value.split(" "))
             yield val, edge_type, node_type, reverse_edge
 
 
@@ -690,7 +690,7 @@ class lower_capitalize(map):
         """
         for item in super().__call__(row, i):
             value, edge_type, node_type, reverse_edge = item
-            val = value.lower().capitalize()
+            val = " ".join(w.lower().capitalize() for w in value.split(" "))
             yield val, edge_type, node_type, reverse_edge
 
 

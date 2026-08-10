@@ -699,9 +699,11 @@ The following transformers can change the case of the string within the cells:
 
 - ``lower``: change all letters to lowercase,
 - ``upper``: change all letters to uppercase,
-- ``capitalize``: change the first letter to uppercase,
+- ``capitalize``: change the first letter of each (regular space-separated) word
+  to uppercase,
 - ``lower_capitalize``: change all letters to lowercase, then the first letter
-  to uppercase.
+  of each (regular space-separated) word to uppercase;
+  e.g. "John DOE" -> "John Doe".
 
 
 Symmetric relations
