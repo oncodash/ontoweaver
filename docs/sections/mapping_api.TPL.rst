@@ -691,6 +691,86 @@ For example:
         via_relation: has_result
 
 
+western_name
+~~~~~~~~~~~~
+
+This extracts a canonical form of a string matching a person name in western
+cultures.
+
+The processed person name must have:
+
+- At least one first name and one last name;
+- words starting with a capital letter.
+
+The algorithm is able to manage last names in capitals,
+initials of middle names,
+onomastic particles (e.g. "of", "de", "von", etc.)
+as well as retronyms (e.g. "Junior", "Senior", "III", "père", "Major", etc.)
+
+When existing :
+
+- onomastic particles must start with a non-capital letter;
+- initials must be followed by a dot (i.e. "J.").
+
+The canonical form is rendered as:
+"[particles] Last Names, First [Initials] Names [retronyms]".
+For instance: "de la Vega, Don D. Alejandro Junior".
+
+.. warning::
+
+    When an ambiguity exists, the algorithm favors first names.
+    For instance: "First Second Third" will be interpreted as "Third, First Second".
+
+    However, in "Santiago Ramón y Cajal", the name "Ramón" is part of the last
+    name, but the ``western_name`` algorithm will infer it's a first name,
+    because onomastic particles (here, "y") in between last names are such rare
+    occurences.
+
+    However, "Santiago RAMÓN Y CAJAL" will be correctly parsed, but the rendered
+    canonical form will wrongly capitalize the onomastic particle:
+    "Santiago Ramón Y Cajal".
+
+When indicating several columns, they are concatenated, in the given order,
+before processing. For instance:
+
+.. code:: yaml
+
+    - western_name:
+        columns:
+            - last
+            - first
+        to_object: name
+        via_relation: has_name
+
+when processing:
+
++----------+----------+
+| first    | last     |
++==========+==========+
+| J. R. R. | TOLKIEN  |
++----------+----------+
+
+will concatenate the strings as "TOLKIEN J. R. R.", parse it,
+and output: "Tolkien, J. R. R."
+
+Examples of conversions:
+
++----------------------------------+-----------------------------------+
+| Input                            | Output                            |
++==================================+===================================+
+| "L'HUILLIER Anne"                | "L'Huillier, Anne"                |
++----------------------------------+-----------------------------------+
+| "Charles-Augustin de Coulomb"    | "de Coulomb, Charles-Augustin"    |
++----------------------------------+-----------------------------------+
+| "J. Robert Oppenheimer"          | "Oppenheimer, J. Robert"          |
++----------------------------------+-----------------------------------+
+| "Muhammad ibn Musa al-Khwarizmi" | "ibn Musa al-Khwarizmi, Muhammad" |
++----------------------------------+-----------------------------------+
+| "Thomas Midgeley Junior"         | "Midgeley, Thomas Junior"         |
++----------------------------------+-----------------------------------+
+| "Ramón y Cajal, Santiago"        | "Ramón y Cajal, Santiago          |
++----------------------------------+-----------------------------------+
+
 
 Case manipulation transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

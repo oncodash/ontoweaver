@@ -11,6 +11,7 @@ import logging
 import pathlib
 import operator
 import importlib
+import collections
 from abc import abstractmethod
 
 from pyparsing import (Literal, CaselessLiteral, Word, Combine, Group, Optional,
@@ -184,8 +185,10 @@ class split(base.Transformer):
 
                 val = row[key]
                 if isinstance(val, str):
-                    items = re.split(pattern=repr(self.separator)[1:-1],
-                                         string=val)
+                    items = re.split(
+                        pattern = self.separator,
+                        string = val
+                    )
                     for item in items:
                         yield item.strip() # Remove leading and trailing whitespace
 
@@ -1504,5 +1507,261 @@ class maths(base.Transformer):
 
         if not operation:  # Neither empty string nor None.
             self.error(f"The `operation` parameter of the `{type(self).__name__}` transformer cannot be an empty string.")
+
+
+
+class western_name(base.Transformer):
+    """Transformer """
+
+    class ValueMaker(make_value.ValueMaker):
+
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+            # Known naming schemes:
+            NAME = r"([A-ZÀ-ÖØ-Ÿ][A-ZÀ-ÖØ-Ÿʼ']*(?=[\-ʼ'][A-ZÀ-ÖØ-Ÿ])(?:[\-ʼ'][A-ZÀ-ÖØ-Ÿ]*)*)"
+            Name = r"([A-ZÀ-ÖØ-Ÿ][a-zØ-öø-ÿʼ']*(?=[\-ʼ'][A-ZÀ-ÖØ-Ÿ])*(?:[\-ʼ'][A-ZÀ-ÖØ][a-zØ-öø-ÿ]*)*)"
+            # NAME  = r"([A-ZÀ-ÖØ-Ÿ][A-ZÀ-ÖØ-Ÿʼ']+(?=-[A-ZÀ-ÖØ-Ÿ])(?:-[A-ZÀ-ÖØ-Ÿ]*)*)"
+            # Name  = r"([A-ZÀ-ÖØ-Ÿ][a-zØ-öø-ÿʼ']+(?=-[A-ZÀ-ÖØ-Ÿ])*(?:-[A-ZÀ-ÖØ][a-zØ-öø-ÿ]*)*)"
+
+            NAMES = r"([A-ZÀ-ÖØ-Ÿ][A-ZÀ-ÖØ-Ÿʼ']*(?=[\s\-ʼ'][A-ZÀ-ÖØ-Ÿ])*(?:[\s\-ʼ'][A-ZÀ-ÖØ-Ÿ]*)*)"
+            Names = r"([A-ZÀ-ÖØ-Ÿ][a-zØ-öø-ÿʼ']*(?=[\s\-ʼ'][A-ZÀ-ÖØ-Ÿ])*(?:[\s\-ʼ'][A-ZÀ-ÖØ-Ÿ][a-zØ-öø-ÿ\-ʼ']*)*)"
+
+            whatev = r"([A-ZÀ-ÖØ-Ÿa-zØ-öø-ÿʼ'\-\s\.]+)"
+            I = r"([A-ZÀ-ÖØ-Ÿ]\.)"
+            Is = r"([A-ZÀ-ÖØ-Ÿ]\.(?=\s[A-ZÀ-ÖØ-Ÿ]\.)(?:\s[A-ZÀ-ÖØ-Ÿ]\.)+)"
+            particle = r"([a-zØ-öø-ÿʼ']+)"
+            s = r"\s+"
+
+            # The order with which we search matters.
+            self.patterns = collections.OrderedDict()
+
+            # Canonical forms.
+            self.patterns["lasts_comma_firsts"] = (whatev + r",\s*" + whatev, [0], [1])
+
+            # With onomastic particle
+            self.patterns["Firsts_particle_LASTs"] = (Names+s + particle+s + NAMES, [1,2], [0])
+            self.patterns["Firsts_particle_Lasts"] = (Names+s + particle+s + Names, [1,2], [0])
+            self.patterns["particle_Lasts_comma_Firsts"] = (particle+s + Names + r',\s*' + Names, [0,1], [2])
+            self.patterns["particle_LASTs_comma_Firsts"] = (particle+s + NAMES + r',\s*' + Names, [0,1], [2])
+
+            # With 1 initials
+            self.patterns["Firsts_I_LASTs"] = (Names + s + I+s + NAMES, [2], [0,1])
+            self.patterns["Firsts_I_Lasts"] = (Names + s + I+s + Names, [2], [0,1])
+            self.patterns["LASTs_Firsts_I"] = (NAMES + s + Names + s + I, [0], [1,2])
+            self.patterns["Lasts_Firsts_I"] = (Names + s + Names + s + I, [0], [1,2])
+
+            # With 2 initials
+            self.patterns["Firsts_II_LASTS"] = (Names + s + I+s + I+s + NAMES, [3], [0,1,2])
+            self.patterns["Firsts_II_Lasts"] = (Names + s + I+s + I+s + Names, [3], [0,1,2,])
+            self.patterns["LASTs_Firsts_II"] = (NAMES + s + Names + s + I+s + I, [0], [1,2,3])
+            self.patterns["Last_First_II"] = (Name + s + Name + s + I+s + I, [0], [1,2,3])
+
+            # With 3 initials
+            self.patterns["Firsts_III_LASTS"] = (Names + s + I+s + I+s + I+s + NAMES, [4], [0,1,2,3])
+            self.patterns["Firsts_III_Lasts"] = (Names + s + I+s + I+s + I+s + Names, [4], [0,1,2,3])
+            self.patterns["LASTS_Firsts_III"] = (NAMES + s + Names + s + I+s + I+s + I, [0], [1,2,3,4])
+            self.patterns["Last_First_III"] = (Name + s + Name + s + I+s + I+s + I, [0], [1,2,3,4])
+
+            # Only 1 initials
+            self.patterns["I_First_Last"] = (I+s + Name+s + Name, [2], [0,1])
+
+            self.patterns["I_LASTS"] = (I+s + NAMES, [1], [0])
+            self.patterns["I_Lasts"] = (I+s + Names, [1], [0])
+            self.patterns["LASTS_I"] = (NAMES + s + I, [0], [1])
+            self.patterns["Lasts_I"] = (Names + s + I, [0], [1])
+
+            # 2 initials around
+            self.patterns["I_Firsts_I_Lasts"] = (I+s + Names+s +I+s + Names, [3], [0,1,2])
+            self.patterns["I_Firsts_I_LASTS"] = (I+s + Names+s +I+s + NAMES, [3], [0,1,2])
+            self.patterns["Lasts_I_Firsts_I"] = (Names+s + I+s + Names+s +I, [0], [1,2,3])
+            self.patterns["LASTS_I_Firsts_I"] = (NAMES+s + I+s + Names+s +I, [0], [1,2,3])
+
+            # Only 2 initials
+            self.patterns["II_LASTS"] = (I+s + I+s + NAMES,   [2], [0,1])
+            self.patterns["II_Lasts"] = (I+s + I+s + Names,   [2], [0,1])
+            self.patterns["LASTS_II"] = (NAMES + s + I+s + I, [0], [1,2])
+            self.patterns["Lasts_II"] = (Names + s + I+s + I, [0], [1,2])
+
+            # Only 3 initials
+            self.patterns["III_LASTS"] = (I+s + I+s + I+s + NAMES, [3], [0,1,2])
+            self.patterns["III_Lasts"] = (I+s + I+s + I+s + Names, [3], [0,1,2])
+            self.patterns["LASTS_III"] = (NAMES + s + I+s + I+s + I, [0], [1,2,3])
+            self.patterns["Lasts_III"] = (Names + s + I+s + I+s + I, [0], [1,2,3])
+
+            # With 1 other name
+            self.patterns["First_Name_LAST"] = (Name + s + Name+s + NAME, [2], [0,1])
+            self.patterns["LAST_First_Name"] = (NAME + s + Name+s + Name, [0], [1,2])
+
+            # With 2 other names
+            self.patterns["First_Name_Name_LASTS"] = (Name + s + Name+s + Name+s + NAMES, [3], [0,1,2])
+            self.patterns["LASTS_First_Name_Name"] = (NAMES + s + Name+s + Name+s + Name, [0], [1,2,3])
+
+            # With 3 other names
+            self.patterns["First_Name_Name_Name_LASTS"] = (Name + s + Name+s + Name+s + Name+s + NAMES, [4], [0,1,2,3])
+            self.patterns["LASTS_First_Names"] = (NAMES + s + Name+s + Names, [0], [1,2])
+
+            # Heuristics, but common enough
+            self.patterns["First_Name_Last"] = (Name + s + Name+s + Name, [2], [0,1])
+            self.patterns["First_Name_Name_Last"] = (Name + s + Name+s + Name+s + Name, [3], [0,1,2])
+            self.patterns["First_Name_Name_Name_Last"] = (Name + s + Name+s + Name+s + Name+s + Name, [4], [0,1,2,3])
+
+            # Without initials or other names
+            self.patterns["LASTS_Firsts"] = (NAMES + s + Names, [0], [1])
+            self.patterns["Firsts_LASTS"] = (Names + s + NAMES, [1], [0])
+            self.patterns["First_Last"] = (Name + s + Name, [1], [0])
+
+            self.patterns["Firsts_particle_whatever"] = (Names+s + particle + whatev, [1,2], [0])
+
+            self.retronyms = [
+                r"Junior",
+                r"Jr\.",
+                r"Jr",  # After the form with the dot.
+                r"JR\.",
+                r"JR",
+                r"Jnr\.",
+                r"Jnr",
+                r"Senior",
+                r"Sr\.",
+                r"Sr",
+                r"SR\.",
+                r"SR",
+                r"père",
+                r"fils",
+                r"I",
+                r"II",
+                r"III",
+                r"Major",
+                r"Maior",
+                r"Minor",
+                r"Primo",
+                r"Segundo",
+            ]
+            self.retronym_tag = r'\b(' + r"|".join(self.retronyms) + r')(\s|,|$)'
+
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                logger.debug("Patterns:")
+                for k,p in self.patterns.items():
+                    logger.debug(f"├ {k}: '^{p[0]}$'  @ {p[1]}")
+
+
+        def capitalize(self, sentence):
+            # Capitalize uppercase words.
+            capitalized = re.sub(
+                r"([A-ZÀ-ÖØ]+)",
+                lambda m:
+                    m.group(0).capitalize(),
+                sentence
+            )
+            # Remove non-canonical space characters and double spaces.
+            return " ".join(capitalized.split()).strip()
+
+
+        def extract(self, pattern, i_last, i_first, value):
+            logger.debug(f'''│ echo "{value}" | colout "{pattern}"''')
+            m = re.match(pattern, value)
+            if m:
+                logger.debug(f"│ Matches with {len(m.groups())} groups")
+                assert len(m.groups()) == len(i_last)+len(i_first)
+                last = " ".join([m.groups()[i] for i in i_last]).strip()
+                first = " ".join([m.groups()[i] for i in i_first]).strip()
+                assert last
+                assert first
+                res = f"{last}, {first}"
+                res = re.sub(r"' ", "'", res)
+                res = re.sub(r"ʼ ", "ʼ", res)
+                res = self.capitalize(res)
+                logger.debug(f"│ Result: {res}")
+                return res
+            else:
+                return None
+
+
+        def __call__(self, columns, row, i):
+            # First, concatenate columns:
+            value = ""
+            for key in columns:
+                if key not in row:
+                    self.log_missing_key(key, row)
+                    continue
+                else:
+                    value += f" {row[key]}"
+            value = value.strip()
+            logger.debug(f"Call western_name( `{value}` )")
+
+            # Remove the retronym tag.
+            # Most of the times, the Jr. tag is put after last names,
+            # but we want it as part of the first name, were it belongs,
+            # so here we remove it, and will add it back later.
+            logger.debug(f"├ Retronym search with: `{self.retronym_tag}`")
+            retronym = re.search(self.retronym_tag, value)
+            logger.debug(f"│ │ Found: {retronym}")
+            if retronym:
+                value = re.sub(self.retronym_tag, '', value).strip()
+                logger.debug(f"│ ┕ With retronym removed: `{value}`")
+                assert not re.search(self.retronym_tag, value)
+            else:
+                logger.debug(f"│ ┕ No retronym found")
+
+            # logger.debug(f"├ Searching...")
+            found = False
+            for p in self.patterns:
+                logger.debug(f"├ Matching against: {p}")
+                pattern, i_last, i_first = self.patterns[p]
+                formatted = self.extract(r'^'+pattern+'$', i_last, i_first, value)
+                if formatted:
+                    logger.debug(f"│ I found a name matching: {p}")
+                    logger.debug(f"│ Which is: '^{self.patterns[p]}$'")
+                    logger.debug(f"┕ Formatted as: `{formatted}`")
+                    found = True
+                    if retronym:
+                        logger.debug(f"├ Add back the retronym")
+                        formatted += f" {retronym.group(0).strip()}"
+                        # formatted += f" {' '.join([jr.capitalize() for jr in retronym.groups()])}"
+                    yield formatted
+                    break
+                else:
+                    logger.debug(f"│ ┕ Pattern does not match.")
+                    continue
+
+            if not found:
+                logger.error(f"┕ I could not find a name in the value: `{value}`")
+
+
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
+        """
+        Constructor.
+
+        Args:
+            properties_of: Properties of the node.
+            value_maker: the ValueMaker object used for the logic of cell value selection for each transformer.
+            label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
+            columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
+            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
+            raise_errors: if True, the caller is asking for raising exceptions when an error occurs
+        """
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
 
 
