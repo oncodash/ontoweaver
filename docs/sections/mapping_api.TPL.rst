@@ -183,6 +183,20 @@ it.
 If the cell value is any other type, it tries to iterate over it.
 In this case, any iterable object can be in the cell.
 
+.. warning::
+
+    The ``separator`` parameter is interpreted as a regular expression.
+
+    That means that some characters that have a special meaning in Python's
+    `re <https://docs.python.org/fr/3/library/re.html>`_ module must be
+    "escaped".
+    This is most notably the case of the "|" character, a common separator
+    which must be passed as:
+    
+    .. code:: yaml
+
+        separator: '\|'
+
 For example, if you have a list of treatments separated by a semicolon,
 you may write:
 
