@@ -708,6 +708,8 @@ For example:
 western_name
 ~~~~~~~~~~~~
 
+.. versionadded:: 1.9
+
 This extracts a canonical form of a string matching a person name in western
 cultures.
 
@@ -798,6 +800,88 @@ The following transformers can change the case of the string within the cells:
 - ``lower_capitalize``: change all letters to lowercase, then the first letter
   of each (regular space-separated) word to uppercase;
   e.g. "John DOE" -> "John Doe".
+
+
+compose
+~~~~~~~
+
+.. versionadded:: 1.9
+
+This transformer allows to call several transformers in sequence,
+each one onto the result of the previous one.
+
+For example, to first split a cell value, then lower the case of each result,
+one would want to call the ``split`` transformer, and for each extracted
+value, call the ``lower`` transformer on them, a bit like calling
+``lower(split(value))``.
+In computer science, this is called "composing" functions, hence the name.
+
+With the ``compose`` transformer, this would look like:
+
+.. code:: yaml
+
+    compose:
+        column: authors
+        to_object: Author
+        via_relation: has_author
+        call:
+            - split:
+                separator: ";"
+            - lower
+
+In practice, the list of transformers given to the ``call`` parameter is called
+recursively on each item yield by the previous one. For instance, one can call
+``split`` several time, on different separators.
+
+For example:
+
+.. code:: yaml
+
+    compose:
+        column: list_of_list
+        to_object: item
+        via_relation: has_item
+        call:
+            - split:
+                separator: ;
+            - split:
+                separator: -
+
+when processing "a-b;c-d", the composed transformer would output "a", then "b",
+"c', and finally "d".
+
+.. note::
+
+    The type management keywords and the "column" one must only be given to the
+    root section of the composed transformer. That is, the transformer sections
+    listed under the ``call`` keyword cannot have them. Only the parameter
+    that are specific to each transformer can be there.
+
+If several columns are given, only the first transformer in the call list will
+see them. All the remaining ones will be given a single item to process.
+
+For example:
+
+.. code:: yaml
+
+    compose:
+        columns:
+            - first name
+            - last name
+        to_object: People
+        via_relation: has_people
+        call:
+            - cat_format:
+                # This sees both columns.
+                format_string: "{last name}, {first name}
+            - capitalize
+                # You cannot indicate "column" or "to_object" here.
+                # This will process the formatted string yield by `cat_format`.
+            - replace:
+                forbidden: ", "
+                substitute: ","
+                # This will process the formatted string yield by `capitalize`.
+                # And the result is what is returned by the compose transformer.
 
 
 Symmetric relations

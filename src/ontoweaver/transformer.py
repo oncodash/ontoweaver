@@ -6,6 +6,7 @@ import re
 import sys
 import math
 import json
+import copy
 import inspect
 import logging
 import pathlib
@@ -189,6 +190,8 @@ class split(base.Transformer):
                         pattern = self.separator,
                         string = val
                     )
+                    logger.debug(f"re.split('{self.separator}', '{val}') == {items}")
+                    assert type(items) is list
                     for item in items:
                         yield item.strip() # Remove leading and trailing whitespace
 
@@ -198,6 +201,7 @@ class split(base.Transformer):
 
                 else:
                     try:  # Try generic access.
+                        logger.debug(f"Tries to iterate on: {val}")
                         for item in val:
                             yield item
                     except Exception as e:
@@ -994,7 +998,9 @@ class replace(base.Transformer):
 
         def __init__(self, raise_errors: bool = True, forbidden = None, substitute = None):
 
+            assert type(forbidden) is str
             self.forbidden = forbidden
+            assert type(substitute) is str
             self.substitute = substitute
             super().__init__(raise_errors)
 
@@ -1008,11 +1014,11 @@ class replace(base.Transformer):
                     yield row[key]
                 else:
                     logger.debug(
-                        f"Setting forbidden characters: {self.forbidden} for `replace` transformer, with substitute character: `{self.substitute}`.")
+                        f"re.sub('{self.forbidden}', '{self.substitute}', '{row[key]}')")
                     formatted = re.sub(self.forbidden, self.substitute, row[key])
 
-                    strip_formatted = formatted.strip(self.substitute)
-                    logger.debug(f"Formatted value: {strip_formatted}")
+                    strip_formatted = formatted.strip()
+                    logger.debug(f"Replaced result: `{strip_formatted}`")
                     yield strip_formatted
 
     def __init__(self,
@@ -1764,4 +1770,145 @@ class western_name(base.Transformer):
             **kwargs
         )
 
+class compose(base.Transformer):
+
+    class ValueMaker(make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            raise NotImplementedError()
+
+
+    def init_checks(self):
+        if not hasattr(self, "call") or type(self.call) is not list or len(self.call) == 0:
+            self.error("You must pass a list of transformers in a `call` argument to the `compose` transformer.")
+
+        MP = base.MappingParser
+        current = sys.modules[__name__]
+
+        for section in self.call:
+            if type(section) is str:
+                continue
+            if len(section.keys()) > 1:
+                self.error(f"There is several transformer names: {' & '.join(section.keys())}, but there should be only one.")
+
+            t_name = list(section.keys())[0]
+            if not hasattr(current, t_name):
+                self.error(f"I cannot find a transformer named `{t}`, check for spelling error or register this transformer class.")
+
+            # Check that arguments in each transformer's section are not reserved.
+            for arg,val in section[t_name].items():
+                for attr in dir(MP):
+                    if re.match(r"^\s*k_([a-z_]+)", attr):
+                        keywords = getattr(MP, attr)
+                        for k in keywords:
+                            if arg == k:
+                                self.error(f"You should not pass the `{k}` argument to transformers within a `compose` transformer. Try passing this in the `compose` section transformer instead.")
+                                break
+
+
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            **kwargs
+        ):
+        """
+        Constructor.
+
+        Args:
+            properties_of: Properties of the node.
+            value_maker: the ValueMaker object used for the logic of cell value selection for each transformer.
+            label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
+            columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
+            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
+            raise_errors: if True, the caller is asking for raising exceptions when an error occurs
+        """
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(
+            properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors=raise_errors,
+            **kwargs
+        )
+        self.init_checks()
+        self.tag = "ONTOWEAVER"
+
+        def make_transformer(t_section, columns = None):
+            if type(t_section) is str:
+                t_name = t_section
+                t_args = {}
+            else:
+                t_name = list(t_section.keys())[0]
+                t_args = t_section[t_name]
+
+            if not columns:
+                columns = [self.tag]
+
+            current = sys.modules[__name__]
+            t_class = getattr(current, t_name)
+            return t_class(
+                    properties_of,
+                    label_maker,
+                    branching_properties,
+                    columns,
+                    output_validator,
+                    multi_type_dict,
+                    raise_errors,
+                    **(t_args)
+                )
+
+        # Instantiate the list of configured transformers.
+        # First transformer gets any columns passed to compose.
+        self.transformers = [make_transformer(self.call[0], self.columns)]
+
+        # Others will get a special column name.
+        for t in self.call[1:]:
+            self.transformers.append(make_transformer(t))
+
+        logger.debug(self.transformers)
+
+
+    def recursive_call(self, row, i, t_indexes):
+        logger.debug("#############################################")
+        logger.debug(f"recursive_call({dict(row)}, {i}, {t_indexes})")
+        assert len(t_indexes) > 0
+
+        # Since we're altering indices, we need to copy it,
+        # or else the reference will affect recursive calls in the stack.
+        t_indices = copy.copy(t_indexes)
+
+        transformer = self.transformers[t_indices.pop(0)]
+
+        logger.debug(f"Apply transformer: {transformer} on {dict(row)}")
+        for value, edge_type, node_type, reverse_edge in transformer(row, i):
+            logger.debug(f"Transformer output value: `{value}`")
+
+            if len(t_indices) == 0:
+                logger.debug(f"No more tranformer to apply, yield result: `{value}`")
+                yield value, edge_type, node_type, reverse_edge
+            else:
+                internal_row = {self.tag: value}
+                logger.debug(f"Call remaining {len(t_indices)} transformers on : {internal_row}")
+                for venr in self.recursive_call(internal_row, i, t_indices):
+                    yield venr
+
+
+    def __call__(self, row, i):
+        t_indices = list(range(len(self.transformers)))
+        for venr in self.recursive_call(row, i, t_indices):
+            yield venr
 
