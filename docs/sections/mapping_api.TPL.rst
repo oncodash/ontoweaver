@@ -555,15 +555,11 @@ to the transformer as a regular expression. For example:
            - treatment
        to_object: drug
        via_relation: alteration_biomarker_for_drug
-       forbidden: '[^0-9]' # Pattern matching all characters that are not numeric.
-       # Therefore, you only allow numeric characters.
-       substitute: "_" # Substitute all removed characters with an underscore, in case they are
-       # located inbetween allowed_characters.
+       forbidden: ' ' # A space.
+       substitute: "-" # Substitute all underscores by an underscore.
 
-Here we define that the transformer should only allow numeric characters
-in the values extracted from the *treatment* column. All other
-characters will be removed and substituted with an underscore, in case
-they are located inbetween allowed characters.
+Here we define that the transformer replaces every space by an underscore,
+in the values extracted from the *treatment* column.
 
 By default, the transformer will allow alphanumeric characters (A-Z,
 a-z, 0-9), underscore (\_), backtick (\`), dot (.), and parentheses (),
@@ -578,7 +574,7 @@ default settings, you can write:
        to_object: drug
        via_relation: alteration_biomarker_for_drug
 
-Let’s assume we want to map a table consisting of contact IDs and phone
+Now, let’s assume we want to map a table consisting of contact IDs and phone
 numbers.
 
 ======== ============
@@ -590,7 +586,7 @@ Jennifer 01/23-45-67
 We want to map the ``id`` column to the node type ``id`` and the
 ``phone_number`` column to the node type ``phone_number``, but we want
 to remove all characters that are not numeric, using the default
-substitute (““), meaning the forbidden characters will only be removed,
+substitute (''), meaning the forbidden characters will only be removed,
 and not replaced by another character. The mapping would look like this:
 
 .. code:: yaml
@@ -604,7 +600,7 @@ and not replaced by another character. The mapping would look like this:
            column: phone_number
            to_object: phone_number
            via_relation: phone_number_of_person
-           forbidden: '[^0-9]'  # Any character that is not a number.
+           forbidden: '[^0-9]+'  # Any series character that is not a number.
 
 The result of this mapping would be a node of type ``phone_number``,
 with the id of the node being ``01234567``, connected to a node of type
@@ -615,7 +611,8 @@ with the id of the node being ``01234567``, connected to a node of type
 
     For advanced users, note that the ``replace`` transformer boils down to
     a call to Python's ``re.sub(forbidden, substitute, x)`` function.
-    Thus, you can use regexp's back references in the ``substitute`` field.
+    Thus, you can use regexp's back references to matching groups in the
+    ``substitute`` field.
 
     For example:
 

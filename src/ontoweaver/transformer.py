@@ -998,12 +998,16 @@ class replace(base.Transformer):
 
     class ValueMaker(make_value.ValueMaker):
 
-        def __init__(self, raise_errors: bool = True, forbidden = None, substitute = None):
+        def __init__(self, forbidden, substitute, raise_errors: bool = True):
 
             assert type(forbidden) is str
-            self.forbidden = forbidden
+            logger.debug(f"forbidden: {forbidden}")
+            self.forbidden = re.compile(forbidden)
+
             assert type(substitute) is str
+            logger.debug(f"substitute: {substitute}")
             self.substitute = substitute
+
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
@@ -1048,11 +1052,12 @@ class replace(base.Transformer):
             multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
             raise_errors: if True, the caller is asking for raising exceptions when an error occurs
         """
-        self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
-        # underscore (_), backtick (`), dot (.), and parentheses (). TODO: Add or remove rules as needed based on errors in Neo4j import.
-        self.substitute = kwargs.get("substitute", "")
+        # By default, allow alphanumeric characters (A-Z, a-z, 0-9),
+        # underscore (_), backtick (`), dot (.), and parentheses ().
+        self.forbidden = kwargs.get("forbidden", r'[^a-zA-Z0-9_`.()]') # i.e. replace anything that's not those...
+        self.substitute = kwargs.get("substitute", "") # by nothing.
 
-        self.value_maker = self.ValueMaker(raise_errors=raise_errors, forbidden=self.forbidden, substitute=self.substitute)
+        self.value_maker = self.ValueMaker(forbidden=self.forbidden, substitute=self.substitute, raise_errors=raise_errors)
 
         super().__init__(properties_of,
             self.value_maker,

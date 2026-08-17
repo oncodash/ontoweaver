@@ -3,11 +3,12 @@ row:
         columns:
             - id
         to_subject: variant
+        # use default config
 transformers:
     - replace:
         columns:
             - gene
         to_object: gene_hugo
         via_relation: variant_in_gene
+        forbidden: '[^0-9]+'
         substitute: "<<_>>"
-        forbidden: '[^0-9]'
