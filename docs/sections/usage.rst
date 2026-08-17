@@ -58,6 +58,8 @@ extended your ontology— the simplest call would be:
 Extending a basic schema
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 1.3
+
 Manually extending your types hierarchy can be as simple as adding a node class
 in the schema file. BioCypher will then assemble a new taxonomy and use it.
 
@@ -129,6 +131,8 @@ handy if you run *ontoweave* in a script:
 Sub-sample every input data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 1.8.0
+
 The ``--sub-sample`` options allows to draw a random sample from each input
 data file, during their loading. It takes as argument a percentage of items
 (e.g. rows, for tabular data).
@@ -160,4 +164,20 @@ create the final database:
 .. code:: sh
 
    ontoweave things.csv:map_things.yaml stuff-part*.parquet:map_stuff.yaml --auto-schema autoschema.yaml --import-script-run
+
+
+Progress bars
+~~~~~~~~~~~~~
+
+.. versionadded:: 1.4
+
+If you pass the ``--progress-bars`` option to ``ontoweave``,
+OntoWeaver will do its best to show progress bars during processing
+that are potentially heavy.
+
+Note that this only really is useful with at least ``--log-level=INFO``.
+With ``DEBUG``, the progress bar display is not really readable.
+
+This feature is always disabled if ``ontoweave`` is not executed in an
+interactive terminal.
 

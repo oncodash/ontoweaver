@@ -180,8 +180,10 @@ items, and then inserts a node for each element of the list.
 If the cell value is a string, it uses the ``separator`` parameter to split
 it.
 
-If the cell value is any other type, it tries to iterate over it.
-In this case, any iterable object can be in the cell.
+.. versionchanged:: 1.3
+
+    If the cell value is any other type, it tries to iterate over it.
+    In this case, any iterable object can be in the cell.
 
 .. warning::
 
@@ -237,6 +239,22 @@ you may write:
           │         ╚═════╪═══╪═╩══════════════╪═════╝
           ╰───────────────╯   ╰────────────────╯
 
+
+The ``separator`` parameter being a regular expression pattern means you can
+split on a *set* (or a *class*) of characters:
+
+.. code:: yaml
+
+       - split:
+           column: treatments
+           from_subject: variant
+           to_object: drug
+           via_relation: variant_to_drug
+           separator: '[\s,;:]'  # split on any kind of space or on some specific punctuations.
+
+.. versionchanged:: 1.5
+
+    Allows multiple delimiters.
 
 cat
 ~~~
@@ -634,6 +652,8 @@ with the id of the node being ``01234567``, connected to a node of type
 boolean
 ~~~~~~~
 
+.. versionadded:: 1.2
+
 The *boolean* transformer can map any set of values onto a boolean pair.
 
 It considers a set of truth values, along with a set of falsehood values,
@@ -678,6 +698,8 @@ Is equivalent to:
 
 maths
 ~~~~~
+
+.. versionadded:: 1.7.0
 
 The *maths* transformer allows to compute arithmetic operations on its
 configured columns.
@@ -788,6 +810,8 @@ Examples of conversions:
 Case manipulation transformers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 1.3
+
 The following transformers can change the case of the string within the cells:
 
 - ``lower``: change all letters to lowercase,
@@ -823,7 +847,7 @@ With the ``compose`` transformer, this would look like:
         via_relation: has_author
         call:
             - split:
-                separator: ";"
+                separator: ';'
             - lower
 
 In practice, the list of transformers given to the ``call`` parameter is called
@@ -840,9 +864,9 @@ For example:
         via_relation: has_item
         call:
             - split:
-                separator: ;
+                separator: ';'
             - split:
-                separator: -
+                separator: '-'
 
 when processing "a-b;c-d", the composed transformer would output "a", then "b",
 "c', and finally "d".

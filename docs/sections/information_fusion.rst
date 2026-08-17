@@ -19,6 +19,8 @@ the task difficult and the adapter code even harder to understand.
 Reconciliation (default behaviour)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 1.3
+
 OntoWeaver provides a way to solve the reconciliation problem with its
 *high-level information fusion* feature. The fusion features allow to
 reconciliate the nodes and edges produced by various *independent*
@@ -332,7 +334,10 @@ members, for example, for the second step:
 Fusing properties separately
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. versionadded:: 1.8.0
+
 Using the ``merge.dictry.PerProperty`` merger, you can apply different mergers
+
 to different properties.
 
 While the ``Append`` merger operates on the whole dictionary of the properties,
@@ -362,6 +367,8 @@ For example:
 
 Fusing with any bynary functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.8.0
 
 The ``string.Function`` merger allows to use any Python function to perform the
 merge between two string values.

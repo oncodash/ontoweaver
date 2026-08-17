@@ -1,3 +1,4 @@
+.. versionadded:: 1.3
 
 In some specific cases, you may want to load several data files at once, and
 merge them in a single table before mapping the data. For instance,
