@@ -175,7 +175,9 @@ class split(base.Transformer):
     class ValueMaker(make_value.ValueMaker):
 
         def __init__(self, raise_errors: bool = True, separator: str = None):
-            self.separator = separator
+            if not separator:
+                separator = r'\s'
+            self.separator = re.compile(separator)
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
