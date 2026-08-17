@@ -16,7 +16,7 @@ import collections
 from abc import abstractmethod
 
 from pyparsing import (Literal, CaselessLiteral, Word, Combine, Group, Optional,
-                       ZeroOrMore, Forward, nums, alphas, oneOf)
+                       ZeroOrMore, Forward, nums, alphas, one_of)
 
 import numpy as np
 import pandas as pd
@@ -1383,21 +1383,21 @@ class NumericStringParser(object):
         expop = Literal("^")
         pi = CaselessLiteral("PI")
         expr = Forward()
-        atom = ((Optional(oneOf("- +")) +
-                 (ident + lpar + expr + rpar | pi | e | fnumber).setParseAction(self.pushFirst))
-                | Optional(oneOf("- +")) + Group(lpar + expr + rpar)
-                ).setParseAction(self.pushUMinus)
+        atom = ((Optional(one_of("- +")) +
+                 (ident + lpar + expr + rpar | pi | e | fnumber).set_parse_action(self.pushFirst))
+                | Optional(one_of("- +")) + Group(lpar + expr + rpar)
+                ).set_parse_action(self.pushUMinus)
         # by defining exponentiation as "atom [ ^ factor ]..." instead of
         # "atom [ ^ atom ]...", we get right-to-left exponents, instead of left-to-right
         # that is, 2^3^2 = 2^(3^2), not (2^3)^2.
         factor = Forward()
         factor << atom + \
-            ZeroOrMore((expop + factor).setParseAction(self.pushFirst))
+            ZeroOrMore((expop + factor).set_parse_action(self.pushFirst))
         term = factor + \
-            ZeroOrMore((multop + factor).setParseAction(self.pushFirst))
+            ZeroOrMore((multop + factor).set_parse_action(self.pushFirst))
         expr << term + \
-            ZeroOrMore((addop + term).setParseAction(self.pushFirst))
-        # addop_term = ( addop + term ).setParseAction( self.pushFirst )
+            ZeroOrMore((addop + term).set_parse_action(self.pushFirst))
+        # addop_term = ( addop + term ).set_parse_action( self.pushFirst )
         # general_term = term + ZeroOrMore( addop_term ) | OneOrMore( addop_term)
         # expr <<  general_term
         self.bnf = expr
