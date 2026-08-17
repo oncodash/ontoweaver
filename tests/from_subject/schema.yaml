@@ -7,14 +7,14 @@
 source gene:
     is_a: gene
     represented_as: node
-    label_in_input: source_gene
+    input_label: source_gene
 target gene:
     is_a: gene
     represented_as: node
-    label_in_input: target_gene
+    input_label: target_gene
 gene:
     represented_as: node
-    label_in_input: gene
+    input_label: gene
 source complex:
     is_a: macromolecular_complex
     represented_as: node

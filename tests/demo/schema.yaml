@@ -1,20 +1,20 @@
 # Main node type (e.g. of the line of the table).
 variant: # The type in the ontology
     represented_as: node
-    label_in_input: variant # The type in the input data can have a different name.
+    input_label: variant # The type in the input data can have a different name.
     properties:
         version: str
 
 # Another node type (e.g. of a column of the table).
 patient:
     represented_as: node
-    label_in_input: patient
+    input_label: patient
     properties:
         version: str
 
 patient has variant:
     represented_as: edge
-    label_in_input: patient has variant
+    input_label: patient has variant
     source: variant
     target: patient
     properties:

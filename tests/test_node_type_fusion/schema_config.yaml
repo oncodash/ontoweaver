@@ -1,20 +1,20 @@
 person:
     represented_as: node
-    label_in_input: person
+    input_label: person
 
 male:
     represented_as: node
-    label_in_input: male
+    input_label: male
 
 female:
     represented_as: node
-    label_in_input: female
+    input_label: female
 
 intersex:
     represented_as: node
-    label_in_input: intersex
+    input_label: intersex
 
 parentof:
     represented_as: edge
-    label_in_input: parentof
+    input_label: parentof
     

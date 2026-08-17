@@ -1,14 +1,14 @@
 Entity:
     represented_as: node
-    label_in_input: Entity
+    input_label: Entity
 
 Accuracy:
     represented_as: node
-    label_in_input: Accuracy
+    input_label: Accuracy
 
 user_is_accurate:
     is_a: relation
     represented_as: edge
-    label_in_input: user_is_accurate
+    input_label: user_is_accurate
     source: User
     target: EvaluationCriterion

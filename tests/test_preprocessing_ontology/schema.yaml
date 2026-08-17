@@ -1,25 +1,25 @@
 user:
     represented_as: node
-    label_in_input: user
+    input_label: user
 
 jellyfishobservation:
     represented_as: node
-    label_in_input: jellyfishobservation
+    input_label: jellyfishobservation
 
 reported_by:
     is_a: relation
     represented_as: edge
-    label_in_input: reported_by
+    input_label: reported_by
     source: jellyfishobservation
     target: user
 
 namedzone:
     represented_as: node
-    label_in_input: named_zone
+    input_label: named_zone
 
 hasforlocation:
     represented_as: edge
-    label_in_input: has%20for%20location
+    input_label: has%20for%20location
     source: jellyfishobservation
     target: named_zone
 

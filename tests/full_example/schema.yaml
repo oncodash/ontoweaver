@@ -1,11 +1,11 @@
 thing:
     represented_as: node
-    label_in_input: thing
+    input_label: thing
 
 mynode:
     represented_as: node
-    label_in_input: my_mapped_node
+    input_label: my_mapped_node
 
 myedge:
     represented_as: edge
-    label_in_input: myedge
+    input_label: myedge

@@ -1,6 +1,6 @@
 person:
     represented_as: node
-    label_in_input: person
+    input_label: person
     properties:
         firstName: str
         lastName: str
@@ -13,56 +13,56 @@ individual:
 
 role:
     represented_as: node
-    label_in_input: role
+    input_label: role
 
 male:
     represented_as: node
-    label_in_input: male
+    input_label: male
 
 female:
     represented_as: node
-    label_in_input: female
+    input_label: female
 
 cat:
     represented_as: node
-    label_in_input: cat
+    input_label: cat
 
 dog:
     represented_as: node
-    label_in_input: dog
+    input_label: dog
 
 isRelative:
     represented_as: edge
-    label_in_input: isRelative
+    input_label: isRelative
     source: person
     target: person
 
 hasPartner:
     represented_as: edge
-    label_in_input: hasPartner
+    input_label: hasPartner
     source: person
     target: person
 
 childOf:
     represented_as: edge
-    label_in_input: childOf
+    input_label: childOf
     source: person
     target: person
 
 parentOf:
     represented_as: edge
-    label_in_input: parentOf
+    input_label: parentOf
     source: person
     target: person
 
 hasPet:
     represented_as: edge
-    label_in_input: hasPet
+    input_label: hasPet
     source: person
     target: animal
 
 hasRole:
     represented_as: edge
-    label_in_input: hasRole
+    input_label: hasRole
     source: person
     target: role

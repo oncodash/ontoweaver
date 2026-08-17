@@ -1,22 +1,22 @@
 person:
     represented_as: node
-    label_in_input: person
+    input_label: person
 
 childOf:
     represented_as: edge
-    label_in_input: childOf
+    input_label: childOf
     source: person
     target: person
 
 parentOf:
     represented_as: edge
-    label_in_input: parentOf
+    input_label: parentOf
     source: person
     target: person
 
 role:
     represented_as: edge
-    label_in_input: role
+    input_label: role
     source: person
     target: person
 
