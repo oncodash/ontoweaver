@@ -1,7 +1,11 @@
+import io
+import yaml
+import logging
+import ontoweaver
+import pandas as pd
+
 def test_final_type():
     from . import testing_functions
-    import logging
-    import ontoweaver
 
     logging.basicConfig(level=logging.DEBUG)
 
@@ -39,5 +43,124 @@ def test_final_type():
     testing_functions.assert_equals(fedges, expected_edges)
 
 
+def test_final_type_2():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Managed,Manager,Team
+Johann,Benno,CSB
+Matthieu,Benno,CSB
+"""
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = r"""
+row:
+    map:
+        column: Managed
+        to_subject: people_managed
+        final_type: people
+transformers:
+    - map:
+        column: Manager
+        to_object: people_manager
+        via_relation: managed
+        final_type: people
+    - map:
+        column: Team
+        to_property: team
+        for_objects:
+            - people_managed
+            - people_manager
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for node in nodes:
+        n = node.as_tuple()
+        logging.debug(n)
+        assert n[1] == "people"
+        assert n[2] == {"team": "CSB"}
+
+    for edge in edges:
+        logging.debug(edge.as_tuple())
+
+    assert len(nodes) == 4
+    assert len(edges) == 2
+
+
+def test_final_type_compose():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Managed_FirstName,Managed_LastName,Manager_FirstName,Manager_LastName,Team
+Dreo,Johann,Schwikowski,Benno,CSB
+Najm,Matthieu,Schwikowski,Benno,CSB
+"""
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = r"""
+row:
+    compose:
+        columns:
+            - Managed_FirstName
+            - Managed_LastName
+        call:
+            - cat_format:
+                format_string: "{Managed_LastName}, {Managed_FirstName}"
+            - western_name
+        to_subject: people_managed
+        final_type: people
+transformers:
+    - compose:
+        columns:
+            - Manager_FirstName
+            - Manager_LastName
+        call:
+            - cat_format:
+                format_string: "{Manager_LastName}, {Manager_FirstName}"
+            - western_name
+        to_object: people_manager
+        final_type: people
+        via_relation: managed by
+    - map:
+        column: Team
+        to_property: team
+        for_objects:
+            - people_managed
+            - people_manager
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for node in nodes:
+        n = node.as_tuple()
+        logging.debug(n)
+        assert n[1] == "people"
+        assert n[2] == {"team": "CSB"}
+
+    for edge in edges:
+        logging.debug(edge.as_tuple())
+
+    assert len(nodes) == 4
+    assert len(edges) == 2
+
+
 if __name__ == "__main__":
-    test_final_type()
+    logging.basicConfig(level="DEBUG")
+    test_final_type_compose()

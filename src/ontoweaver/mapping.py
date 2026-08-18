@@ -490,7 +490,7 @@ class YamlParser(base.MappingParser):
 
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
         assert subject_transformer_class
-        subject_kwargs = self.get_not(base.MappingParser.k_subject_type + base.MappingParser.k_columns, subject_transformer_dict[
+        subject_kwargs = self.get_not(base.MappingParser.k_subject_type + base.MappingParser.k_columns + base.MappingParser.k_final_type, subject_transformer_dict[
             subject_transformer_class])  # FIXME shows redundant information filter out the keys that are not needed.
         subject_columns = self.get(
             base.MappingParser.k_columns,
@@ -595,6 +595,7 @@ class YamlParser(base.MappingParser):
                 columns = subject_columns,
                 output_validator = subject_output_validator,
                 label_maker = s_label_maker,
+                final_type = s_final_type_class,
                 **subject_kwargs
             )
 
@@ -615,7 +616,7 @@ class YamlParser(base.MappingParser):
 
             subject_transformer = self.make_transformer(
                 transformer_type = subject_transformer_class,
-                 branching_properties=properties_of
+                branching_properties=properties_of
              )
 
             # Declare source type as None because no parameters were declared for the subject transformer.
@@ -705,6 +706,7 @@ class YamlParser(base.MappingParser):
                     columns = [columns]
 
             target = self.get(base.MappingParser.k_target, pconfig=transformer_keyword_dict)
+
             if isinstance(target, list):
                 self.error(
                     f"You cannot declare multiple objects in transformers. For transformer `{transformer_type}`.",
@@ -814,6 +816,12 @@ class YamlParser(base.MappingParser):
                     # if it does not have a `match` clause.
                     # We create a simple multi_type_dictionary,
                     # with a "None" key, to indicate that no branching is needed.
+                    if not ((target and edge) or (not target and not edge)):
+                        if target and not edge:
+                            self.error(f"You configured `to_object: {target}` but not a `via_relation`, which is mandatory.", exception = exceptions.MissingDataError)
+                        elif not target and edge:
+                            self.error(f"You configured `via_relation: {edge}` but not a `to_object`, which is mandatory.", exception = exceptions.MissingDataError)
+
                     assert (target and edge) or (not target and not edge)
                     if target and edge:
                         # FIXME double-check why edge_t is unused here.
@@ -881,6 +889,7 @@ class YamlParser(base.MappingParser):
                         columns = columns,
                         output_validator = output_validator,
                         label_maker = label_maker,
+                        final_type = final_type_class,
                         **gen_data
                     )
                     transformers.append(target_transformer)

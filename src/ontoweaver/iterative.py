@@ -261,22 +261,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         logger.debug("\tMake subject node...")
         for source_id, subject_edge_type, subject_node_type, _ in self.subject_transformer(row, i):
-        # subject_generator_list = list(self.subject_transformer(row, i))
-        # logger.debug(f"\t\tSubject items: {subject_generator_list}")
-        # if len(subject_generator_list) > 1:
-        #     local_errors.append(self.error(
-        #         f"You cannot use transformer yielding multiple IDs for the subject. "
-        #         f"Subject Transformer `{self.subject_transformer}` produced multiple IDs: "
-        #         f"{subject_generator_list}, I'll take the first one and pretend this"
-        #         f" did not happened.",
-        #         indent=2, exception=exceptions.TransformerInterfaceError))
-
-        # elif len(subject_generator_list) == 0:
-        #     logger.debug("The subject transformer did not produce any valid ID,"
-        #         " I'll try to skip this entry.")
-        #     return None
-        #
-        # source_id, subject_edge_type, subject_node_type, _ = subject_generator_list[0]
 
             if self.subject_transformer.final_type:
                 # If a final_type attribute is present in the transformer,

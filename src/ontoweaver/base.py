@@ -13,6 +13,7 @@ from typing import TypeAlias
 from typing import Optional
 from enum import Enum, EnumMeta
 
+from . import base
 from . import errormanager
 from . import serialize
 from . import exceptions
@@ -696,7 +697,6 @@ class Transformer(errormanager.ErrorManager):
         self.declare_types = Declare()
 
 
-
     def get_transformer(self):
         return self
 
@@ -717,6 +717,14 @@ class Transformer(errormanager.ErrorManager):
             if is_not_null(value):
                 yield value, edge_type, node_type, reverse_edge
 
+    @property
+    def final_type(self):
+        return self._final_type
+
+    @final_type.setter
+    def final_type(self, value):
+        assert (type(value) is not str) or (value is None)
+        self._final_type = value
 
     #FIXME: The functions below are never implemented.
     @abstractmethod
