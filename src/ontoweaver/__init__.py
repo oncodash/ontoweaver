@@ -188,7 +188,7 @@ def autoschema(
                 logger.debug(f"\t\tnode type: {t}")
                 auto_schema[t] = auto_schema.get(t, {})
                 auto_schema[t]["represented_as"] = "node"
-                auto_schema[t]["label_in_input"] = t
+                auto_schema[t]["input_label"] = t
                 auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
                 props = []
                 for trans in item.fields():
@@ -208,7 +208,7 @@ def autoschema(
                 logger.debug(f"\t\tedge type: {t}")
                 auto_schema[t] = auto_schema.get(t, {})
                 auto_schema[t]["represented_as"] = "edge"
-                auto_schema[t]["label_in_input"] = t
+                auto_schema[t]["input_label"] = t
 
                 if item.source_type(): # FIXME no source for edges in extended schema.
                     auto_schema[t]["source"] = item.source_type().__name__
