@@ -1,7 +1,7 @@
 
 [project]
 name = "ontoweaver"
-version = "1.9.1"
+version = "1.9.2a1"
 description = "Convert iterable data to Semantic Knowledge Graphs, with a simple declarative mapping."
 readme = "README.md"
 authors = [
@@ -14,7 +14,7 @@ authors = [
 ]
 requires-python = "<4.0,>=3.12"
 dependencies = [
-    "biocypher<1.0.0,>=0.11.0",
+    "biocypher<0.17.0,>=0.11.0",
     "pooch<2.0.0,>=1.7.0",
     "pandas<3.0.0,>=2.3.1",
     "numpy<3.0.0,>=2.2.4",
