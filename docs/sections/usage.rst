@@ -176,8 +176,18 @@ OntoWeaver will do its best to show progress bars during processing
 that are potentially heavy.
 
 Note that this only really is useful with at least ``--log-level=INFO``.
-With ``DEBUG``, the progress bar display is not really readable.
+With ``DEBUG``, the progress bar display is not always readable.
 
 This feature is always disabled if ``ontoweave`` is not executed in an
 interactive terminal.
+
+.. note::
+
+    When loading files that do not expose their number of entries as metadata
+    (CSV files, for instance, especially ordered ones),
+    the progress be may be over- or under-estimated.
+    OntoWeaver does its best to guess a good estimate, but there is no guarantee
+    that it guesses right.
+    For files that have size metadata, or regular processing, the progress
+    should be accurate.
 
