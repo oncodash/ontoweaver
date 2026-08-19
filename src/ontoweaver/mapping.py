@@ -110,7 +110,7 @@ class YamlParser(base.MappingParser):
             if not issubclass(class_t, base.Transformer):
                 self.error(f"Object `{transformer_type}` is not an existing transformer.", exception = exceptions.DeclarationError)
             logger.debug(f"\t\tDeclare Transformer class '{transformer_type}'.")
-            return class_t(
+            cls = class_t(
                 properties_of = properties,
                 label_maker = label_maker,
                 branching_properties = branching_properties,
@@ -120,6 +120,8 @@ class YamlParser(base.MappingParser):
                 raise_errors = self.raise_errors,
                 **kwargs
             )
+            self.declared.append(cls)
+            return cls
         else:
             # logger.debug(dir(generators))
             self.error(f"Cannot find a transformer class with name `{transformer_type}`. Did you forget to register your transformer module?", exception = exceptions.DeclarationError)
@@ -313,9 +315,8 @@ class YamlParser(base.MappingParser):
                 if isinstance(v, dict):
                     key = k
                     multi_type_dictionary[key] = {k1: v1 for k1, v1 in v.items()}
-                    alt_type = self.get(k_extract, v)
-                    alt_type_class = self.make_node_class(alt_type, properties_of.get(alt_type, {}))
 
+                    alt_type = self.get(k_extract, v)
                     possible_node_types.add(alt_type)
 
                     alt_final_type = self.get(base.MappingParser.k_final_type, v)
@@ -328,6 +329,8 @@ class YamlParser(base.MappingParser):
                         columns,
                         properties_of
                     )
+
+                    alt_type_class = self.make_node_class(alt_type, properties_of.get(alt_type, {}), alt_final_type_class)
 
                     if not subject:
                         alt_edge = self.get(base.MappingParser.k_edge, v)
@@ -566,7 +569,8 @@ class YamlParser(base.MappingParser):
                 assert subject_type
                 source_t = self.make_node_class(
                     subject_type,
-                    properties_of.get(subject_type, {})
+                    properties_of.get(subject_type, {}),
+                    s_final_type_class
                 )
                 assert source_t
 
@@ -600,6 +604,7 @@ class YamlParser(base.MappingParser):
             )
 
             logger.debug(f"\tDeclared subject transformer: {subject_transformer}")
+            assert subject_transformer
 
             logger.debug(
                 f"\tDeclare subject of possible types: `{possible_subject_types}`, subject transformer: `{subject_transformer_class}`, "
@@ -739,7 +744,7 @@ class YamlParser(base.MappingParser):
         """
 
         logger.debug(f"\tDeclare node target `{target}`...")
-        target_t = self.make_node_class(target, properties_of.get(target, {}))
+        target_t = self.make_node_class(target, properties_of.get(target, {}), final_type_class)
         possible_target_types.add(target)
         logger.debug(f"\t\tDeclared target`{target}`: {target_t.__name__}")
 
@@ -947,8 +952,9 @@ class YamlParser(base.MappingParser):
 
         skipped_columns = []
         for t in transformers:
-            if isinstance(t.output_validator, validate.SkipValidator):
-                skipped_columns += t.columns
+            if hasattr(t, "output_validator"):
+                if isinstance(t.output_validator, validate.SkipValidator):
+                    skipped_columns += t.columns
 
         if skipped_columns:
             logger.info(f"Skip output validation for columns: `{'`, `'.join(str(i) for i in skipped_columns)}`." \

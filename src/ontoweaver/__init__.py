@@ -13,6 +13,7 @@ from pathlib import Path
 from abc import ABCMeta as ABSTRACT, abstractmethod
 
 import os
+import sys
 import yaml
 import copy
 import rdflib
@@ -88,46 +89,136 @@ __all__ = [
     'ow2bc',
 ]
 
-def autoschema(
-    filename_to_mappings,
+
+def extend_autoschema(
+    obj,
+    existing_schema,
+):
+    vocab = base.MappingParser
+    auto_schema = copy.deepcopy(existing_schema)
+    logger.debug(f"\tResolve: {obj}")
+    if isinstance(obj, base.Transformer): # FIXME never happen?
+        if obj.multi_type_dict:
+            # This is a type/match mapping.
+            logger.debug(f"\t\tmatch mapping on {len(obj.multi_type_dict.items())} items")
+            for colval,section in obj.multi_type_dict.items():
+                for pred,ptype in section.items():
+                    if ptype:
+                        t = ptype.__name__
+                        logger.debug(f"\t\tseen type: {t}")
+                        if pred in vocab.k_target \
+                                 + vocab.k_subject_type \
+                                 + vocab.k_final_type \
+                                 + vocab.k_reverse_edge:
+                            auto_schema[t] = auto_schema.get(t, {})
+
+                        if pred in vocab.k_properties:
+                            st = auto_schema.get(t, {})
+                            st["properties"] = st.get("properties", {})
+                            for p,v in st["properties"]:
+                                st["properties"][p] = v
+
+        elif hasattr(obj, "to_property"): # FIXME use k_* labels and test for type str
+            # This is a mono-property mapping.
+            t = obj.for_object
+            logger.debug(f"\t\tproperty for {t}: {obj.to_property}")
+            st = auto_schema.get(t, {})
+            st["properties"] = st.get("properties", {})
+            st["properties"][obj.to_property] = "str"
+
+        elif hasattr(obj, "to_properties"): # FIXME use k_* labels and test for type list
+            # This is a multi-properties mapping.
+            # logger.debug(dir(obj))
+            # logger.debug(obj.to_properties)
+            # logger.debug(obj.for_object)
+            t = obj.for_object
+            logger.debug(f"\t\tproperties for: {t}")
+            st = auto_schema.get(t, {})
+            st["properties"] = st.get("properties", {})
+            for p in obj.to_properties:
+                logger.debug(f"\t\t\tproperty: {p}")
+                st["properties"][p] = "str"
+
+    elif issubclass(obj, base.Node):
+        t = obj.__name__
+        logger.debug(f"\t\tnode type: {t}/{t}")
+        auto_schema[t] = auto_schema.get(t, {})
+        auto_schema[t]["represented_as"] = "node"
+        auto_schema[t]["input_label"] = t
+        auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+        if obj.final_type:
+            ft = obj.final_type.__name__
+            auto_schema[t]["final_type"] = ft # To be merged after first pass.
+
+        props = []
+        logger.debug(f"\t\t\tgather properties from: {obj.fields()}")
+        for trans in obj.fields():
+            if trans.properties_of:
+                for p,c in trans.properties_of.items():
+                    props.append( (p,c) )
+            elif trans.branching_properties:
+                for p,c in trans.branching_properties:
+                    props.append( (p,c) )
+
+        for p,c in props:
+            if p not in auto_schema[t]["properties"]:
+                auto_schema[t]["properties"][p] = c.__name__
+                logger.debug(f"\t\t\tproperty: {p}")
+
+    elif issubclass(obj, base.Edge):
+        t = obj.__name__
+        logger.debug(f"\t\tedge type: {t}")
+        auto_schema[t] = auto_schema.get(t, {})
+        auto_schema[t]["represented_as"] = "edge"
+        auto_schema[t]["input_label"] = t
+
+        if obj.source_type(): # FIXME no source for edges in extended schema.
+            if obj.source_type().final_type:
+                auto_schema[t]["source"] = obj.source_type().final_type.__name__
+            else:
+                auto_schema[t]["source"] = obj.source_type().__name__
+
+        auto_schema[t]["target"] = []
+        for target in obj.target_type():
+            if target.final_type:
+                auto_schema[t]["target"].append(target.final_type.__name__)
+            else:
+                auto_schema[t]["target"].append(target.__name__)
+
+        auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+        props = []
+        for trans in obj.fields():
+            if trans.properties_of:
+                for p,c in trans.properties_of.items():
+                    props.append( (p,c) )
+            elif trans.branching_properties:
+                for p,c in trans.branching_properties:
+                    props.append( (p,c) )
+            for p,c in props:
+                if p not in auto_schema[t]["properties"]:
+                    auto_schema[t]["properties"][p] = c.__name__
+                    logger.debug(f"\t\t\tproperty: {p}")
+
+    else:
+        logger.warning(f"\t\tUnknown type `{obj}`, I'll just ignore it, but you may want to double-check.")
+
+    return auto_schema
+
+
+def make_autoschema(
+    mappings,
     existing_schema = {},
-    extended_schema_filename = "extended_schema.yaml",
-    overwrite = False,
     raise_errors = True
 ):
-    """Extend an existing_schema with what can be deduced from the given mapping files.
-
-       Args:
-           filename_to_mappings: a dictionary of the form {"filename": "mappingfile"}
-           existing_schema: a filename the schema file to extend
-           extended_schema_filename: the filename to which to write the extended schema
-           overwrite: if True, will raise an error if extended_schema_filename already exists
-           raise_errors: if True, will stop on any error, if False, will try to proceed anyway
-
-       Returns:
-           The extended_schema_filename
-    """
-
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
-    supported = []
-    for f2m in filename_to_mappings:
-        _,with_mapping = f2m.split(':')
-        if with_mapping == "automap":
+    for d,m in mappings:
+        if m == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
             logger.error(msg)
             raise exceptions.ConfigError(msg)
-        else:
-            supported.append(with_mapping)
 
-    vocab = base.MappingParser
     auto_schema = copy.deepcopy(existing_schema)
-    for with_mapping in supported:
-        logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
-        if '"' in with_mapping:
-            with_mapping = with_mapping.strip('"')
-        with open(with_mapping, 'r') as fd:
-            config = yaml.full_load(fd)
-            assert config, "I must have a YAML config."
+    for i,config in enumerate(mappings):
 
         parser = mapping.YamlParser(
             config,
@@ -137,121 +228,36 @@ def autoschema(
         try:
             _ = parser()
         except Exception as err:
-            logger.error(f"While parsing mapping: `{with_mapping}`.")
+            logger.error(f"While parsing {i}th mapping..")
             raise err
 
-        logger.debug(f"Serializing schema from mapping computed from `{with_mapping}`")
+        logger.debug(f"Serializing schema from {i}th mapping")
         for item in parser.declared:
-            logger.debug(f"\tResolve: {item}")
-            if isinstance(item, base.Transformer):
-                if item.multi_type_dict:
-                    # This is a type/match mapping.
-                    for colval,section in item.multi_type_dict.items():
-                        for pred,ptype in section.items():
-                            if ptype:
-                                t = ptype.__name__
-                                logger.debug(f"\t\tseen type: {t}")
-                                if pred in vocab.k_target \
-                                         + vocab.k_subject_type \
-                                         + vocab.k_final_type \
-                                         + vocab.k_reverse_edge:
-                                    auto_schema[t] = auto_schema.get(t, {})
+            auto_schema = extend_autoschema(item, auto_schema)
 
-                                if pred in vocab.k_properties:
-                                    st = auto_schema.get(t, {})
-                                    st["properties"] = st.get("properties", {})
-                                    for p,v in st["properties"]:
-                                        st["properties"][p] = v
+    logger.debug("Collapse final types...")
+    sch = copy.deepcopy(auto_schema)
+    for t,section in sch.items():
+        if "final_type" in section:
+            ft = section["final_type"]
+            logger.debug(f"\tbackport `{t}` properties into `{ft}`")
+            for prop in auto_schema[t]["properties"]:
+                auto_schema[ft]["properties"][prop] = "str"
+                logger.debug(f"\t\tmerged: {prop}")
 
-                elif hasattr(item, "to_property"):
-                    # This is a mono-property mapping.
-                    t = item.for_object
-                    logger.debug(f"\t\tproperty: {t}")
-                    st = auto_schema.get(t, {})
-                    st["properties"] = st.get("properties", {})
-                    st["properties"][item.to_property] = "str"
-
-                elif hasattr(item, "to_properties"):
-                    # This is a multi-properties mapping.
-                    # logger.debug(dir(item))
-                    # logger.debug(item.to_properties)
-                    # logger.debug(item.for_object)
-                    t = item.for_object
-                    st = auto_schema.get(t, {})
-                    st["properties"] = st.get("properties", {})
-                    for p in item.to_properties:
-                        logger.debug(f"\t\tproperty: {p}")
-                        st["properties"][p] = "str"
-
-            elif issubclass(item, base.Node):
-                t = item.__name__
-                logger.debug(f"\t\tnode type: {t}")
-                auto_schema[t] = auto_schema.get(t, {})
-                auto_schema[t]["represented_as"] = "node"
-                auto_schema[t]["input_label"] = t
-                auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
-                props = []
-                for trans in item.fields():
-                    if trans.properties_of:
-                        for p,c in trans.properties_of.items():
-                            props.append( (p,c) )
-                    elif trans.branching_properties:
-                        for p,c in trans.branching_properties:
-                            props.append( (p,c) )
-                    for p,c in props:
-                        if p not in auto_schema[t]["properties"]:
-                            auto_schema[t]["properties"][p] = c.__name__
-                            logger.debug(f"\t\t\tproperty: {p}")
-
-            elif issubclass(item, base.Edge):
-                t = item.__name__
-                logger.debug(f"\t\tedge type: {t}")
-                auto_schema[t] = auto_schema.get(t, {})
-                auto_schema[t]["represented_as"] = "edge"
-                auto_schema[t]["input_label"] = t
-
-                if item.source_type(): # FIXME no source for edges in extended schema.
-                    auto_schema[t]["source"] = item.source_type().__name__
-
-                auto_schema[t]["target"] = []
-                for target in item.target_type():
-                    auto_schema[t]["target"].append(target.__name__)
-
-                auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
-                props = []
-                for trans in item.fields():
-                    if trans.properties_of:
-                        for p,c in trans.properties_of.items():
-                            props.append( (p,c) )
-                    elif trans.branching_properties:
-                        for p,c in trans.branching_properties:
-                            props.append( (p,c) )
-                    for p,c in props:
-                        if p not in auto_schema[t]["properties"]:
-                            auto_schema[t]["properties"][p] = c.__name__
-                            logger.debug(f"\t\t\tproperty: {p}")
-
-            else:
-                logger.warning(f"\t\tUnknown type `{item}`, I'll just ignore it, but you may want to double-check.")
-
-    # def prettyprint(d, indent=2):
-    #    for key, value in d.items():
-    #       print('\t' * indent + str(key))
-    #       if isinstance(value, dict):
-    #          prettyprint(value, indent+1)
-    #       else:
-    #          print('\t' * (indent+1) + str(value))
-    # prettyprint(auto_schema)
+            del auto_schema[t]
 
     # Filter out empty keys.
     logger.debug(f"Checking consistency...")
-    logger.debug(auto_schema)
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         if not section:
-            msg = "I cannot find the information related to type `{t}`, your mapping has an error."
+            msg = f"There is no information related to type `{t}`, your mapping has an error."
             logger.error(msg)
+            logger.debug(yaml.dump(sch))
             raise exceptions.ConfigError(msg)
+
+        assert "final_type" not in section, f"I should not have `{t}` with 'final_type'"
 
         for pred,val in section.items():
             if pred == "properties" and val == {}:  # If empty `properties` section.
@@ -259,7 +265,7 @@ def autoschema(
             # We don't remove keys with empty values,
             # because BioCypher needs the complete schema.
 
-    logger.debug("Collapse target multi-types into their common super-type...")
+    logger.debug("Collapse target multi-types into their common ancestor...")
     sch = copy.deepcopy(auto_schema)
     for t,section in sch.items():
         for pred,val in section.items():
@@ -285,6 +291,49 @@ def autoschema(
                              " Try mapping them all to their common ancestor."
                         logger.error(msg)
                         raise exceptions.AutoSchemaError(msg)
+
+    return auto_schema
+
+
+def autoschema(
+    data_file_to_mapping_file,
+    existing_schema = {},
+    extended_schema_filename = "extended_schema.yaml",
+    overwrite = False,
+    raise_errors = True
+):
+    """Extend an existing_schema with what can be deduced from the given mapping files.
+
+       Args:
+           data_file_to_mapping_file: a dictionary of the form {"filename": "mapping_file"}
+           existing_schema: a filename the schema file to extend
+           extended_schema_filename: the filename to which to write the extended schema
+           overwrite: if True, will raise an error if extended_schema_filename already exists
+           raise_errors: if True, will stop on any error, if False, will try to proceed anyway
+
+       Returns:
+           The extended_schema_filename
+    """
+
+    logger.info("Automatically generating a BioCypher schema based on the mappings...")
+    mappings = []
+    for i,f2m in enumerate(data_file_to_mapping_file):
+        _,with_mapping = f2m.split(':')
+        if with_mapping == "automap":
+            msg = "As of now, I don't know how to handle `automap` with `autoschema`."
+            logger.error(msg)
+            raise exceptions.ConfigError(msg)
+        else:
+            logger.debug(f"\twith user file with_mapping: `{with_mapping}`")
+            if '"' in with_mapping:
+                with_mapping = with_mapping.strip('"')
+            with open(with_mapping, 'r') as fd:
+                config = yaml.full_load(fd)
+                assert config, "I must have a YAML config."
+            logger.debug(f"\t{i}th mapping from `{with_mapping}`")
+            mappings.append(config)
+
+    auto_schema = make_autoschema(mappings, existing_schema, raise_errors)
 
     logger.debug("Save the extended automatic schema in YAML...")
     file_exists = os.path.isfile(extended_schema_filename)
@@ -630,7 +679,7 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
     assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
-    logging.info("Fuse duplicated nodes and edges...")
+    logger.info("Fuse duplicated nodes and edges...")
     fnodes, fedges = fusion.reconciliate(nodes, edges, reconciliate_sep = reconciliate_sep, raise_errors = raise_errors, progress_bar = progress_bar)
     logger.debug(f"OK, {len(fnodes)} nodes and {len(fedges)} edges after fusion")
 
@@ -656,7 +705,7 @@ def write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, sc
         logger.warning(msg)
         raise RuntimeError(msg)
     else:
-        logging.info("Export the graph...")
+        logger.info("Export the graph with BioCypher...")
         bc = biocypher.BioCypher(
             biocypher_config_path = biocypher_config_path,
             schema_config_path = schema_path
@@ -668,7 +717,7 @@ def write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, sc
             bc.write_edges(edges)
         #bc.summary()
         import_file = bc.write_import_call()
-        logging.info("OK")
+        logger.info("OK")
 
         return import_file
 

@@ -850,7 +850,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
 
     def __del__(self):
-        if self.non_viable_rows:
+        if hasattr(self, "non_viable_rows") and self.non_viable_rows:
             logger.warning( \
                 f"Got {len(self.non_viable_rows)} rows that produced no valid element." \
                 " I skipped them silently, but you may want to double check your mapping." \

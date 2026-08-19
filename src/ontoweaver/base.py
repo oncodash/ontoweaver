@@ -513,7 +513,7 @@ class Declare(errormanager.ErrorManager):
         return missing_fields
 
 
-    def make_node_class(self, name, properties={}, base=Node):
+    def make_node_class(self, name, properties={}, final_type = None, base=Node):
         """
         LabelMaker a node class with the given name and properties.
 
@@ -545,9 +545,10 @@ class Declare(errormanager.ErrorManager):
         attrs = {
             "__module__": self.module.__name__,
             "fields": staticmethod(fields),
+            "final_type": final_type,
         }
         t = pytypes.new_class(name, (base,), {}, lambda ns: ns.update(attrs))
-        logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`).")
+        logger.debug(f"\t\tDeclare Node class `{t.__name__}` (prop: `{properties}`, final_type: `{final_type}`).")
         setattr(self.module, t.__name__, t)
 
         self.declared.append(t)
@@ -618,9 +619,10 @@ class Declare(errormanager.ErrorManager):
         # may map the wring properties, or try to map from columns that
         # are unknown to the new mapping.
         for cls in self.declared:
-            logger.debug(f"Deallocate {cls} from {self.module}")
-            if hasattr(self.module, cls.__name__):
-                delattr(self.module, cls.__name__)
+            if hasattr(cls, "__name__"):
+                if hasattr(self.module, cls.__name__):
+                    logger.debug(f"Deallocate {cls} from {self.module}")
+                    delattr(self.module, cls.__name__)
 
 
 class MappingParser(Declare):

@@ -161,6 +161,129 @@ transformers:
     assert len(edges) == 2
 
 
+def test_final_type_from_subject():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Managed_FirstName,Managed_LastName,Manager_FirstName,Manager_LastName,Team,Role
+Dreo,Johann,Schwikowski,Benno,CSB,senior
+Najm,Matthieu,Schwikowski,Benno,CSB,postdoc
+"""
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = r"""
+row:
+    compose:
+        columns:
+            - Managed_FirstName
+            - Managed_LastName
+        call:
+            - cat_format:
+                format_string: "{Managed_LastName}, {Managed_FirstName}"
+            - western_name
+        to_subject: managed_people
+        final_type: people
+transformers:
+    - map:
+        column: Role
+        to_property: role
+        for_object: managed_people
+    - compose:
+        columns:
+            - Manager_FirstName
+            - Manager_LastName
+        call:
+            - cat_format:
+                format_string: "{Manager_LastName}, {Manager_FirstName}"
+            - western_name
+        to_object: manager_people
+        final_type: people
+        via_relation: managed by
+    - map:
+        column: Team
+        from_subject: manager_people
+        to_object: team
+        via_relation: leads
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for node in nodes:
+        n = node.as_tuple()
+        logging.debug(n)
+        assert n[1] == "people" or n[1] == "team"
+
+    for edge in edges:
+        logging.debug(edge.as_tuple())
+
+    assert len(nodes) == 6
+    assert len(edges) == 4
+
+
+def test_final_type_autoschema():
+
+    logging.debug("Load mapping...")
+
+    mapping = r"""
+row:
+    compose:
+        columns:
+            - Managed_FirstName
+            - Managed_LastName
+        call:
+            - cat_format:
+                format_string: "{Managed_LastName}, {Managed_FirstName}"
+            - western_name
+        to_subject: managed_people
+        final_type: people
+transformers:
+    - map:
+        column: Role
+        to_property: role
+        for_object: managed_people
+    - compose:
+        columns:
+            - Manager_FirstName
+            - Manager_LastName
+        call:
+            - cat_format:
+                format_string: "{Manager_LastName}, {Manager_FirstName}"
+            - western_name
+        to_object: manager_people
+        final_type: people
+        via_relation: managed by
+    - map:
+        column: Team
+        from_subject: manager_people
+        to_object: team
+        via_relation: leads
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Make an autoschema...")
+    auto_schema = ontoweaver.make_autoschema([map], {})
+    print(yaml.dump(auto_schema))
+
+    assert auto_schema['leads']['source'] == 'people'
+    assert auto_schema['leads']['target'] == 'team'
+    assert 'properties' in auto_schema['people']
+    assert 'role' in auto_schema['people']['properties']
+    assert auto_schema['people']['input_label'] == 'people'
+
+    # TODO: decouple autoschema() so that it can take strings
+    # TODO: call autoschema on the test mapping
+    # TODO: check that source and target are the final_type
+
+
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")
-    test_final_type_compose()
+    test_final_type_from_subject()
