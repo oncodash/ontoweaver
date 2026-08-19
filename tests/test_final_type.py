@@ -279,10 +279,6 @@ transformers:
     assert 'role' in auto_schema['people']['properties']
     assert auto_schema['people']['input_label'] == 'people'
 
-    # TODO: decouple autoschema() so that it can take strings
-    # TODO: call autoschema on the test mapping
-    # TODO: check that source and target are the final_type
-
 
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")

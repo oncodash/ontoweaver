@@ -97,7 +97,14 @@ def extend_autoschema(
     vocab = base.MappingParser
     auto_schema = copy.deepcopy(existing_schema)
     logger.debug(f"\tResolve: {obj}")
-    if isinstance(obj, base.Transformer): # FIXME never happen?
+
+    def get_k_attr(obj, k_attr):
+        for a in getattr(vocab, k_attr):
+            if hasattr(obj, a):
+                return getattr(obj, a)
+        return None
+
+    if isinstance(obj, base.Transformer):
         if obj.multi_type_dict:
             # This is a type/match mapping.
             logger.debug(f"\t\tmatch mapping on {len(obj.multi_type_dict.items())} items")
@@ -113,31 +120,30 @@ def extend_autoschema(
                             auto_schema[t] = auto_schema.get(t, {})
 
                         if pred in vocab.k_properties:
-                            st = auto_schema.get(t, {})
-                            st["properties"] = st.get("properties", {})
-                            for p,v in st["properties"]:
-                                st["properties"][p] = v
+                            auto_schema[t] = auto_schema.get(t, {})
+                            auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+                            for p,v in auto_schema[t]["properties"]:
+                                auto_schema[t]["properties"][p] = v
 
-        elif hasattr(obj, "to_property"): # FIXME use k_* labels and test for type str
+        elif type(get_k_attr(obj, "k_properties")) is str:
             # This is a mono-property mapping.
             t = obj.for_object
-            logger.debug(f"\t\tproperty for {t}: {obj.to_property}")
-            st = auto_schema.get(t, {})
-            st["properties"] = st.get("properties", {})
-            st["properties"][obj.to_property] = "str"
+            prop = get_k_attr(obj, "k_properties")
+            logger.debug(f"\t\tproperty for {t}: {prop}")
+            auto_schema[t] = auto_schema.get(t, {})
+            auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+            auto_schema[t]["properties"][prop] = "str"
 
-        elif hasattr(obj, "to_properties"): # FIXME use k_* labels and test for type list
+        elif type(get_k_attr(obj, "k_properties")) is list:
             # This is a multi-properties mapping.
-            # logger.debug(dir(obj))
-            # logger.debug(obj.to_properties)
-            # logger.debug(obj.for_object)
             t = obj.for_object
+            prop = get_k_attr(obj, "k_properties")
             logger.debug(f"\t\tproperties for: {t}")
-            st = auto_schema.get(t, {})
-            st["properties"] = st.get("properties", {})
-            for p in obj.to_properties:
+            auto_schema[t] = auto_schema.get(t, {})
+            auto_schema[t]["properties"] = auto_schema[t].get("properties", {})
+            for p in prop:
                 logger.debug(f"\t\t\tproperty: {p}")
-                st["properties"][p] = "str"
+                auto_schema[t]["properties"][p] = "str"
 
     elif issubclass(obj, base.Node):
         t = obj.__name__
@@ -172,7 +178,7 @@ def extend_autoschema(
         auto_schema[t]["represented_as"] = "edge"
         auto_schema[t]["input_label"] = t
 
-        if obj.source_type(): # FIXME no source for edges in extended schema.
+        if obj.source_type():
             if obj.source_type().final_type:
                 auto_schema[t]["source"] = obj.source_type().final_type.__name__
             else:
@@ -194,10 +200,11 @@ def extend_autoschema(
             elif trans.branching_properties:
                 for p,c in trans.branching_properties:
                     props.append( (p,c) )
-            for p,c in props:
-                if p not in auto_schema[t]["properties"]:
-                    auto_schema[t]["properties"][p] = c.__name__
-                    logger.debug(f"\t\t\tproperty: {p}")
+
+        for p,c in props:
+            if p not in auto_schema[t]["properties"]:
+                auto_schema[t]["properties"][p] = c.__name__
+                logger.debug(f"\t\t\tproperty: {p}")
 
     else:
         logger.warning(f"\t\tUnknown type `{obj}`, I'll just ignore it, but you may want to double-check.")
