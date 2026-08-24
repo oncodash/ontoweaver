@@ -51,6 +51,7 @@ from . import iterative
 from . import xml
 from . import owl
 from . import mapping
+from . import ontoweave
 
 logger = logging.getLogger("ontoweaver")
 
@@ -680,10 +681,10 @@ def reconciliate(nodes: list[Tuple], edges: list[Tuple], reconciliate_sep: str =
     Returns:
         str: The path to the import file.
     """
-    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(n, tuple) for n in nodes), "I can only reconciliate BioCypher's tuples, maybe you forgot to call `ontoweaver.ow2bc`?"
     assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
 
-    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples"
+    assert all(isinstance(e, tuple) for e in edges), "I can only reconciliate BioCypher's tuples, maybe you forgot to call `ontoweaver.ow2bc`?"
     assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
 
     logger.info("Fuse duplicated nodes and edges...")
@@ -712,6 +713,12 @@ def write(nodes: list[Tuple], edges: list[Tuple], biocypher_config_path: str, sc
         logger.warning(msg)
         raise RuntimeError(msg)
     else:
+        assert all(isinstance(n, tuple) for n in nodes), "I can only write BioCypher's tuples, maybe you forgot to call `ontoweaver.ow2bc`?"
+        assert all(len(n) == 3 for n in nodes), "This does not seem to be BioCypher's tuples"
+
+        assert all(isinstance(e, tuple) for e in edges), "I can only write BioCypher's tuples, maybe you forgot to call `ontoweaver.ow2bc`?"
+        assert all(len(e) == 5 for e in edges), "This does not seem to be BioCypher's tuples"
+
         logger.info("Export the graph with BioCypher...")
         bc = biocypher.BioCypher(
             biocypher_config_path = biocypher_config_path,

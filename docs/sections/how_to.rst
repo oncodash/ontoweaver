@@ -634,6 +634,66 @@ but ONLY if a node of type `target_A` has been created
 Fusion
 ~~~~~~
 
+How can I use my own fusion engine within my project?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded: 1.9.3
+
+The easiest way is to reuse the ``ontoweave`` command interface within your own
+project command. That way, you will call your own command just like you would
+have called ``ontoweave``.
+
+The ``ontoweaver.ontoweave`` module has a `main()` function that calls a
+sequence of high-level functions:
+
+.. code-block:: python
+    :emphasize-lines: 16
+
+    def main():
+        # CLI args management
+        appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+        config_files = list(ontoweaver.ontoweave.config_paths(appname))
+
+        # Creates ontoweave's CLI options:
+        do = ontoweaver.ontoweave.make_cli_parser(appname, config_files)
+        # (You may add you own options to the `do` argparse.ArgumentParse object here.)
+
+        asked = do.parse_args()
+
+        # Call whatever mappings are passed to the command.
+        bc_nodes, bc_edges = ontoweaver.ontoweave.extract(asked)
+
+        # Basic fusion.
+        fnodes,fedges = ontoweaver.ontoweave.reconciliate(bc_nodes, bc_edges, asked)
+
+        # Sort, write, call import script.
+        import_file = ontoweaver.ontoweave.write(fnodes, fedges, asked)
+
+        # Output import file on stdout, in case the user would want to capture it.
+        print(import_file)
+
+        logging.info("Done ontoweave")
+
+What you want is to replace the call to "reconciliate" with a call to your own
+instance of the fusion engine.
+
+When you put this code into you own command file (e.g. ``weave.py``),
+the ``ontoweaver.ontoweave``'s functions will transform it into a command
+on its own, with the same parameters than the ``ontoweave`` one.
+
+For example, the following code implements a ``weave.py`` command (that you can
+call with ``--help`` to see its options). It exposes its fusion engine, that
+you can configure:
+
+.. literalinclude:: ../../tests/userfusion.py
+   :language: python
+
+.. note::
+
+    See the :ref:`Information Fusion` section to learn how to configure your own
+    fusion engine.
+
+
 How can I implement my own fusion function?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

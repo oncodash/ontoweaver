@@ -23,15 +23,45 @@
 import os
 import sys
 import yaml
+import inspect
 import logging
 import natsort
 import pathlib
 import platform
-import xdg_base_dirs as xdg
-import importlib
 import networkx
+import argparse
+import importlib
+import subprocess
+import jsonargparse
+import xdg_base_dirs as xdg
 
 import ontoweaver
+
+def config_logger(name):
+    logger = logging.getLogger(name)
+
+    logger.propagate = False
+
+    # Clear existing handlers (optional, avoids duplicates)
+    logger.handlers.clear()
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+
+    # Define and set formatter with clean timestamp
+    formatter = logging.Formatter(
+        style = '{',
+        fmt = "{levelname:>7s} ⎹ {message}",
+        # datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    console_handler.setFormatter(formatter)
+
+    # Add handler to logger
+    logger.addHandler(console_handler)
+
+    return logger
+
+logger = config_logger("ontoweaver")
 
 # Additional error codes not handled by ontoweaver.exceptions.* classes.
 error_codes = {
@@ -123,42 +153,7 @@ def config_paths(appname = "ontoweave"):
     for p in dirs:
         yield str(p / (appname+".yaml"))
 
-def config_logger(name):
-    logger = logging.getLogger(name)
-
-    logger.propagate = False
-
-    # Clear existing handlers (optional, avoids duplicates)
-    logger.handlers.clear()
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-
-    # Define and set formatter with clean timestamp
-    formatter = logging.Formatter(
-        style = '{',
-        fmt = "{levelname:>7s} ⎹ {message}",
-        # datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    console_handler.setFormatter(formatter)
-
-    # Add handler to logger
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-def main():
-    import jsonargparse
-    import argparse
-    import subprocess
-    import inspect
-
-    appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-
-    logger = config_logger("ontoweaver")
-
-    config_files = list(config_paths(appname))
+def make_cli_parser(appname, config_files):
 
     do = jsonargparse.ArgumentParser(
         description = "A command line tool to run OntoWeaver mapping adapters on a set of tabular data, and call the created BioCypher export scripts.",
@@ -247,7 +242,10 @@ def main():
         help="Run in debug mode. Disables `--pass-errors`. NOTE: this will disable explicit error codes and show the call stack.")
         # Implies `--log-level DEBUG`.
 
-    asked = do.parse_args()
+    return do
+
+
+def extract(asked):
 
     if asked.debug:
         # if asked.log_level != "DEBUG":
@@ -268,7 +266,6 @@ def main():
 
     logger.debug("OntoWeave parameters:")
 
-    logger.debug(f"    config files: {config_files}")
     logger.debug(f"    config: `{asked.biocypher_config}`")
     logger.debug(f"    schema: `{asked.biocypher_schema}`")
     logger.debug(f"    auto-schema: `{asked.auto_schema}`")
@@ -402,6 +399,56 @@ def main():
     if asked.pandas_sep:
         kw = {"sep": asked.pandas_sep}
 
+    logger.info(f"Extracting the graph...")
+    nodes,edges = call_with_error_handling(
+        # function
+        ontoweaver.extract,
+        # arguments
+        mappings,
+        parallel_mapping = parallel,
+        affix = asked.type_affix,
+        type_affix_sep = asked.type_affix_sep,
+        validate_output = validate_output,
+        raise_errors = not asked.pass_errors,
+        progress_bar = asked.progress_bars,
+        sub_sample = asked.sub_sample,
+        **kw,
+        # Error handling parameters
+        debug = asked.debug,
+        section = "extracting"
+    )
+
+    # The fusion module is independant from OntoWeaver,
+    # and thus operates on BioCypher's tuples.
+    logger.debug("Convert OntoWeaver elements to BioCypher tuples.")
+    bc_nodes = ontoweaver.ow2bc(nodes)
+    bc_edges = ontoweaver.ow2bc(edges)
+
+    return bc_nodes,bc_edges
+
+
+def reconciliate(bc_nodes, bc_edges, asked):
+
+    logger.info("Fusing data...")
+    fnodes, fedges = call_with_error_handling(
+        # function
+        ontoweaver.reconciliate,
+        # its arguments
+        bc_nodes,
+        bc_edges,
+        reconciliate_sep = asked.prop_sep,
+        raise_errors = not asked.pass_errors,
+        progress_bar = asked.progress_bars,
+        # Error handling parameters
+        debug = asked.debug,
+        section = "weaving"
+    )
+
+    return fnodes,fedges
+
+
+def write(fnodes, fedges, asked):
+
     if asked.sort == "none":
         sort_key = None
     elif asked.sort == "ascend":
@@ -411,31 +458,30 @@ def main():
         logging.error(msg)
         sys.exit("ConfigError")
 
-    logger.info(f"Running OntoWeaver...")
+    assert sort_key == None or callable(sort_key)
+    if sort_key:
+        logger.info(f"Sort elements on: {sort_key}.")
+        snodes = sorted(fnodes, key = sort_key)
+        sedges = sorted(fedges, key = sort_key)
+    else:
+        logger.debug("Do not sort elements.")
+        snodes = fnodes
+        sedges = fedges
+
     import_file = call_with_error_handling(
         # function
-        ontoweaver.weave,
-        # its arguments
-        asked.biocypher_config,
-        asked.biocypher_schema,
-        mappings,
-        parallel_mapping = parallel,
-        reconciliate_sep = asked.prop_sep,
-        affix = asked.type_affix,
-        type_affix_sep = asked.type_affix_sep,
-        validate_output = validate_output,
-        sort_key = sort_key,
+        ontoweaver.write,
+        # arguments
+        snodes,
+        sedges,
+        biocypher_config_path = asked.biocypher_config,
+        schema_path = asked.biocypher_schema,
         raise_errors = not asked.pass_errors,
-        progress_bar = asked.progress_bars,
-        sub_sample = asked.sub_sample,
-        **kw,
         # Error handling parameters
         debug = asked.debug,
-        section = "weaving"
+        section = "writing"
     )
 
-    # Output import file on stdout, in case the user would want to capture it.
-    print(import_file)
     check_file(import_file)
 
     if asked.import_script_run:
@@ -451,7 +497,31 @@ def main():
                 logger.error(e)
                 sys.exit(ontoweaver.exceptions.SubprocessError.code)
 
-    logger.info("Done")
+    return import_file
+
+
+def main():
+    # CLI args management
+    appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    config_files = list(config_paths(appname))
+    logger.debug(f"config files: {config_files}")
+    do = make_cli_parser(appname, config_files)
+    asked = do.parse_args()
+
+    # Call mappings
+    bc_nodes, bc_edges = extract(asked)
+
+    # Basic fusion
+    fnodes,fedges = reconciliate(bc_nodes, bc_edges, asked)
+
+    # Sort, write, call import script
+    import_file = write(fnodes, fedges, asked)
+
+    # Output import file on stdout, in case the user would want to capture it.
+    print(import_file)
+
+    logger.info("Done ontoweave")
+
 
 if __name__ == "__main__":
     main()
