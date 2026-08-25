@@ -60,9 +60,9 @@ def register(transformer_class):
     """
 
     if not issubclass(transformer_class, base.Transformer):
-        logging.error(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.", section="transformer.register", exception = exceptions.InterfaceInheritanceError)
+        logger.error(f"{transformer_class.__name__} should inherit from ontoweaver.base.Transformer.", section="transformer.register", exception = exceptions.InterfaceInheritanceError)
     current = sys.modules[__name__]
-    logging.debug(f"Adding transformer {transformer_class.__name__}")
+    logger.debug(f"Adding transformer {transformer_class.__name__}")
     setattr(current, transformer_class.__name__, transformer_class)
 
 
@@ -846,7 +846,7 @@ class translate(base.Transformer):
                         try:
                             self.df = with_loader.load([self.translations_file], **more_args)
                         except exceptions.InputDataError as err:
-                            logging.error(f"I cannot load the translations_file `{self.translations_file}`. Maybe you forgot that the path is the one from the working directory?")
+                            logger.error(f"I cannot load the translations_file `{self.translations_file}`. Maybe you forgot that the path is the one from the working directory?")
                             raise err
                         break
 
@@ -1273,10 +1273,10 @@ class split_translate(base.Transformer):
 
         for value in self.split.value_maker(self.split.columns, row, i):
             if base.is_not_null(value):
-                logging.debug(f"VALUE {value}")
+                logger.debug(f"VALUE {value}")
                 pseudorow = {"translate_column": value}
                 for val in self.translate.value_maker(["translate_column"], pseudorow, i):
-                    logging.debug(f"VAL {val}")
+                    logger.debug(f"VAL {val}")
                     value, edge_type, node_type, reverse_edge = self.create(val, row)
                     yield value, edge_type, node_type, reverse_edge
 
@@ -1778,6 +1778,7 @@ class western_name(base.Transformer):
         )
 
 class compose(base.Transformer):
+    tag = "__ONTOWEAVER_COMPOSE_COLUMN_TAG__"
 
     class ValueMaker(make_value.ValueMaker):
         def __init__(self, raise_errors: bool = True):
@@ -1852,7 +1853,6 @@ class compose(base.Transformer):
             **kwargs
         )
         self.init_checks()
-        self.tag = "ONTOWEAVER"
 
         def make_transformer(t_section, columns = None):
             if type(t_section) is str:
@@ -1863,7 +1863,7 @@ class compose(base.Transformer):
                 t_args = t_section[t_name]
 
             if not columns:
-                columns = [self.tag]
+                columns = [compose.tag]
 
             current = sys.modules[__name__]
             t_class = getattr(current, t_name)
@@ -1908,7 +1908,7 @@ class compose(base.Transformer):
                 logger.debug(f"No more tranformer to apply, yield result: `{value}`")
                 yield value, edge_type, node_type, reverse_edge
             else:
-                internal_row = {self.tag: value}
+                internal_row = {compose.tag: value}
                 logger.debug(f"Call remaining {len(t_indices)} transformers on : {internal_row}")
                 for venr in self.recursive_call(internal_row, i, t_indices):
                     yield venr
