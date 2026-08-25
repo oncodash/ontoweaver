@@ -245,8 +245,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Returns:
             The created edge.
         """
-        default_id = f"({id_source})--[{edge_t.__name__}]->({id_target})"
-        return edge_t(id = default_id, id_source=id_source, id_target=id_target, properties=properties)
+        edge = edge_t(id_source=id_source, id_target=id_target, properties=properties)
+        return edge
 
     # ==========================
     # Helper functions for run
