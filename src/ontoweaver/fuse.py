@@ -131,6 +131,7 @@ class Members(Fuser):
             self.merged.target.set(mergers.target.merged)
 
     def merge(self, key, lhs: base.Element, rhs: base.Element):
+        logger.debug(f"  │ ├ {type(self).__name__}.merge(key=`{key}`, lhs=`{lhs.id}`, rhs=`{rhs.id}`)")
         assert(issubclass(type(lhs), base.Node) and issubclass(type(rhs), base.Node)
                or
                issubclass(type(lhs), base.Edge) and issubclass(type(rhs), base.Edge) )
@@ -148,11 +149,14 @@ class Members(Fuser):
         self.set(self.merged)
 
     def get(self) -> base.Element:
+        # logger.debug(f"     {type(self).__name__}.get()")
         self.members["id"] = self.merged.ID.get()
         # Save the ID mappings we've seen so far.
         for id in self._ID_seen:
             # We do not need to save self-mappings.
             if id != self.members["id"]:
+                logger.debug(f"  │ ├ Save ID_mapping: `{id}` => `{self.members['id']}`")
+                assert self.members["id"] not in self.ID_mapping.keys()
                 self.ID_mapping[id] = self.members["id"]
 
         self.members["label"] = self.merged.label.get()
