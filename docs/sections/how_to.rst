@@ -637,7 +637,7 @@ Fusion
 How can I use my own fusion engine within my project?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded: 1.9.3
+.. versionadded: 1.10.0
 
 The easiest way is to reuse the ``ontoweave`` command interface within your own
 project command. That way, you will call your own command just like you would
