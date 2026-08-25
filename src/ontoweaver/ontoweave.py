@@ -91,33 +91,33 @@ def call_with_error_handling(func, *args, **kwargs):
             return func(*args, **kwargs)
         except ontoweaver.exceptions.OntoWeaverError as e:
             etype = type(e).__name__
-            logging.error(f"{etype}{section} (in `ontoweave.{func.__name__}`)")
+            logger.error(f"{etype}{section} (in `ontoweave.{func.__name__}`)")
             edoc = type(e).__doc__
             if edoc:
-                logging.error(edoc)
-            logging.error(e)
+                logger.error(edoc)
+            logger.error(e)
             sys.exit(type(e).code)
         except networkx.exception.NetworkXError as e:
-            logging.error(f"{type(e).__name__}{section} (in `ontoweave.{func.__name__}`).")
-            logging.error(e)
+            logger.error(f"{type(e).__name__}{section} (in `ontoweave.{func.__name__}`).")
+            logger.error(e)
             # probably "type not in the digraph"
-            logging.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
+            logger.error("Double check that you use the rdfs:label for this type in your schema, and not the IRI anchor, or look for any typo.")
             sys.exit(error_codes["NetworkXError"])
         except Exception as e:
-            logging.error(f"UNKNOWN ERROR{section} (in `ontoweave.{func.__name__}`).")
-            logging.error(e)
+            logger.error(f"UNKNOWN ERROR{section} (in `ontoweave.{func.__name__}`).")
+            logger.error(e)
             sys.exit(error_codes["Exception"])
 
 
 def check_file(filename):
     """Exit if the given filename does not exists or is not readable."""
     if not os.path.isfile(filename):
-        logging.error(f"File `{filename}` not found.")
+        logger.error(f"File `{filename}` not found.")
         # FIXME raise without exit if asked.debug
         sys.exit(ontoweaver.exceptions.FileError.code)
 
     if not os.access(filename, os.R_OK):
-        logging.error(f"Cannot access file `{filename}`.")
+        logger.error(f"Cannot access file `{filename}`.")
         # FIXME raise without exit if asked.debug
         sys.exit(ontoweaver.exceptions.FileAccessError)
 
@@ -125,7 +125,7 @@ def check_file(filename):
 def config_directories(appname = "ontoweave"):
     """Yield standard configuration directories (as defined by XDG under MocOS/Unix)."""
     myos = platform.system()
-    logging.debug(f"Detected OS: {os}")
+    logger.debug(f"Detected OS: {os}")
 
     #NOTE: All matched config files will be parsed and applied in the given order.
     if myos == "Windows":
@@ -134,7 +134,7 @@ def config_directories(appname = "ontoweave"):
         yield pathlib.Path("~")/pathlib.Path("AppData")/pathlib.Path("Roaming")/pathlib.Path(appname)
 
     elif myos == "Java" or myos == "":
-        logging.warning(f"I don't know where to search for configuration files on platform `{myos}`, I'll only search in current directory")
+        logger.warning(f"I don't know where to search for configuration files on platform `{myos}`, I'll only search in current directory")
 
     else: # Probably an Unix flavor (Darwin, Linux, Solaris, IRIX, etc.)
         # XDG will return the default defined in the specification
@@ -455,7 +455,7 @@ def write(fnodes, fedges, asked):
         sort_key = natsort.natsort_keygen()
     else:
         msg = f"Unsupported sorting type `{asked.sort}`"
-        logging.error(msg)
+        logger.error(msg)
         sys.exit("ConfigError")
 
     assert sort_key == None or callable(sort_key)

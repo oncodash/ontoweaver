@@ -488,7 +488,7 @@ class YamlParser(base.MappingParser):
         subject_transformer_dict = self.get(base.MappingParser.k_row)
         if not subject_transformer_dict:
             msg = f"There is no `{'`, `'.join(base.MappingParser.k_row)}` key in your mapping."
-            logging.error(msg)
+            logger.error(msg)
             raise RuntimeError(msg)
 
         subject_transformer_class = list(subject_transformer_dict.keys())[0]
@@ -980,7 +980,7 @@ class YamlParser(base.MappingParser):
             for k in metadata:
                 logger.debug(f"\t{metadata[k]}")
         else:
-            logging.debug("No metadata")
+            logger.debug("No metadata")
 
         return subject_transformer, transformers, metadata, validator
 

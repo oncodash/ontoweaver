@@ -99,7 +99,7 @@ def remove_labels_affixes(graph, remove_affix, affix_sep = default.affix_sep):
 
 
 def remove_affixes_subjects(graph, remove_affix, affix_sep = default.affix_sep):
-    logging.debug(f"Remove {remove_affix} from IRIs in subjects")
+    logger.debug(f"Remove {remove_affix} from IRIs in subjects")
     if remove_affix != default.remove_affix:
         for uri,p,obj in graph.triples((None, None, None)):
             clean_uri = clean_affix_uri(uri, remove_affix, affix_sep)
@@ -122,7 +122,7 @@ def remove_affixes_subjects(graph, remove_affix, affix_sep = default.affix_sep):
 
 
 def remove_affixes_objects(graph, remove_affix, affix_sep = default.affix_sep):
-    logging.debug(f"Remove {remove_affix} from IRIs in objects")
+    logger.debug(f"Remove {remove_affix} from IRIs in objects")
     if remove_affix != default.remove_affix:
         for uri,p,obj in graph.triples((None, None, None)):
             clean_obj = clean_affix_uri(obj, remove_affix, affix_sep)
@@ -145,7 +145,7 @@ def remove_affixes_objects(graph, remove_affix, affix_sep = default.affix_sep):
 
 
 def restore_labels(graph, restoration):
-    logging.debug("Translate biocypherized labels back")
+    logger.debug("Translate biocypherized labels back")
     for uri,p,label in graph.triples((None, RDFS.label, None)):
         iri = str(uri)
         if iri in restoration:
