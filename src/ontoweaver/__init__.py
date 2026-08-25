@@ -88,6 +88,7 @@ __all__ = [
     'validate_input_data',
     'validate_input_data_loaded',
     'ow2bc',
+    'ontoweave',
 ]
 
 

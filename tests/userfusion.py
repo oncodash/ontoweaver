@@ -1,5 +1,6 @@
 #!/usr/bin/env -S uv run --script
 # /// script
+# requires-python = "<4.0,>=3.12"
 # dependencies = [
 #    "biocypher<1.0.0,>=0.11.0",
 #    "pooch<2.0.0,>=1.7.0",
