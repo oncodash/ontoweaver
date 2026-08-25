@@ -69,23 +69,24 @@ class Reduce(Fusioner):
         # Manual functools.reduce without initial state.
         it = iter(elem_list)
         lhs = next(it)
-        logger.debug(f"  Fuse `{type(lhs).__name__}` with key `{lhs}`...")
-        logger.debug(f"    with itself: {repr(lhs)}")
+        logger.debug(f"  Fuse {type(lhs).__name__}s with key: `{key}`")
+        logger.debug(f"  ├ with itself: {repr(lhs)}")
         self.fuser(key, lhs, lhs)
         self.nb_fusions += 1
-        logger.debug(f"lhs: {lhs}")
-        logger.debug(f"fuser.get: {self.fuser.get()}")
-        logger.debug(f"repr: {repr(self.fuser.get())}")
-        logger.debug(f"      = {repr(self.fuser.get())}")
+        # logger.debug(f"    lhs: {lhs}")
+        # logger.debug(f"    fuser.get: {self.fuser.get()}")
+        # logger.debug(f"    repr: {repr(self.fuser.get())}")
+        logger.debug(f"  │ └ = {repr(self.fuser.get())}")
         for rhs in it:
-            logger.debug(f"    with `{rhs}`: {repr(rhs)}")
+            logger.debug(f"  ├ with: {repr(rhs)}")
             self.fuser(key, lhs, rhs)
+            lhs = self.fuser.get()
             self.nb_fusions += 1
-            logger.debug(f"      = {repr(self.fuser.get())}")
+            logger.debug(f"  │ └ = {repr(lhs)}")
 
         # Convert to final string.
         f = self.fuser.get()
-        logger.debug(f"  Fused: {repr(f)}")
+        logger.debug(f"  └ Fused: {repr(f)}")
         assert(issubclass(type(f), base.Element))
 
         return f
@@ -127,6 +128,7 @@ def remap_edges(edges, ID_mapping):
     nb_remaps = 0
     for et in edges:
         edge = base.GenericEdge.from_tuple(et, serialize.edge.All())
+        logger.debug(f"Remap edge: `{edge.as_tuple()}`")
 
         s = ID_mapping.get(edge.id_source, None)
         if s:
