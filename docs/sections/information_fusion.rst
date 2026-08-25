@@ -77,11 +77,8 @@ Then, the result of the reconciliation step above would be:
    ("id_1", "type_B", {"prop_1": "z"})
 
 
-Generic fusion
-~~~~~~~~~~~~~~
-
 Introduction to fusion
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 
 OntoWeaver brings a set of features that also help solving fusion problems
 that goes beyond properties reconciliation.
@@ -117,8 +114,43 @@ The simplest approach to fusion is to define how to:
 5. let OntoWeaver browse the nodes by pairs, until everything is fused.
 
 
+Example of fusion problems
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    The first section [:ref:`Reconciliation <Reconciliation (default behaviour)>`]
+    presented a fusion problem impacting properties.
+
+Now, imagine that you want to merge nodes representing the names of people,
+but your data sources use two standards. One uses first names
+(e.g. "Dreo, Johann"), but the other uses initials (e.g. "Dreo, J.").
+And you would want to fuse those nodes by keeping the identifiers with the most
+information.
+
+Since there is missing information in one of the data source, you cannot solve
+this with just mapping transformers. You need to solve the corresponding fusion
+problem.
+
+OntoWeaver allows to find duplicates on the form with less information
+(e.g. using only the last name), but to keep the form with the most information
+(e.g. the form with both names) when fusing.
+
+.. note::
+
+    To our knowledge, OntoWeaver is the only SKG processing software allowing
+    to solve very generic and complex information fusion problems that way.
+
+    BioCypher (that OntoWeaver uses as a backend) only allows solving
+    simplified "deduplication" problems.
+
+    Information fusion features are the ones that allows you to reuse mappings
+    tailored for a specific sources, without having to change their
+    configuration. You just need to configure the fusion.
+
+
 Detecting duplicates
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 
 For step 1, OntoWeaver provides the ``serialize`` module, which allows to extract
 the part of a node (or an edge) that should be used when checking equality.
@@ -181,11 +213,21 @@ checking equality.
 
 A node being composed of an identifier, a type label, and a properties
 dictionary, the ``serialize`` module provides function objects
-reflecting the useful combinations of those components:
+reflecting the useful combinations of those components.
 
-- ``ID`` (only the identifier)
-- ``IDLabel`` (the identifier and the type label)
-- ``All`` (the identifier, the type label, and the properties)
+Basic node serializers are:
+
+- ``ID`` (only the identifier),
+- ``IDLabel`` (the identifier and the type label),
+- ``All`` (the identifier, the type label, and the properties).
+
+Basic edges serializers are:
+
+- ``ID``,
+- ``IDLabel``,
+- ``SourceTarget`` (identifiers of the source and the target),
+- ``SourceTargetLabel``,
+- ``All``.
 
 The user can instantiate those function objects, and pass them to the
 ``congregate`` module, to find which nodes are duplicates of each other.
@@ -198,9 +240,118 @@ For example:
    congregater(my_nodes) # Actual processing call.
    # congregarter now holds a dictionary of duplicated nodes.
 
+.. note::
+
+    The serializers do not transform the actual ID of the element.
+    They compute a key that is used as an identifier, only during the search
+    for duplicates.
+
+    That way, you may use serializers that remove some information,
+    to find a common denominator between nodes,
+    but then keep the element ID that provides the *most* information when
+    fusing nodes.
+
+
+IDWesternNameInitials
+^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.10.0
+
+This serializer takes the canonical form of a western name
+(e.g. "Dreo, Johann") and transform it in a form with only the initials of the
+first name (e.g. "Dreo, J."), for use as the serialized key.
+
+.. note::
+
+    Serialized keys are only seen by the congregater.
+    What is actually used as a fused ID is managed by mergers
+    (see the next :ref:`Fusing duplicates` section).
+
+
+PerType
+^^^^^^^
+
+.. versionadded:: 1.10.0
+
+This serializer allows to apply different serializers on different element
+types.
+
+It takes a dictionary mapping the type label to an instance of a serializer.
+The special type label ``"*"`` applies to all types not having a specific
+serializer.
+
+For example:
+
+.. code:: python
+
+    on_short_name = ontoweaver.serialize.PerType({
+        "person": ontoweaver.serialize.node.IDWesternNameInitials(),
+        "*": ontoweaver.serialize.ID(),
+    })
+    nodes_congregater = ontoweaver.congregate.Nodes(on_short_name)
+
+.. note::
+
+    Serialized keys are only seen by the congregater.
+    What is actually used as a fused ID is managed by mergers
+    (see the next :ref:`Fusing duplicates` section).
+
+In our example, if you configure the fusion to use the ``UseLonger`` merger,
+then only the long name form will be used as an ID, even if the duplicate
+search was done on the short name.
+
+
+FromTransformer
+^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.10.0
+
+This serializer allows to apply a mapping transformer
+(see section :ref:`Common Mapping`) for making a serialized key.
+
+To instantiate it, you need to pass the transformer class, followed by the
+list of fields on which to apply the transformation, and then the parameters of
+the transformer.
+
+For example:
+
+.. code:: python
+
+    without_dots = ontoweaver.serialize.PerType({
+        "diploma": ontoweaver.serialize.FromTransformer(
+            ontoweaver.transformer.replace,
+                fields = ["id"],  # id, label, properties, id_source or id_target
+                forbidden = r'\.',
+                substitute = '',
+        ),
+        "*": ontoweaver.serialize.ID(),
+    })
+    nodes_congregater = ontoweaver.congregate.Nodes(without_dots)
+
+This will serialize any element's ID (e.g. "Ph.D.") in a key that contains no
+dot (e.g. "PhD").
+
+.. note::
+
+    Serialized keys are only seen by the congregater.
+    What is actually used as a fused ID is managed by mergers
+    (see the next :ref:`Fusing duplicates` section).
+
+In our example, if you configure the fusion to use the ``UseLonger`` merger,
+then only the long diploma form ("Ph.D.") will be used as an ID, even if the
+duplicate search was done on the short version.
+
+Available fields are:
+
+- ``id``,
+- ``label``,
+- ``id_source``,
+- ``id_target``,
+- ``properties``.
+
 
 Fusing duplicates
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 For steps 2 to 4, OntoWeaver provides the ``merge`` module, which
 provides ways to merge two nodes’ components into a single one. It is
@@ -223,7 +374,7 @@ The ``string`` submodule provides:
 - ``UseFirst``/``UseLast``: replace the type label with the first/last
   one seen,
 - ``UseLonger`` (or ``UseShorter``): use the longer (or the shorter) string
-  (added in version 1.9.3).
+  (added in version 1.10.0).
 - ``EnsureIdentical``: if two nodes’ components are not equal, raise an
   error,
 - ``OrderedSet``: aggregate all the components of all the seen nodes
@@ -441,7 +592,7 @@ You would need to define a merger for the properties as follow:
 
 
 Remaping edges
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 Once this fusion step is done, is it possible that the edges that were
 defined by the initial adapters refer to node IDs that do not exist
@@ -490,7 +641,7 @@ classes, they need to be converted back to Biocypher’s tuples:
 
 
 Low-level Interfaces
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 
 Each of the steps mentioned in the previous section involves a functor
 class that implements a step of the fusion process. Users may provide
