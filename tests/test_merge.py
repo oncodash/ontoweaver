@@ -38,5 +38,20 @@ def test_append():
     assert( "[efgh]" in m["p1"].split(sep) )
 
 
+def test_uselonger_useshorter():
+    longer  = ontoweaver.merge.string.UseLonger()
+    shorter = ontoweaver.merge.string.UseShorter()
+
+    k = ontoweaver.base.Node()
+
+    longer.reset()
+    longer(k, "short", "but longer")
+    assert longer.get() == "but longer"
+
+    shorter.reset()
+    shorter(k, "short", "but longer")
+    assert shorter.get() == "short"
+
+
 if __name__ == "__main__":
     test_append()

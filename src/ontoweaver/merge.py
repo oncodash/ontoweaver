@@ -264,6 +264,21 @@ class string:
                     raise exceptions.FusionError(f"Merged value `{lhs}`/`{rhs}` not identical.`")
             self.set(lhs) # Should be equal to rhs.
 
+    class UseLonger(StringMerger):
+        """Use the last (rightmost) seen object when merging"""
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            if len(rhs) > len(lhs):
+                self.set(rhs)
+            else:
+                self.set(lhs)
+
+    class UseShorter(StringMerger):
+        """Use the last (rightmost) seen object when merging"""
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            if len(rhs) < len(lhs):
+                self.set(rhs)
+            else:
+                self.set(lhs)
 
     class SpecificType(StringMerger):
         """If the merged values are not all identical, sets the most generic common subtype

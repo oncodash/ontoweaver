@@ -222,6 +222,8 @@ The ``string`` submodule provides:
   congregation step,
 - ``UseFirst``/``UseLast``: replace the type label with the first/last
   one seen,
+- ``UseLonger`` (or ``UseShorter``): use the longer (or the shorter) string
+  (added in version 1.9.3).
 - ``EnsureIdentical``: if two nodes’ components are not equal, raise an
   error,
 - ``OrderedSet``: aggregate all the components of all the seen nodes
@@ -236,7 +238,7 @@ The ``string`` submodule provides:
   (among the two given elements) in the taxonomy hierarchy.
   This is really only useful for merging labels.
 
-Those two last labels mergers may be tricky to grasp.
+The ``SpecificType`` and ``GenericType`` mergers may be tricky to grasp.
 The diagram below is an example, showing two fusions of two pairs of nodes,
 coming from different sources. The nodes have different types (labels),
 from the same taxonomy tree.
@@ -256,7 +258,6 @@ from the same taxonomy tree.
 
 If the two merged elements have incompatible types, both mergers will
 raise an error.
-
 
 
 The ``dictry`` submodule provides:
