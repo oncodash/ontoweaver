@@ -140,6 +140,9 @@ def remap_edges(edges, ID_mapping):
             edge.id_target = t
             nb_remaps += 1
 
+        edge.update_id()
+
+        logger.debug(f"└ to: `{edge.as_tuple()}`")
         yield edge.as_tuple()
 
     logger.info(f"Remapped {nb_remaps} tips over {len(edges)} edges.")

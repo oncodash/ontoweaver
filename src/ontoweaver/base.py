@@ -288,6 +288,9 @@ class Edge(Element):
         self._id_source = str(id_source)
         self._id_target = str(id_target)
 
+        if not id:
+            self.update_id()  # Format an ID from member variables.
+
     @staticmethod
     @abstract
     def source_type():
@@ -314,6 +317,12 @@ class Edge(Element):
     def id_target(self, id_target):
         self._id_target = id_target
 
+    def make_id(self):
+        return f"({self.id_source})-[{self.label}]->({self.id_target})"
+
+    def update_id(self):
+        self._id = self.make_id()
+
     Tuple: TypeAlias = tuple[str,str,str,dict[str,str]]
     def as_tuple(self) -> Tuple:
         """Export the Edge as a Biocypher tuple."""
@@ -332,7 +341,7 @@ class Edge(Element):
                    serializer: Optional[serialize.Serializer] = serialize.edge.All()
                    ):
         assert(len(biocypher_tuple) == 5)
-        logging.debug(biocypher_tuple)
+        logger.debug(biocypher_tuple)
         return cls(
             id         = biocypher_tuple[0],
             id_source  = biocypher_tuple[1],
@@ -400,7 +409,7 @@ class GenericEdge(Edge):
         """
         super().__init__(id = id, id_source = id_source, id_target = id_target, properties = properties, label = label, serializer = serializer)
 
-        logging.debug(f"GenericEdge ID: {id}")
+        # logger.debug(f"GenericEdge ID: {id}")
 
     @staticmethod
     def source_type():
