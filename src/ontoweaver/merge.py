@@ -186,11 +186,18 @@ class dictry:
                     u = set(v)
                     e = e.union(u)
                     self.merged[k] = e
-                else:
-                    self.merged[k] = set((v,)).union(e)
+                else: # First encounter.
+                    # Can be on a previously joined string.
+                    if self.reconciliate_sep in v:
+                        u = set(v.split(self.reconciliate_sep))
+                    else:
+                        u = set((v,))
+                    self.merged[k] = u.union(e)
 
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]):
+            assert type(lhs) == dict, f"{type(lhs)}"
             self.set(lhs)
+            assert type(rhs) == dict, f"{type(rhs)}"
             self.set(rhs)
 
         def get(self) -> dict:

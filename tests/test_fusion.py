@@ -477,7 +477,6 @@ transformers:
     assert len(fnodes) == 2
     assert len(fedges) == 1
 
-
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")
     test_fusion_remap_both()

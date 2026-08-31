@@ -109,9 +109,9 @@ class Members(Fuser):
 
 
     def precheck(self, key, lhs, rhs):
-        assert(issubclass(type(key), base.Element))
-        assert(issubclass(type(lhs), base.Element))
-        assert(issubclass(type(rhs), base.Element))
+        assert issubclass(type(key), base.Element), f"{type(key)}"
+        assert issubclass(type(lhs), base.Element), f"{type(lhs)}"
+        assert issubclass(type(rhs), base.Element), f"{type(rhs)}"
 
     def reset(self):
         self.merged.ID.reset()

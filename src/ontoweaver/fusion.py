@@ -87,7 +87,7 @@ class Reduce(Fusioner):
         # Convert to final string.
         f = self.fuser.get()
         logger.debug(f"  └ Fused: {repr(f)}")
-        assert(issubclass(type(f), base.Element))
+        assert issubclass(type(f), base.Element), f"{type(f)}"
 
         return f
 
