@@ -221,7 +221,7 @@ def make_cli_parser(appname, config_files):
     do.add_argument("-E", "--pass-errors", action="store_true",
         help="When an error occurs, log is, and then try to continue processing. If not passed, the default behavior is to raise errors immediatly and stop execution.")
 
-    do.add_argument("-", "--sub-sample", type=float, default=100.0,
+    do.add_argument("-u", "--sub-sample", type=float, default=100.0,
         help="Reduce the size of input data by random sampling of the given percentage of items" \
         "(e.g. lines, for tabular data). '100' means no sub-sampling. [default: %(default)s]")
 
