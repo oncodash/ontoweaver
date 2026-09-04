@@ -1,11 +1,14 @@
-# Changelog
+CHANGELOG
+=========
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+[Unreleased]
+------------
 
 ### Changed
 
@@ -17,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - merge.Append should deserialize if necessary (Was wrongly aggregating duplicate properties).
 
 
-## [v1.10.1] -- 2026-08-25
+[v1.10.1] -- 2026-08-25
+-----------------------
 
 ### Added
 
@@ -33,14 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix some logging format inconsistencies.
 
 
-## [v1.9.2] -- 2026-08-19
+[v1.9.2] -- 2026-08-19
+----------------------
 
 ### Fixed
 
 - Several fixes on the autoschema feature.
 
 
-## [v1.9.0] -- 2026-08-17
+[v1.9.0] -- 2026-08-17
+----------------------
 
 ### Added
 
@@ -60,7 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove several warnings about deprecated features in dependencies.
 
 
-## [v1.8.13] -- 2026-07-31
+[v1.8.13] -- 2026-07-31
+-----------------------
 
 ### Changed
 
@@ -73,14 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix: move a superfluous log from info to debug.
 
 
-## [v1.8.5] -- 2026-07-21
+[v1.8.5] -- 2026-07-21
+----------------------
 
 ### Fixed
 
 - fix bug reverse relation by @njmmatthieu in #243
 
 
-## [v1.8.3] -- 2026-07-20
+[v1.8.3] -- 2026-07-20
+----------------------
 
 ### Changed
 
@@ -92,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix an error with `on_unknown_values` in the `translate` transformer.
 
 
-## [v1.8.0] -- 2026-07-12
+[v1.8.0] -- 2026-07-12
+----------------------
 
 ### Added
 
@@ -117,7 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix passing additional arguments while loading files with third-party functions.
 
 
-## [v1.6.2] -- 2026-04-21
+[v1.6.2] -- 2026-04-21
+----------------------
 
 ### Added
 
@@ -128,7 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avoids showing large bunch of non-blocking errors in the log, instead collect them and show an excerpt when done processing.
 
 
-## [v1.6.1] -- 2026-04-20
+[v1.6.1] -- 2026-04-20
+----------------------
 
 ### Fixed
 
@@ -138,7 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING CHANGE: the `validate_input_data` functions now take `filename_to_mapping` as a list of tuples, instead of a dictionary.
 
 
-## [v1.5.2] -- 2026-04-14
+[v1.5.2] -- 2026-04-14
+----------------------
 
 ### Fixed
 
@@ -147,7 +160,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(progress_bar/read_excel): fixes unsupported progress bar when usi… by @clairelaudy in #231
 
 
-## [v1.5.1] -- 2026-04-01
+[v1.5.1] -- 2026-04-01
+----------------------
 
 ### Fixed
 
@@ -156,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - more impactful readme.
 
 
-## [v1.5] -- 2026-03-23
+[v1.5] -- 2026-03-23
+----------------------
 
 ### Added
 
@@ -169,18 +184,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More informative errors and log messages.
 
 
-## [v1.4] -- 2026-03-09
+[v1.4] -- 2026-03-09
+----------------------
 
-## Added
+### Added
 
 - ontoweave (and the underlying functions) now have a `--progress-bars` option for potentially heavy processings.
 
-## Changed
+### Changed
 
 - General improvement on the documentation, with a lot more content.
 
 
-## [v1.3.4] -- 2026-03-03
+[v1.3.4] -- 2026-03-03
+----------------------
 
 ### Added
 
@@ -196,7 +213,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove the (useless) validate_output argument from ontoweaver.autoschema.
 
 
-## [v1.3.1] -- 2026-02-27
+[v1.3.1] -- 2026-02-27
+----------------------
 
 ### Fixed
 
@@ -204,7 +222,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proof read of the doc by @clairelaudy in #220
 
 
-## [v1.3] -- 2026-02-26
+[v1.3] -- 2026-02-26
+--------------------
 
 ### Added
 
@@ -228,7 +247,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The boolean transformer has some fixes.
 
 
-## [v1.2.0] -- 2026-01-13
+[v1.2.0] -- 2026-01-13
+----------------------
 
 ### Added
 
@@ -244,12 +264,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation for user-made transformers.
 - Default property aggregation separator becomes "|".
 
-## Fixed
+### Fixed
 
 - Some minor fixes.
 
 
-## [v1.0.0] -- 2025-12-02
+[v1.0.0] -- 2025-12-02
+----------------------
 
 ### Added
 
@@ -259,7 +280,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detection of Null data.
 
 
-## [v0.2.5] -- 2025-08-06
+[v0.2.5] -- 2025-08-06
+----------------------
 
 ### Changed
 
@@ -268,14 +290,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wider range of Python versions accepted.
 
 
-## [v0.2.4_JOBIM-25] -- 2025-07-09
+[v0.2.4_JOBIM-25] -- 2025-07-09
+-------------------------------
 
 ### Added
 
 - Adds new entry point for CLI.
 
 
-## [v0.2.3] -- 2025-05-19
+[v0.2.3] -- 2025-05-19
+----------------------
 
 ### Fixed
 
@@ -283,7 +307,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixes bug with rowIndex usage with target type nodes.
 
 
-## [v0.2.2] -- 2025-05-13
+[v0.2.2] -- 2025-05-13
+----------------------
 
 ### Added
 
@@ -298,18 +323,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updates documentation.
 
 
-## [v0.2.1] -- 2025-05-05
+[v0.2.1] -- 2025-05-05
+----------------------
 
-## Added
+### Added
 
 - Allows to enable or disable validation of outputs, enabling a faster build of graphs for larger databases.
 
-## Fixed
+### Fixed
 
 - Fixes bugs with `cat_format` transformer usage.
 
 
-## [v0.1.3] -- 2025-03-11
+[v0.1.3] -- 2025-03-11
+----------------------
 
 ### Added
 
@@ -331,7 +358,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated docs.
 
 
-## [v0.1.2] -- 2025-02-20
+[v0.1.2] -- 2025-02-20
+----------------------
 
 ### Added
 
@@ -345,14 +373,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Downgrade Python to 3.12.
 
 
-## [v0.1.1] -- 2025-01-13
+[v0.1.1] -- 2025-01-13
+----------------------
 
 ### Fixed
 
 - Loop until end of transformers before raising error
 
 
-## [v0.2.0] -- 2025-11-04
+[v0.2.0] -- 2025-11-04
+----------------------
 
 ### Added
 
