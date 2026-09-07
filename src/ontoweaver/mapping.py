@@ -909,8 +909,7 @@ class YamlParser(base.MappingParser):
                             metadata.update(extracted_metadata)
 
         except Exception as err:
-            logger.error(f"ERROR for {transformer_index}th transformer of type `{transformer_type}`.")
-            raise err
+            self.error(f"ERROR for {transformer_index}th transformer of type `{transformer_type}`.", section = "parse_targets", index = transformer_index)
 
         return transformers, possible_target_types, possible_edge_types, metadata
 

@@ -1,5 +1,5 @@
 row:
-   rowIndex:
+   rowIndex: # an increasing number
       to_subject: variant
 transformers:
     - map:
