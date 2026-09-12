@@ -723,10 +723,14 @@ class Transformer(errormanager.ErrorManager):
         Yields:
             str: The concatenated string from the cell values.
         """
-        for val in self.value_maker(self.columns, row, i):
-            value, edge_type, node_type, reverse_edge = self.create(val, row)
-            if is_not_null(value):
-                yield value, edge_type, node_type, reverse_edge
+        try:
+            for val in self.value_maker(self.columns, row, i):
+                value, edge_type, node_type, reverse_edge = self.create(val, row)
+                if is_not_null(value):
+                    yield value, edge_type, node_type, reverse_edge
+        except Exception as e:
+            logger.error(f"When calling transformer: {repr(self)} on row: {i}")
+            raise e
 
     @property
     def final_type(self):
