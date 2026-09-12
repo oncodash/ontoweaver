@@ -1019,9 +1019,14 @@ class replace(base.Transformer):
                 if not base.is_not_null(row[key]):
                     yield row[key]
                 else:
+                    if type(row[key]) != str:
+                        self.delay_warning(f"Column `{key}` at row {i}: `{row[key]}` is of type {type(row[key])}, I'll convert it to a string for you, but you might want to double-check.")
+                        v = str(row[key])
+                    else:
+                        v = row[key]
                     logger.debug(
-                        f"re.sub('{self.forbidden}', '{self.substitute}', '{row[key]}')")
-                    formatted = re.sub(self.forbidden, self.substitute, row[key])
+                        f"re.sub('{self.forbidden}', '{self.substitute}', '{v}')")
+                    formatted = re.sub(self.forbidden, self.substitute, v)
 
                     strip_formatted = formatted.strip()
                     logger.debug(f"Replaced result: `{strip_formatted}`")
