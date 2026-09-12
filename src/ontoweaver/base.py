@@ -884,6 +884,9 @@ class Transformer(errormanager.ErrorManager):
         self.final_type = result_object.final_type
         return result_object.extracted_cell_value, result_object.edge_type, result_object.target_node_type, result_object.reverse_relation
 
+    def type_of(self, name):
+        import ontoweaver.types as owtypes
+        return getattr(wotypes, name)
 
 
 class All:
