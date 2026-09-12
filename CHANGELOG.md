@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 ------------
 
+[v1.10.3] -- 2026-09-12
+-----------------------
+
+### Changed
+
+- Adds the `type_of` helper function to transformers.
+
+### Fixed
+
+- Force value conversion to string when calling the `replace` transformer (with a warning).
+
 
 [v1.10.2] -- 2026-09-04
 -----------------------
