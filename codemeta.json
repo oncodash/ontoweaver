@@ -1,0 +1,151 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "name": "OntoWeaver",
+    "type": "SoftwareSourceCode",
+    "version": "1.10.3",
+    "dateModified": "2026-09-12",
+    "applicationCategory": "Data integration",
+    "license": "https://spdx.org/licenses/Apache-2.0",
+    "programmingLanguage": "Python",
+    "operatingSystem": "Platform independent",
+    "relatedLink": "https://ontoweaver.readthedocs.io/",
+    "contIntegration": "https://github.com/oncodash/ontoweaver/actions",
+    "codemeta:continuousIntegration": {
+        "id": "https://github.com/oncodash/ontoweaver/actions"
+    },
+    "developmentStatus": "active",
+    "issueTracker": "https://github.com/oncodash/ontoweaver/issues",
+    "referencePublication": "https://hal.science/hal-04509632",
+    "dateCreated": "2023-09-15",
+    "datePublished": "2023-11-21",
+    "description": "OntoWeaver is a low-code tool for the composable integration of Semantic Knowledge Graphs",
+    "codeRepository": "https://github.com/oncodash/ontoweaver.git",
+    "downloadUrl": "https://github.com/oncodash/ontoweaver/archive/refs/tags/v1.10.3.tar.gz",
+    "funder": {
+        "type": "Organization",
+        "name": "European Union’s Horizon 2020 research and innovation program"
+    },
+    "funding": "965193",
+    "keywords": [
+        "Data Integration",
+        "Semantic Knowledge Graphs",
+        "Ontologies",
+        "High-level Information Fusion"
+    ],
+    "author": [
+        {
+            "id": "https://orcid.org/0000-0003-2727-9569",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "email": "johann.dreo@pasteur.fr",
+            "familyName": "Dreo",
+            "givenName": "Johann"
+        },
+        {
+            "type": "schema:Role",
+            "schema:author": "https://orcid.org/0000-0003-2727-9569",
+            "schema:roleName": "Maintainer",
+            "schema:startDate": "2023-11-21"
+        },
+        {
+            "id": "_:author_2",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "familyName": "Baric",
+            "givenName": "Marko"
+        },
+        {
+            "type": "schema:Role",
+            "schema:author": "_:author_2",
+            "schema:endDate": "2026-01-31",
+            "schema:roleName": "Developer",
+            "schema:startDate": "2023-11-01"
+        },
+        {
+            "id": "_:author_3",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "familyName": "Najm",
+            "givenName": "Matthieu"
+        },
+        {
+            "type": "schema:Role",
+            "schema:author": "_:author_3",
+            "schema:endDate": "2026-07-31",
+            "schema:roleName": "Developer",
+            "schema:startDate": "2025-03-01"
+        },
+        {
+            "id": "https://orcid.org/0009-0009-3039-3224",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "familyName": "Laudy",
+            "givenName": "Claire"
+        },
+        {
+            "type": "schema:Role",
+            "schema:author": "https://orcid.org/0009-0009-3039-3224",
+            "schema:roleName": "Developer",
+            "schema:startDate": "2024-03-04"
+        },
+        {
+            "id": "_:author_5",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "familyName": "Gaydukova",
+            "givenName": "Ekaterina"
+        },
+        {
+            "type": "schema:Role",
+            "schema:author": "_:author_5",
+            "schema:endDate": "2024-03-30",
+            "schema:roleName": "Developer",
+            "schema:startDate": "2023-11-01"
+        }
+    ],
+    "contributor": [
+        {
+            "id": "_:contributor_1",
+            "type": "Person",
+            "familyName": "De Gottardi",
+            "givenName": "Raphael"
+        },
+        {
+            "type": "schema:Role",
+            "contributor": "_:contributor_1",
+            "schema:roleName": "Tester"
+        },
+        {
+            "id": "_:contributor_2",
+            "type": "Person",
+            "affiliation": {
+                "type": "Organization",
+                "name": "Institut Pasteur"
+            },
+            "familyName": "Schwikowski",
+            "givenName": "Benno"
+        },
+        {
+            "type": "schema:Role",
+            "contributor": "_:contributor_2",
+            "schema:endDate": "2026-07-31",
+            "schema:roleName": "PI",
+            "schema:startDate": "2023-11-21"
+        }
+    ]
+}
