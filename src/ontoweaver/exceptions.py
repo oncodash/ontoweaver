@@ -90,6 +90,12 @@ class FileOverwriteError(FileError):
     """I cannot overwrite a file."""
     code = 126  # alt "no perm"
 
+class FusionError(RunError):
+    code = 300
+
+class FusionConfigurationError(FusionError):
+    code = 301
+
 class InputDataError(RunError):
     """Some input data is inconsistent."""
     code = 132  # "illegal"
