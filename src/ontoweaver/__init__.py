@@ -52,6 +52,8 @@ from . import xml
 from . import owl
 from . import mapping
 from . import ontoweave
+from . import owl_to_biocypher
+from . import biocypher_to_owl
 
 logger = logging.getLogger("ontoweaver")
 
@@ -89,6 +91,8 @@ __all__ = [
     'validate_input_data_loaded',
     'ow2bc',
     'ontoweave',
+    'owl_to_biocypher',
+    'biocypher_to_owl',
 ]
 
 

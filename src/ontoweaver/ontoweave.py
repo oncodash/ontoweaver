@@ -153,6 +153,7 @@ def config_paths(appname = "ontoweave"):
     for p in dirs:
         yield str(p / (appname+".yaml"))
 
+
 def make_cli_parser(appname, config_files):
 
     do = jsonargparse.ArgumentParser(
@@ -499,29 +500,3 @@ def write(fnodes, fedges, asked):
 
     return import_file
 
-
-def main():
-    # CLI args management
-    appname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-    config_files = list(config_paths(appname))
-    logger.debug(f"config files: {config_files}")
-    do = make_cli_parser(appname, config_files)
-    asked = do.parse_args()
-
-    # Call mappings
-    bc_nodes, bc_edges = extract(asked)
-
-    # Basic fusion
-    fnodes,fedges = reconciliate(bc_nodes, bc_edges, asked)
-
-    # Sort, write, call import script
-    import_file = write(fnodes, fedges, asked)
-
-    # Output import file on stdout, in case the user would want to capture it.
-    print(import_file)
-
-    logger.info("Done ontoweave")
-
-
-if __name__ == "__main__":
-    main()

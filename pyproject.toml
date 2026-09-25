@@ -44,7 +44,9 @@ dev = [
 ]
 
 [project.scripts]
-ontoweave = "ontoweaver.ontoweave:main"
+ontoweave = "bin.ontoweave:main"
+owl_to_biocypher = "bin.owl_to_biocypher:main"
+biocypher_to_owl = "bin.biocypher_to_owl:main"
 
 [tool.pytest.ini_options]
 addopts = [
