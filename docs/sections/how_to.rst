@@ -785,3 +785,35 @@ put everything in nodes and edges lists, and pass them to the fusion engine.
 
     # ... and proceeed from there...
 
+
+System
+~~~~~~
+
+How can I call ``ontoweave``?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You have several options, depending on how you installed OntoWeaver.
+
+1. You are in your own project, with its own ``pyproject.toml`` (recommended option).
+    You call: ``uv run ontoweave``.
+
+    .. hint::
+
+        If you use a shell script calling ``ontoweave``,
+        you should not call ``uv run ontoweave`` from within the script,
+        but rather call ``ontoweave`` in the script,
+        and call the script with ``uv run ./my_script.sh``.
+
+        That way, your script is independent from how OntoWeaver was installed.
+
+2. You installed OntoWeaver on your system.
+    You call: ``ontoweave``
+3. You have a local OntoWeaver repository of your own,
+    for instance if you are a developer who is fixing bugs (thanks!):
+    First, you need to install it with: ``uv tool install .``
+    Then, you can call: ``ontoweave``
+
+.. note::
+
+    This works for the ``owl_to_biocypher`` and ``biocypher_to_owl`` commands as well.
+
