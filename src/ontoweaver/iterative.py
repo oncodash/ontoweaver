@@ -397,14 +397,14 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         nt = 0
         logger.debug(f"Looking into {len(self.transformers)} transformers:")
         if logging.getLevelName(logger.level) == "DEBUG":
-            for t in self.transformers:
-                logger.debug(t)
+            for i,t in enumerate(self.transformers):
+                logger.debug(f"  I will look into the {i}th transformer: {t}")
         for t in self.transformers:
             nt += 1
-            logger.debug(f"{nt}: {t}")
+            logger.debug(f"Check transformer {nt-1}: {t}")
             if t.target_type == fromsubject:
-                logger.debug(f"compatible with {fromsubject}")
-                # Call this transformer.
+                logger.debug(f"compatible with `{fromsubject}`")
+                logger.debug(f"Call this transformer: {t}")
                 tn = 0
                 for s_id, s_edge, s_node, s_reverse_edge in t(row, i):
                     tn += 1
@@ -456,7 +456,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         # )
 
                 if tn == 0:
-                    self.error(f"Transformer {t} did not yield anything.")
+                    self.error(f"Transformer did not yield anything: {t}")
 
             else:
                 # This t's target_type does not match the type in the `from_subject` attribute.
