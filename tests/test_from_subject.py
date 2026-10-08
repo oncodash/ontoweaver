@@ -3,7 +3,53 @@ import sys
 import logging
 import subprocess
 
+import pandas as pd
+import pytest
+
 import ontoweaver
+
+
+@pytest.mark.parametrize("reverse_relation", [False, True])
+def test_from_subject_skips_unknown_translation(reverse_relation):
+    table = pd.DataFrame({
+        "s": ["sA", "sB", "sC"],
+        "x": ["known", "unknown", "known"],
+        "y": ["y1", "y2", "y3"],
+    })
+    target = {
+        "column": "y",
+        "from_subject": "x",
+        "to_object": "y",
+        "via_relation": "x_y",
+    }
+    if reverse_relation:
+        target["reverse_relation"] = "y_x"
+    mapping = {
+        "row": {"map": {"column": "s", "to_subject": "s"}},
+        "transformers": [
+            {"translate": {
+                "column": "x",
+                "to_object": "x",
+                "via_relation": "s_x",
+                "translations": {"known": "x1"},
+                "on_unknown_value": "skip",
+            }},
+            {"map": target},
+        ],
+    }
+
+    _, edges = ontoweaver.extract_table(table, mapping, affix="none")
+
+    expected = {
+        ("sA", "x1", "s_x"),
+        ("sC", "x1", "s_x"),
+        ("x1", "y1", "x_y"),
+        ("x1", "y3", "x_y"),
+    }
+    if reverse_relation:
+        expected.update({("y1", "x1", "y_x"), ("y3", "x1", "y_x")})
+    assert {(edge.id_source, edge.id_target, edge.label) for edge in edges} == expected
+    assert len(edges) == len(expected)
 
 
 def test_from_subject():

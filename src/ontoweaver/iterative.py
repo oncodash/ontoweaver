@@ -456,7 +456,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         # )
 
                 if tn == 0:
-                    self.error(f"Transformer did not yield anything: {t}")
+                    logger.debug(f"Transformer did not yield anything: {t}")
 
             else:
                 # This t's target_type does not match the type in the `from_subject` attribute.
