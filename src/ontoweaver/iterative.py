@@ -749,7 +749,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                                     implicit_nodes_found.append(n)
 
                                             if implicit_nodes_found:
-                                                logger.debug(f"\t\tFound a matching subject in implicit node.")
+                                                logger.debug(f"\t\tFound a matching subject in implicit node(s): {implicit_nodes_found}")
                                                 for local_subject in implicit_nodes_found:
                                                     self._make_this_edge(
                                                         local_edges,
@@ -761,7 +761,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                                         target_node,
                                                         reverse_relation
                                                     )
-                                                logger.debug(f"\t\tMake ({source_node_id})-[{target_edge.__name__}]->({target_node_id})")
+                                                logger.debug(f"\t\tMake ({local_subject.id})-[{target_edge.__name__}]->({target_node_id})")
                                             else:
                                                 # self.error(
                                                 logger.debug(
