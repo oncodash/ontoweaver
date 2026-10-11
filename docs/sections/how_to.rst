@@ -740,6 +740,8 @@ For instance, if we want to merge values of a property named "escat", we would d
 
     howto_merge = {
         "escat": MyMax(),  # Our own Merger
+        # Default merger for every other property (optional, this is the default):
+        "*": ontoweaver.merge.string.OrderedSet(),
     }
     props_merger= ontoweaver.merge.dictry.PerProperty(howto_merge)
     use_key     = ontoweaver.merge.string.UseKey()

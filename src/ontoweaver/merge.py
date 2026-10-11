@@ -137,25 +137,56 @@ class dictry:
 
 
     class PerProperty(DictryMerger):
-        def __init__(self, pmergers: dict[str,Merger] = {}):
-            self.pmergers = pmergers
+        """Merge properties dictionaries by using a specific Merger for each property.
+
+        The `pmergers` dictionary maps a property name to the Merger instance
+        used to merge the values of this property.
+
+        The special "*" key holds the default Merger, used for every property
+        that is not listed in `pmergers`. Each such property gets its own copy
+        of this default Merger, so that values of different properties are not
+        mixed together. If no "*" key is given, `string.OrderedSet()` is used.
+        """
+        def __init__(self, pmergers: dict[str,Merger] = None):
+            self.merged = {}
+            self.pmergers = {} if pmergers is None else pmergers
+            # Per-property copies of the default ("*") merger.
+            self._default_mergers = {}
 
         def add(self, property_name, merger):
             self.pmergers[property_name] = merger
+
+        def default_merger(self) -> Merger:
+            """Return the Merger to use for properties not listed in `pmergers`."""
+            if "*" not in self.pmergers:
+                self.pmergers["*"] = string.OrderedSet()
+            return self.pmergers["*"]
+
+        def merger_for(self, property_name) -> Merger:
+            """Return the Merger to use for the given property."""
+            if property_name != "*" and property_name in self.pmergers:
+                return self.pmergers[property_name]
+            if property_name not in self._default_mergers:
+                merger = copy.deepcopy(self.default_merger())
+                merger.reset()
+                self._default_mergers[property_name] = merger
+            return self._default_mergers[property_name]
 
         def reset(self):
             self.merged = {}
             for p,m in self.pmergers.items():
                 m.reset()
+            for p,m in self._default_mergers.items():
+                m.reset()
 
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> dict[str,str]:
             for p,v in rhs.items():
                 if p in lhs:
-                    self.pmergers[p].merge(p, lhs[p], rhs[p])
-                    v = self.pmergers[p].get()
-                    self.merged[p] = v
+                    merger = self.merger_for(p)
+                    merger.merge(p, lhs[p], rhs[p])
+                    self.merged[p] = merger.get()
                 else:
-                    self.merged[p] = drhs[p]
+                    self.merged[p] = rhs[p]
 
             # Properties only in lhs
             for p,v in lhs.items():
