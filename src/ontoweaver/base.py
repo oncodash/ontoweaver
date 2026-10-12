@@ -651,6 +651,9 @@ class MappingParser(Declare):
     k_final_type = ["final_type", "final_object", "final_node", "final_subject", "final_label", "final_target"]
     k_reverse_edge = ["reverse_relation", "reverse_edge", "reverse_predicate", "reverse_link"]
     k_match_type_from = ["match_type_from_column", "match_type_from_element"]
+    k_match_with = ["match_with"]
+    k_match_regexp = ["regexp", "re"]
+    k_match_query = ["query"]
 
     def __init__(self, module, raise_errors = True):
         super().__init__(module, raise_errors = raise_errors)

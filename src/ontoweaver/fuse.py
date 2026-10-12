@@ -18,8 +18,10 @@ class Fuser(merge.Merger):
     the related edges, processed later by another Fuser.
     """
 
-    def __init__(self, cls):
+    def __init__(self, cls, raise_errors = True, delayed_print_limit = 20):
         logger.debug(f"Instantiante {type(self).__name__} for class {cls.__name__}:")
+        super().__init__(raise_errors, delayed_print_limit)
+        self.merged = {}
         self.cls = cls
         self.ID_mapping = {}
 

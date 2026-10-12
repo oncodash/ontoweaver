@@ -659,7 +659,21 @@ class YamlParser(base.MappingParser):
             )
 
         elif multi_type_dictionary and not target and not edge and not any(key in gen_data for key in base.MappingParser.k_match_type_from):
-            label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+            assert not target
+            assert not edge
+            match_with = base.MappingParser.k_match_regexp[0]
+            for match_key in gen_data:
+                if match_key in base.MappingParser.k_match_with:
+                    match_with = gen_data[match_key]
+                    break
+                    
+            if match_with in base.MappingParser.k_match_query:
+                label_maker = make_labels.MultiTypeFromQueryLabelMaker(
+                    raise_errors=self.raise_errors)
+            else:
+                assert match_with in base.MappingParser.k_match_regexp
+                label_maker = make_labels.MultiTypeLabelMaker(raise_errors=self.raise_errors)
+                    
         else:
             label_maker = make_labels.SimpleLabelMaker(raise_errors = self.raise_errors)
 

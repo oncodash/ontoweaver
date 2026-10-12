@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it will not join values as a string, but let the list of values pass as a
   Python list.
 
+### Added
+
+- Adds a feature to pass additional parameters when loading data.
+- Adds a match/query transformer to construct a node according to the result
+  of a pandas query on the table.
+
 
 [v1.10.3] -- 2026-09-12
 -----------------------

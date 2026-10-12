@@ -1,0 +1,37 @@
+row:
+  cat_format:
+    column: date
+    to_subject: report
+    format_string: "meteo_{date}"
+transformers:
+  - replace:
+      column: date
+      from_subject: report
+      forbidden: '\s.*'
+      substitute: ''
+      match_with: query
+      match:
+        - 6 < wind_speed < 8:
+            to_object: windlevel2
+            via_relation: reports
+        - 8 < wind_speed < 10:
+            to_object: windlevel3
+            via_relation: reports
+        - 10 < wind_speed:
+            to_object: windlevel4
+            via_relation: reports
+  # - map:
+  #     column: wind_speed
+  #     from_subject: report
+  #     match_with: query
+  #     match:
+  #       - 6 < wind_speed < 8:
+  #           to_object: windlevel2
+  #           via_relation: reports
+  #       - 8 < wind_speed < 10:
+  #           to_object: windlevel3
+  #           via_relation: reports
+  #       - 10 < wind_speed:
+  #           to_object: windlevel4
+  #           via_relation: reports
+      
