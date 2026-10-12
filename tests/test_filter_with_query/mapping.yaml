@@ -1,0 +1,66 @@
+row:
+  cat_format:
+    column: date
+    to_subject: meteorologicalreport
+    format_string: "meteo_{date}"
+    
+transformers:
+  - replace:
+      column: date
+      from_subject: meteorologicalreport
+      forbidden: '\s.*'
+      substitute: ''
+      match_with: query
+      match:
+        - 6 < `Wind max speed`< 8:
+            to_object: windlevel2
+            via_relation: reports
+        - 8 < `Wind max speed` < 10:
+            to_object: windlevel3
+            via_relation: reports
+        - 10 < `Wind max speed`:
+            to_object: windlevel4
+            via_relation: reports
+      
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: begin_date
+      for_object: windlevel2
+
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: end_date
+      for_object: windlevel2
+
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: begin_date
+      for_object: windlevel3
+
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: end_date
+      for_object: windlevel3
+
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: begin_date
+      for_object: windlevel4
+
+  - replace:
+      column: date
+      forbidden: '([0-9]{2})-([0-9]{2})-([0-9]{4}) (.*)'
+      substitute: '\3-\2-\1 \4'
+      to_property: end_date
+      for_object: windlevel4
+

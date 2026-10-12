@@ -66,6 +66,10 @@ class MissingDataError(ParsingDeclarationsError):
     """Your mapping YAML file has missing parameter(s)."""
     code = 66  # "no input"
 
+class UndefinedColumnError(ParsingDeclarationsError):
+    """Your mapping YAML file has missing parameter(s)."""
+    code = 67  # "no input"
+
 # class ParsingPropertiesError(ParsingError):
 
 # class MissingFieldError(ParsingPropertiesError):

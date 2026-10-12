@@ -9,12 +9,15 @@ import networkx as nx;
 import rdflib
 from rdflib.extras.external_graph_libs import rdflib_to_networkx_digraph
 
+from datetime import datetime
+
 from . import base
 from . import exceptions
+from . import errormanager
 
 logger = logging.getLogger("ontoweaver")
 
-class Merger(metaclass=ABCMeta):
+class Merger(errormanager.ErrorManager, metaclass=ABCMeta):
     """Interface for classes merging two member variable of Elements.
 
     The contract is to take two variables of the same type,
@@ -50,7 +53,8 @@ class Merger(metaclass=ABCMeta):
     See the `string.UseKey` class for an example of minimal implementation.
     """
 
-    def __init__(self):
+    def __init__(self, raise_errors = True, delayed_print_limit = 20):
+        super().__init__(raise_errors, delayed_print_limit)
         self.merged = {}
 
     def __call__(self, key, lhs, rhs):
@@ -113,6 +117,10 @@ class Merger(metaclass=ABCMeta):
 
 
 class ErrorIfCalled(Merger):
+    def __init__(self, raise_errors = True, delayed_print_limit = 20):
+        super().__init__(raise_errors, delayed_print_limit)
+        self.merged = {}
+        
     def merge(self, key, lhs, rhs):
         self.error(
             f"You asked for this merger not to be called, but is was"\
@@ -129,6 +137,10 @@ class dictry:
         Basically implements `precheck` with asserting that key is a base.Element
         and lhs & rhs are dict.
         """
+        def __init__(self, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
+            
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
             assert(isinstance(lhs, dict))
@@ -150,8 +162,8 @@ class dictry:
 
 
     class PerProperty(DictryMerger):
-        def __init__(self, pmergers: dict[str,Merger] = {}, default_key = '*'):
-            super().__init__()
+        def __init__(self, pmergers: dict[str,Merger] = {}, default_key = '*', raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
 
             self.pmergers = pmergers
 
@@ -236,8 +248,8 @@ class dictry:
         returns a string, where all values are joined.
         """
 
-        def __init__(self, reconciliate_sep = "|"):
-            super().__init__()
+        def __init__(self, reconciliate_sep = "|", raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
             self.reconciliate_sep = reconciliate_sep
 
         def set(self, merged) -> None:
@@ -291,6 +303,10 @@ class string:
         Basically implements `precheck` with asserting that key is a base.Element
         and lhs & rhs are str.
         """
+        def __init__(self, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
+
         def precheck(self, key, lhs: str, rhs: str):
             assert(issubclass(type(key), base.Element))
             assert(isinstance(lhs, str))
@@ -305,8 +321,9 @@ class string:
 
 
     class Function(StringMerger):
-        def __init__(self, binary_function = None, unary_function = lambda x:x):
-            super().__init__()
+        
+        def __init__(self, binary_function = None, unary_function = lambda x:x, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
             if not binary_function:
                 msg = f"merge.Function needs at least one binary function to works."
                 logger.error(msg)
@@ -336,6 +353,9 @@ class string:
         """If the merged values are not all identical, raise a exceptions.FusionError.
         If no error is raised, the last seen value is returned."""
 
+        def __init__(self, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
         def merge(self, key, lhs: str, rhs: str) -> str:
             if self.merged:
                 if self.merged != lhs or self.merged != rhs:
@@ -347,6 +367,9 @@ class string:
 
     class UseLonger(StringMerger):
         """Use the last (rightmost) seen object when merging"""
+        def __init__(self, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
         def merge(self, key, lhs: str, rhs: str) -> str:
             if len(rhs) > len(lhs):
                 self.set(rhs)
@@ -355,6 +378,9 @@ class string:
 
     class UseShorter(StringMerger):
         """Use the last (rightmost) seen object when merging"""
+        def __init__(self, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
         def merge(self, key, lhs: str, rhs: str) -> str:
             if len(rhs) < len(lhs):
                 self.set(rhs)
@@ -365,8 +391,9 @@ class string:
         """If the merged values are not all identical, sets the most generic common subtype
         in the ontology hierarchy as the value."""
 
-        def __init__(self, ontology):
-            super().__init__()
+        
+        def __init__(self, ontology, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
             self.ontology = ontology
 
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -406,8 +433,9 @@ class string:
         """If the merged values are not all identical, sets the most specific common supertype
         in the ontology hierarchy as the value."""
 
-        def __init__(self, ontology):
-            super().__init__()
+        
+        def __init__(self, ontology, raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
             self.ontology = ontology
 
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -451,8 +479,8 @@ class string:
         Internally, this stores values as keys in an OrderedDict,
         and serialize in strings when the value is get.
         """
-        def __init__(self, reconciliate_sep = "|"):
-            super().__init__()
+        def __init__(self, reconciliate_sep = "|", raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
             self.reset()
             self.sep = reconciliate_sep
 
@@ -479,3 +507,23 @@ class string:
         def get(self) -> str:
             return self.sep.join(self.merged.keys())
 
+class date:
+    
+    class DateMerger(string.StringMerger):
+        def __init__(self, date_format="%Y-%m-%d %H:%M:%S", raise_errors = True, delayed_print_limit = 20):
+            super().__init__(raise_errors, delayed_print_limit)
+            self.merged = {}
+            self.date_format = date_format
+
+        def make_dates(self, lhs: str, rhs: str):
+            ldate = datetime.strptime(lhs, self.date_format)
+            rdate = datetime.strptime(rhs, self.date_format)
+            return ldate, rdate
+    
+    class Earliest(DateMerger):
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            self.set( min(*(self.make_dates(lhs, rhs)) ))
+
+    class Latest(DateMerger):
+        def merge(self, key, lhs: str, rhs: str) -> str:
+            self.set( max(*(self.make_dates(lhs, rhs)) ))

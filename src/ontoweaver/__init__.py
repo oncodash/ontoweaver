@@ -224,7 +224,7 @@ def make_autoschema(
     raise_errors = True
 ):
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
-    for d,m in mappings:
+    for d,m in enumerate(mappings):
         if m == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
             logger.error(msg)
@@ -551,6 +551,11 @@ def get_dmk(dmk):
         raise exceptions.CardinalityError(msg)
     return data, mapping, data_kwargs
 
+def pairs(iterable):
+    if isinstance(iterable, dict):
+        return iterable.items()
+    else:
+        return iterable
 
 def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """

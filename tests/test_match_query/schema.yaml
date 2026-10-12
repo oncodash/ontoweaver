@@ -1,0 +1,16 @@
+report:
+  input_label: report
+  represented_as: node
+reports:
+  input_label: reports
+  represented_as: edge
+  target: windlevel2
+windlevel2:
+  input_label: windlevel2
+  represented_as: node
+windlevel3:
+  input_label: windlevel3
+  represented_as: node
+windlevel4:
+  input_label: windlevel4
+  represented_as: node

@@ -1,0 +1,175 @@
+
+@prefix : <http://www.semanticweb.org/claudy/ontologies/2026/varna-port/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix biocypher: <https://biocypher.org/biocypher> .
+
+
+#################################################################
+#    The "taxonomy" part of the ontology
+#################################################################
+
+# Base root used by biocypher
+biocypher:Biocypherroot a rdfs:Class ;
+        rdfs:label "Biocypherroot" .
+
+# Classical types serving as bases
+owl:thing a rdfs:Class ;
+		rdfs:label "thing" ;
+		rdfs:subClassOf biocypher:Biocypherroot .
+
+:association a owl:ObjectProperty ;
+		rdfs:label "association" ;
+		rdfs:subClassOf biocypher:Biocypherroot .
+
+
+
+#################################################################
+#    Classes - nodes types
+#################################################################
+
+
+:person rdf:type owl:Class ;
+        rdfs:subClassOf biocypher:Biocypherroot ;
+        rdfs:label "person" .
+
+:location rdf:type owl:Class ;
+        rdfs:subClassOf biocypher:Biocypherroot ;
+        rdfs:label "location" .
+
+:event rdf:type owl:Class ;
+        rdfs:subClassOf biocypher:Biocypherroot ;
+        rdfs:label "event" .
+
+:species rdf:type owl:Class ;
+        rdfs:subClassOf biocypher:Biocypherroot ;
+        rdfs:label "species" .
+
+:city rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "city" .
+        
+:unknownlocation rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "unknownlocation" .
+
+:district rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "district" .
+
+:facility rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "facility" .
+
+:region rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "region" .
+
+:geolocpoint rdf:type owl:Class ;
+        rdfs:subClassOf :location ;
+        rdfs:label "geolocpoint" .
+
+:jellyfish rdf:type owl:Class ;
+        rdfs:subClassOf :species ;
+        rdfs:label "jellyfish" .
+
+:atypicalevent rdf:type owl:Class ;
+        rdfs:subClassOf :event ;
+        rdfs:label "atypicalevent" .
+
+:jellyfishevent rdf:type owl:Class ;
+        rdfs:subClassOf :event ;
+        rdfs:label "jellyfishevent" .
+
+:meteorologicalreport rdf:type owl:Class ;
+        rdfs:subClassOf :event ;
+        rdfs:label "meteorologicalreport" .
+
+:citizenmeteorologicalreport rdf:type owl:Class ;
+        rdfs:subClassOf :meteorologicalreport ;
+        rdfs:label "citizenmeteorologicalreport" .
+
+:weatherevent rdf:type owl:Class ;
+        rdfs:subClassOf :event ;
+        rdfs:label "weatherevent" .
+
+:weakwaves rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "weakwaves" .
+
+:weakwind rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "weakwind" .
+
+:windlevel2 rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "windlevel2" .
+
+:windlevel3 rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "windlevel3" .
+
+:windlevel4 rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "windlevel4" .
+
+:fog rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "fog" .
+
+:thickfog rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "thickfog" .
+
+:verythickfog rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "verythickfog" .
+
+:rain rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "rain" .
+
+:storm rdf:type owl:Class ;
+        rdfs:subClassOf :weatherevent ;
+        rdfs:label "storm" .
+
+:hailstorm rdf:type owl:Class ;
+        rdfs:subClassOf :storm ;
+        rdfs:label "hailstorm" .
+
+:thunderstorm rdf:type owl:Class ;
+        rdfs:subClassOf :storm ;
+        rdfs:label "thunderstorm" .
+
+:pollutionevent rdf:type owl:Class ;
+        rdfs:subClassOf :event ;
+        rdfs:label "pollutionevent" .
+
+:report rdf:type owl:Class ;
+        rdfs:subClassOf biocypher:Biocypherroot ;
+        rdfs:label "report" .
+
+
+#################################################################
+#    ObjectProperties - edges types
+#################################################################
+
+:reportedby a owl:ObjectProperty ;
+		rdfs:label "reportedby" ;
+		rdfs:subPropertyOf :association .
+#		rdfs:subClassOf :association .
+
+:reports a owl:ObjectProperty ;
+		rdfs:label "reports" ;
+		rdfs:subPropertyOf :association .
+
+:observedspecies a owl:ObjectProperty ;
+		rdfs:label "observation" ;
+		rdfs:subPropertyOf :association .
+		
+:locatedat a owl:ObjectProperty ;
+		rdfs:label "locatedat" ;
+		rdfs:subPropertyOf :association .
