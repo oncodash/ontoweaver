@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 ------------
 
+### Changed
+
+- The `PerProperty` fusion merger accepts a `"*"` key setting the default merger for unlisted properties (defaults to `merge.string.OrderedSet`).
+
+### Fixed
+
+- `PerProperty` no longer raises a `KeyError` when merging a property it has no merger for, nor a `NameError` when a property is only in the right-hand side.
+
 [v1.10.3] -- 2026-09-12
 -----------------------
 

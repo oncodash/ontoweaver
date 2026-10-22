@@ -48,6 +48,55 @@ def test_append():
     assert( "[efgh]" in m["p1"].split(sep) )
 
 
+
+class KeepMax(ontoweaver.merge.string.StringMerger):
+    def merge(self, key, lhs: str, rhs: str) -> str:
+        self.set( max(int(lhs), int(rhs)) )
+
+
+def test_perproperty():
+    k = ontoweaver.base.Node()
+
+    merge = ontoweaver.merge.dictry.PerProperty({
+        "escat": KeepMax(),
+        "*": ontoweaver.merge.string.OrderedSet(";"),
+    })
+
+    merge.reset()
+    merge(k, {"escat": "1", "ref": "a", "src": "x"}, {"escat": "3", "ref": "b", "src": "y"})
+    m = merge.get()
+    assert m["escat"] == "3"
+    # Unlisted properties use their own copy of the "*" merger.
+    assert m["ref"] == "a;b"
+    assert m["src"] == "x;y"
+
+    # Properties present on one side only are kept as is.
+    merge.reset()
+    merge(k, {"escat": "1", "only_lhs": "l"}, {"escat": "2", "only_rhs": "r"})
+    m = merge.get()
+    assert m == {"escat": "2", "only_lhs": "l", "only_rhs": "r"}
+
+    # Reset clears the state of the default mergers too.
+    merge.reset()
+    merge(k, {"ref": "c"}, {"ref": "d"})
+    assert merge.get() == {"ref": "c;d"}
+
+
+def test_perproperty_default_merger():
+    k = ontoweaver.base.Node()
+
+    # Without a "*" key, unlisted properties are aggregated with OrderedSet.
+    merge = ontoweaver.merge.dictry.PerProperty({"escat": KeepMax()})
+    merge.reset()
+    merge(k, {"escat": "1", "ref": "a"}, {"escat": "3", "ref": "b"})
+    assert merge.get() == {"escat": "3", "ref": "a|b"}
+
+    merge = ontoweaver.merge.dictry.PerProperty()
+    merge.reset()
+    merge(k, {"ref": "a"}, {"ref": "a"})
+    assert merge.get() == {"ref": "a"}
+
+
 def test_uselonger_useshorter():
     longer  = ontoweaver.merge.string.UseLonger()
     shorter = ontoweaver.merge.string.UseShorter()
