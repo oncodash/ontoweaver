@@ -447,12 +447,12 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(data, with_mapping_file, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
             data: whatever data item that the with_loader is able to load.
-            with_mapping: the mapping dictionary
+            with_mapping_file: the mapping filename (or a string containing "automap")
             with_loader: the loader with which to load data
             parallel_mapping: if > 0, will run in parallel mode
             affix: whether to add a type affix
@@ -481,23 +481,23 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     else:
         logger.debug("No sub-sampling.")
 
-    if with_mapping == "automap":
+    if with_mapping_file == "automap":
         logger.debug("\twith auto mapping")
         mapper = {}
         mapping_options = {"automap": True}
     else:
-        if isinstance(with_mapping, dict):
-            logger.debug(f"\twith explicit user mapping: `{with_mapping}`")
-            config = with_mapping
+        if isinstance(with_mapping_file, dict):
+            logger.debug(f"\twith explicit user mapping: `{with_mapping_file}`")
+            config = with_mapping_file
         else:
-            assert isinstance(with_mapping, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
-            logger.debug(f"\twith user file mapping: `{with_mapping}`")
-            with open(with_mapping, 'r') as fd:
+            assert isinstance(with_mapping_file, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
+            logger.debug(f"\twith user file mapping: `{with_mapping_file}`")
+            with open(with_mapping_file, 'r') as fd:
                 config = yaml.full_load(fd)
 
         parser = mapping.YamlParser(
             config,
-            validate_output=validate_output,
+            validate_output = validate_output,
             raise_errors = raise_errors,
         )
         mapper = parser()
@@ -506,9 +506,9 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     adapter = with_loader.adapter(**mapping_options)(
         data,
         *mapper,
-        type_affix=affix,
-        type_affix_sep=type_affix_sep,
-        parallel_mapping=parallel_mapping,
+        type_affix = affix,
+        type_affix_sep = type_affix_sep,
+        parallel_mapping = parallel_mapping,
         raise_errors = raise_errors,
         progress_bar = progress_bar,
     )
@@ -529,20 +529,32 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     return nodes, edges
 
 
-def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def _get_dmk(dmk):
+        if len(dmk) == 2:
+            data, mapping = dmk
+            data_kwargs = {}
+        elif len(dmk) == 3:
+            data, mapping, data_kwargs = dmk
+        else:
+            msg = f"The `data_to_mapping` argument must be an iterable of 2- or 3-tuples, I got one item of length {len(dmk)}: {dmk}"
+            logger.error(msg)
+            raise exceptions.CardinalityError(msg)
+        return data, mapping, data_kwargs
+
+
+def extract(data_to_mapping_file, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        filename_to_mapping (list): A list of 2-tuples mapping data file path to the OntoWeaver mapping yaml file to extract them.
-        data_to_mapping (tuple): Tuple containing pairs of loaded Pandas DataFrames and their corresponding loaded YAML mappings.
+        data_to_mapping_file (tuple): 2- or 3-tuples containing data filenames or loded data structure, their corresponding mapping filenames (or a string containing "automap"), and named parameters to load the data (may be an empty dict).
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str): The affix to use for type inclusion. Defaults to "none".
         type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
         validate_output: Whether to validate the output of the transformers. Defaults to False.
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
         progress_bar: if True, will show progress bars
-        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
+        kwargs: A dictionary of arguments to pass to all loader functions.
 
     Returns:
         tuple: Two lists of tuples containing nodes and edges.
@@ -557,14 +569,17 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lrg = loader.LoadOWLGraph()
     ljf = loader.LoadJSONFile()
 
-    def pairs(iterable):
+    def items(iterable):
         if isinstance(iterable, dict):
             return iterable.items()
         else:
             return iterable
 
-    for d2m in pairs(data_to_mapping):
-        data, mapping = d2m
+    for dmk in items(data_to_mapping_file):
+        data, mapping_file, data_kwargs = _get_dmk(dmk)
+
+        data_kwargs.update(kwargs) # Merge local args with global args.
+
         found_loader = False
         for with_loader in [lpf, lpd, lrf, lrg, ljf]:
             logger.debug(f"Trying loader: {type(with_loader).__name__}")
@@ -572,9 +587,9 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
                 logger.debug("  Loader allows this data type")
                 found_loader = True
                 try:
-                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **kwargs)
+                    ln,le = load_extract(data, mapping_file, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **data_kwargs)
                 except Exception as e:
-                    logger.error(f"While loading `{data}` and mapping with `{mapping}`.")
+                    logger.error(f"While loading `{data}` and mapping with `{mapping_file}`.")
                     raise e
                 nodes += ln
                 edges += le
@@ -746,9 +761,9 @@ def validate_input_data(filename_to_mapping: list, raise_errors = True, **kwargs
     Validates the data files based on provided rules in configuration.
 
     Args:
-        filename_to_mapping (list): a list of 2-tuples mapping data file path to the OntoWeaver mapping yaml file.
+        filename_to_mapping (list): a list of 2- or 3-tuples holding data file path, mapping yaml file and data named arguments to pass when loading the data file (optional, may be an empty dict).
         raise_errors: Whether to raise errors encountered during the mapping, and stop the mapping process. Defaults to True.
-        kwargs: A dictionary of arguments to pass to pandas.read_* functions.
+        kwargs: A dictionary of arguments to pass to all loader functions.
 
     Returns:
         bool: True if the data is valid, False otherwise.
@@ -756,8 +771,12 @@ def validate_input_data(filename_to_mapping: list, raise_errors = True, **kwargs
 
     assert isinstance(filename_to_mapping, list) # list[ (data_file,mapping_file) ]
 
-    for data_file, mapping_file in filename_to_mapping:
-        table = read_table_file(data_file, **kwargs)
+    for dmk in filename_to_mapping:
+        data_file, mapping_file, data_kwargs = _get_dmk(dmk)
+
+        data_kwargs.update(kwargs)
+
+        table = read_table_file(data_file, **data_kwargs)
 
         with open(mapping_file, 'r') as fd:
             yaml_mapping = yaml.full_load(fd)

@@ -227,6 +227,16 @@ def make_cli_parser(appname, config_files):
     return do
 
 
+def parse_data_map(data_map):
+    if ":" not in data_map:
+        msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
+        logger.error(msg)
+        sys.exit(ontoweaver.exceptions.ConfigError.code)
+    data,map = data_map.split(":")
+    kwargs = {}
+    return data,map,kwargs
+
+
 def extract(asked):
 
     if asked.debug:
@@ -283,15 +293,19 @@ def extract(asked):
         asked_mapping = asked.mapping
 
     logger.debug("    parsed mappings:")
-    mappings = []
+    file_mappings = []
     for data_map in asked_mapping:
-        if ":" not in data_map:
-            msg = f"Cannot parse the DATA:MAPPING `{data_map}`, I cannot find the colon character."
-            logger.error(msg)
-            sys.exit(ontoweaver.exceptions.ConfigError.code)
-        data,map = data_map.split(":")
-        mappings.append((data, map))
-        logger.debug(f"    `{data}` => `{map}`")
+        data_file,map_file,kwargs = parse_data_map(data_map)
+        file_mappings.append((data_file, map_file, kwargs))
+        logger.debug(f"    `{data_file}`{kwargs} => `{map_file}`")
+
+        # Check data and mappings files.
+        if '*' not in data_file and '?' not in data_file:
+            # Do not check if we are globbing several data_file files.
+            check_file(data_file)
+
+        if map_file != "automap":
+            check_file(map_file)
 
     if asked.parallel == "auto":
         parallel = min(32, (os.process_cpu_count() or 1) + 4)
@@ -313,7 +327,7 @@ def extract(asked):
             # function
             ontoweaver.validate_input_data,
             # its arguments
-            filename_to_mapping = mappings,
+            filename_to_mapping = file_mappings,
             sep = asked.pandas_sep,
             raise_errors = not asked.pass_errors,
             # Error handling parameters
@@ -363,15 +377,6 @@ def extract(asked):
         logger.debug(f"Extend the original schema `{asked.biocypher_schema}` into `{extended_schema_filename}`")
         asked.biocypher_schema = extended_schema_filename
 
-    for file_map in asked.mapping:
-        data_file, map_file = file_map.split(":")
-        if '*' not in data_file and '?' not in data_file:
-            # Do not check if we are globbing several data files.
-            check_file(data_file)
-
-        if map_file != "automap":
-            check_file(map_file)
-
     if asked.validate_output:
         validate_output = True
     else:
@@ -386,7 +391,7 @@ def extract(asked):
         # function
         ontoweaver.extract,
         # arguments
-        mappings,
+        file_mappings,
         parallel_mapping = parallel,
         affix = asked.type_affix,
         type_affix_sep = asked.type_affix_sep,
