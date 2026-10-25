@@ -174,23 +174,23 @@ class LoadPandasFile(Loader):
             '.csv'    : (self.read_csv_progress, {
                 'sep': ',',
                 'na_filter': True, # Do not load empty cells, if possible.
-                'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
+                # 'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
                 'engine': 'python'
             }),
             '.tsv'    : (self.read_csv_progress, {
                 'sep': '\t',
                 'na_filter': True,
-                'dtype': str,
+                # 'dtype': str,
                 'engine': 'python'
             }),
             '.txt'    : (self.read_csv_progress, {
                 'na_filter': True,
-                'dtype': str,
+                # 'dtype': str,
                 'engine': 'python'
             }),
             '.dat'    : (self.read_csv_progress, {
                 'na_filter': True,
-                'dtype': str,
+                # 'dtype': str,
                 'engine': 'python'
             }),
 
@@ -262,7 +262,8 @@ class LoadPandasFile(Loader):
 
 
     def load(self, filenames, **kwargs):
-        assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
+        logger.debug(f"    load({filenames})")
+        assert filenames and type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
 
         exts = list(set(self.extensions(filenames)))
         assert exts
@@ -274,7 +275,11 @@ class LoadPandasFile(Loader):
         expanded = []
         for filename in filenames:
             globbed = glob.glob(filename)
-            expanded += globbed
+            logger.debug(f"    `{filename}` globbed as: `{globbed}`")
+            if globbed:
+                expanded += globbed
+            else:
+                expanded += [filename]
         filenames = expanded
 
         data = []
@@ -305,7 +310,8 @@ class LoadPandasFile(Loader):
 
         if not data:
             # self.error(f"I failed to load data from files: {', '.join()}", section = "data loading", exception = exceptions.InputDataError)
-            msg = f"I failed to load data from files: {', '.join(filenames)}."
+            msg = f"I failed to load data from files: `{'`, `'.join(filenames)}`"
+            logger.error(msg)
             raise exceptions.InputDataError(msg)
 
         out = pd.concat(data)

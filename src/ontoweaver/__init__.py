@@ -331,7 +331,7 @@ def autoschema(
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
     mappings = []
     for i,f2m in enumerate(data_file_to_mapping_file):
-        _,with_mapping = f2m.split(':')
+        _,with_mapping,_ = ontoweave.parse_data_map(f2m)
         if with_mapping == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
             logger.error(msg)
@@ -447,12 +447,12 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, with_mapping_file, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
             data: whatever data item that the with_loader is able to load.
-            with_mapping_file: the mapping filename (or a string containing "automap")
+            with_mapping: the mapping filename, string containing "automap", or dict
             with_loader: the loader with which to load data
             parallel_mapping: if > 0, will run in parallel mode
             affix: whether to add a type affix
@@ -481,18 +481,18 @@ def load_extract(data, with_mapping_file, with_loader, parallel_mapping = 0, aff
     else:
         logger.debug("No sub-sampling.")
 
-    if with_mapping_file == "automap":
+    if with_mapping == "automap":
         logger.debug("\twith auto mapping")
         mapper = {}
         mapping_options = {"automap": True}
     else:
-        if isinstance(with_mapping_file, dict):
-            logger.debug(f"\twith explicit user mapping: `{with_mapping_file}`")
-            config = with_mapping_file
+        if isinstance(with_mapping, dict):
+            logger.debug(f"\twith explicit user mapping: `{with_mapping}`")
+            config = with_mapping
         else:
-            assert isinstance(with_mapping_file, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
-            logger.debug(f"\twith user file mapping: `{with_mapping_file}`")
-            with open(with_mapping_file, 'r') as fd:
+            assert isinstance(with_mapping, str), "I was expecting a file name as value for the data in the data_to_mapping dictionary"
+            logger.debug(f"\twith user file mapping: `{with_mapping}`")
+            with open(with_mapping, 'r') as fd:
                 config = yaml.full_load(fd)
 
         parser = mapping.YamlParser(
@@ -530,24 +530,24 @@ def load_extract(data, with_mapping_file, with_loader, parallel_mapping = 0, aff
 
 
 def _get_dmk(dmk):
-        if len(dmk) == 2:
-            data, mapping = dmk
-            data_kwargs = {}
-        elif len(dmk) == 3:
-            data, mapping, data_kwargs = dmk
-        else:
-            msg = f"The `data_to_mapping` argument must be an iterable of 2- or 3-tuples, I got one item of length {len(dmk)}: {dmk}"
-            logger.error(msg)
-            raise exceptions.CardinalityError(msg)
-        return data, mapping, data_kwargs
+    if len(dmk) == 2:
+        data, mapping = dmk
+        data_kwargs = {}
+    elif len(dmk) == 3:
+        data, mapping, data_kwargs = dmk
+    else:
+        msg = f"The `data_to_mapping` argument must be an iterable of 2- or 3-tuples, I got one item of length {len(dmk)}: `{dmk}`"
+        logger.error(msg)
+        raise exceptions.CardinalityError(msg)
+    return data, mapping, data_kwargs
 
 
-def extract(data_to_mapping_file, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        data_to_mapping_file (tuple): 2- or 3-tuples containing data filenames or loded data structure, their corresponding mapping filenames (or a string containing "automap"), and named parameters to load the data (may be an empty dict).
+        data_to_mapping (tuple): 2- or 3-tuples containing data filenames or loded data structure, their corresponding mapping filenames (or a string containing "automap"), and named parameters to load the data (may be an empty dict).
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str): The affix to use for type inclusion. Defaults to "none".
         type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
@@ -559,6 +559,7 @@ def extract(data_to_mapping_file, parallel_mapping = 0, affix="none", type_affix
     Returns:
         tuple: Two lists of tuples containing nodes and edges.
     """
+    assert data_to_mapping
 
     nodes = []
     edges = []
@@ -572,11 +573,14 @@ def extract(data_to_mapping_file, parallel_mapping = 0, affix="none", type_affix
     def items(iterable):
         if isinstance(iterable, dict):
             return iterable.items()
+        elif isinstance(iterable, str):
+            return [iterable]
         else:
             return iterable
 
-    for dmk in items(data_to_mapping_file):
-        data, mapping_file, data_kwargs = _get_dmk(dmk)
+    for dmk in items(data_to_mapping):
+        data, mapping, data_kwargs = _get_dmk(dmk)
+        assert isinstance(data_kwargs, dict)
 
         data_kwargs.update(kwargs) # Merge local args with global args.
 
@@ -587,9 +591,9 @@ def extract(data_to_mapping_file, parallel_mapping = 0, affix="none", type_affix
                 logger.debug("  Loader allows this data type")
                 found_loader = True
                 try:
-                    ln,le = load_extract(data, mapping_file, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **data_kwargs)
+                    ln,le = load_extract(data, mapping, with_loader, parallel_mapping, affix, type_affix_sep, validate_output, raise_errors, progress_bar, sub_sample, **data_kwargs)
                 except Exception as e:
-                    logger.error(f"While loading `{data}` and mapping with `{mapping_file}`.")
+                    logger.error(f"While loading `{data}` and mapping with `{mapping}`.")
                     raise e
                 nodes += ln
                 edges += le
