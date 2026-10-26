@@ -118,15 +118,15 @@ class Loader(metaclass = ABSTRACT):
                 logger.warning(f"I don't know how to handle the filename `{filename}` of type `{type(filename)}`. I'll pretend I saw nothing, but this may generate errors later on.")
         return extensions
 
-    def remove_unknown_args(self, kwargs, func):
-        """Remove any argument in kwargs that is unknown to func."""
-        spec = inspect.getfullargspec(func)
-        kw = copy.copy(kwargs)
-        for key in kwargs:
-            if key not in spec.kwonlyargs:
-                logger.debug(f"Remove argument `{key}` from call to `{func.__name__}{inspect.signature(func)}`")
-                del kw[key]
-        return kw
+def remove_unknown_args(kwargs, func):
+    """Remove any argument in kwargs that is unknown to func."""
+    spec = inspect.getfullargspec(func)
+    kw = copy.copy(kwargs)
+    for key in kwargs:
+        if key not in spec.kwonlyargs:
+            logger.debug(f"Remove argument `{key}` from call to `{func.__name__}{inspect.signature(func)}`")
+            del kw[key]
+    return kw
 
 class LoadPandasDataframe(Loader):
     """ Load Pandas DataFrame
@@ -174,38 +174,33 @@ class LoadPandasFile(Loader):
             '.csv'    : (self.read_csv_progress, {
                 'sep': ',',
                 'na_filter': True, # Do not load empty cells, if possible.
-                # 'dtype': str, # Always load data as string, to avoid conversion of numbers to floating-point values with decimal separators.
                 'engine': 'python'
             }),
             '.tsv'    : (self.read_csv_progress, {
                 'sep': '\t',
                 'na_filter': True,
-                # 'dtype': str,
                 'engine': 'python'
             }),
             '.txt'    : (self.read_csv_progress, {
                 'na_filter': True,
-                # 'dtype': str,
                 'engine': 'python'
             }),
             '.dat'    : (self.read_csv_progress, {
                 'na_filter': True,
-                # 'dtype': str,
                 'engine': 'python'
             }),
 
-            # Use dtype: str for formats not supposed to host complex objects in their cells.
-            '.xls'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.xlsx'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.xlsm'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.xlsb'   : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.odf'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.ods'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.odt'    : (pd.read_excel,   {'na_filter': True, 'dtype': str}),
-            '.orc'    : (pd.read_orc,     {'na_filter': True, 'dtype': str}),
-            '.sas'    : (pd.read_sas,     {'na_filter': True, 'dtype': str}),
-            '.spss'   : (pd.read_spss,    {'na_filter': True, 'dtype': str}),
-            '.stata'  : (pd.read_stata,   {'na_filter': True, 'dtype': str}),
+            '.xls'    : (pd.read_excel,   {'na_filter': True}),
+            '.xlsx'   : (pd.read_excel,   {'na_filter': True}),
+            '.xlsm'   : (pd.read_excel,   {'na_filter': True}),
+            '.xlsb'   : (pd.read_excel,   {'na_filter': True}),
+            '.odf'    : (pd.read_excel,   {'na_filter': True}),
+            '.ods'    : (pd.read_excel,   {'na_filter': True}),
+            '.odt'    : (pd.read_excel,   {'na_filter': True}),
+            '.orc'    : (pd.read_orc,     {'na_filter': True}),
+            '.sas'    : (pd.read_sas,     {'na_filter': True}),
+            '.spss'   : (pd.read_spss,    {'na_filter': True}),
+            '.stata'  : (pd.read_stata,   {'na_filter': True}),
 
             # Allow multiple dtypes for the others.
             # '.json'   : (pd.read_json,    {}),  # Handled by LoadJSONFile
@@ -218,7 +213,7 @@ class LoadPandasFile(Loader):
         super().__init__(progress_bar)
 
     def read_csv_progress(self, filename, hint=None, steps=100, estimate_lines=10, **kwargs):
-        kwargs = self.remove_unknown_args(kwargs, pd.read_csv)
+        kwargs = remove_unknown_args(kwargs, pd.read_csv)
         if self.progress_bar:
             chunks = []
             if hint:
@@ -291,9 +286,9 @@ class LoadPandasFile(Loader):
 
             # Overwrite default named arguments with the passed ones.
             if loadfunc.__name__ == "read_csv_progress":
-                kwargs = self.remove_unknown_args(kwargs, pd.read_csv)
+                kwargs = remove_unknown_args(kwargs, pd.read_csv)
             else:
-                kwargs = self.remove_unknown_args(kwargs, loadfunc)
+                kwargs = remove_unknown_args(kwargs, loadfunc)
             kw.update(kwargs)
 
             if not kw:
@@ -410,10 +405,11 @@ class LoadOWLFile(Loader):
         g = rdflib.Graph()
         for filename in filenames:
             ext = pathlib.Path(filename).suffix
+            kwargs = remove_unknown_args(kwargs, g.parse)
             if ext == ".owl":
-                g.parse(filename, format = "xml")
+                g.parse(filename, format = "xml", **kwargs)
             else:
-                g.parse(filename) # Guess the format based on extension.
+                g.parse(filename, **kwargs) # Guess the format based on extension.
 
         return g
 
@@ -530,7 +526,7 @@ class LoadJSONString(Loader):
                         " You may also want to double-check that the JSON list has the order that you want." \
                     )
             dic.update(d)
-        return pyjson.dumps(dic)
+        return pyjson.dumps(dic)  # There's no kwargs with basic types.
 
     def adapter(self, **kwargs):
         return json.JSONAdapter
@@ -562,7 +558,7 @@ class LoadJSONFile(Loader):
             with open(filename, 'r') as fd:
                 jsons.append( fd.read() )
 
-        return self.jl.load(jsons)
+        return self.jl.load(jsons)  # There's no kwargs with basic types.
 
     def adapter(self, **kwargs):
         return json.JSONAdapter

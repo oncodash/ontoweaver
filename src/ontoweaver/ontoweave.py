@@ -388,7 +388,7 @@ def extract(asked):
             # function
             ontoweaver.autoschema,
             # its arguments
-            asked.mapping,
+            file_mappings,
             existing_schema,
             asked.auto_schema,
             asked.auto_schema_overwrite,

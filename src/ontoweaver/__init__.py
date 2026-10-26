@@ -331,7 +331,7 @@ def autoschema(
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
     mappings = []
     for i,f2m in enumerate(data_file_to_mapping_file):
-        _,with_mapping,_ = ontoweave.parse_data_map(f2m)
+        _,with_mapping,_ = get_dmk(f2m)
         if with_mapping == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
             logger.error(msg)
@@ -529,7 +529,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
     return nodes, edges
 
 
-def _get_dmk(dmk):
+def get_dmk(dmk):
     if len(dmk) == 2:
         data, mapping = dmk
         data_kwargs = {}
@@ -579,7 +579,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
             return iterable
 
     for dmk in items(data_to_mapping):
-        data, mapping, data_kwargs = _get_dmk(dmk)
+        data, mapping, data_kwargs = get_dmk(dmk)
         assert isinstance(data_kwargs, dict)
 
         data_kwargs.update(kwargs) # Merge local args with global args.
@@ -776,7 +776,7 @@ def validate_input_data(filename_to_mapping: list, raise_errors = True, **kwargs
     assert isinstance(filename_to_mapping, list) # list[ (data_file,mapping_file) ]
 
     for dmk in filename_to_mapping:
-        data_file, mapping_file, data_kwargs = _get_dmk(dmk)
+        data_file, mapping_file, data_kwargs = get_dmk(dmk)
 
         data_kwargs.update(kwargs)
 
