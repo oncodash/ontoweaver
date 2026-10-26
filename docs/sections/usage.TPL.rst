@@ -108,6 +108,74 @@ Multiple data files at once
 .. include:: ./glob.rst
 
 
+Pass parameters when loading data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can pass additional parameters to the function that loads the input data
+file, by appending a JSON dictionary of named parameters to the input data
+filename.
+
+For example:
+
+.. code:: sh
+
+    # Change the default separator:
+    ontoweave 'data.csv{"sep":";"}:mapping.yaml'
+    # This will parse the data file as having columns separated by a semi-colon.
+    # See below for the default parameters.
+
+The parameters you can pass depends on the underlying loader function that is
+used to load the file (most probably a *Pandas* ``read_*`` function, see below).
+OntoWeaver will choose the loader function depending on the extension of the
+input data file.
+
+.. warning::
+
+    The JSON dictionary of parameters SHOULD NOT contain space,
+    and MUST BE  double-quoted.
+
+.. hint::
+
+    In most shells (like Bash or Zsh), double quotes are interpreted.
+    Thus, the easiest way to avoid problems is to quote the data/mapping
+    argument into single quotes: ``'data.csv{"name":"value"}:mapping.yaml'``
+    AND NOT: ``data.csv{"name":"value"}:mapping.yaml`` (which FAILS).
+
+.. hint::
+
+    If you need to pass a space character, you can use an escaped regexp marker:
+    ``'data.tsv{"sep":"\\s"}:mapping.yaml'``
+    (note the double escaping of the "s").
+
+.. note::
+
+    If you want to pass shell variables into the JSON dictionary of parameters,
+    you can escape the double quotes: ``"data.csv{\"dtype\":\"$MYDTYPE\"}:mapping.yaml"``
+
+For tabular data, OntoWeaver use functions from
+`Pandas <https://pandas.pydata.org>`_, with some default parameters:
+
+{{{READFUNCS}}}
+
+.. hint::
+
+    The JSON syntax supports nested dictionaries, which allows you to force
+    the *dtype* of any column, for example:
+
+    ``'data.csv{"dtype":{"A":"string","B":"Int64"}}:mapping.yaml'``
+
+    For the list of available string representations of types, see the
+    `Pandas doc about dtypes <https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes>`_.
+
+For OWL data, OntoWeaver uses `RDFlib <https://rdflib.readthedocs.io>`_:
+
+- **.owl**: `rdflib.graph.Graph.parse <https://rdflib.readthedocs.io/en/latest/apidocs/rdflib.graph/#rdflib.graph.Graph.parse>`_ ``{"format":"xml"}``,
+- **any other extension**: `rdflib.graph.Graph.parse <https://rdflib.readthedocs.io/en/latest/apidocs/rdflib.graph/#rdflib.graph.Graph.parse>`_ (without default parameter).
+
+Other loader functions either do not take parameters, or those parameters are
+Python objects, which OntoWeaver does not support so far.
+
+
 Run the data importer
 ~~~~~~~~~~~~~~~~~~~~~
 

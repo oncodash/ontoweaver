@@ -14,6 +14,12 @@ echo "$keywords" >&2
 cat docs/sections/mapping_api.TPL.rst | sed "s/{{{KEYWORDS}}}/$keywords/g" > docs/sections/mapping_api.rst
 echo "Done" >&2
 
+echo "Extract readfuncs" >&2
+readfuncs="$(./docs/loader-params_from_code.py)"
+echo "$readfuncs" >&2
+cat docs/sections/usage.TPL.rst | sed "s|{{{READFUNCS}}}|$readfuncs|g" > docs/sections/usage.rst
+echo "Done" >&2
+
 echo "Build documentation..." >&2
 uv run sphinx-build --builder html docs/ $READTHEDOCS_OUTPUT/html/ $*
 echo "Done" >&2
