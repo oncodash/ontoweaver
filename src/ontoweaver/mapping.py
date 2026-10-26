@@ -931,10 +931,18 @@ class YamlParser(base.MappingParser):
         # Extract transformer list and metadata list from the config.
         transformers_list = self.get(base.MappingParser.k_transformer)
         if not transformers_list:
-            self.error("I cannot find the `transformers' section or it is empty," \
-                        " check syntax for a typo (forgotten `s'?)" \
-                        " or declare at least one transformer.`",
-            exception = exceptions.ParsingDeclarationsError)
+            self.error(
+                "I cannot find the `transformers' section or it is empty," \
+                " check syntax for a typo (forgotten `s'?)" \
+                " or declare at least one transformer.`",
+                exception = exceptions.ParsingDeclarationsError)
+
+        if not isinstance(transformers_list, list):
+            self.error(
+                "The transformers section is not a list," \
+                " did you forget to add dashes '-' "\
+                " in front of the transformers' names?",
+                exception = exceptions.ParsingDeclarationsError)
 
         metadata_list = self.get(base.MappingParser.k_metadata)
 
