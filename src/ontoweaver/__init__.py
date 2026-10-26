@@ -308,6 +308,17 @@ def make_autoschema(
     return auto_schema
 
 
+def items_dmk(iterable):
+    if isinstance(iterable, dict):
+        return iterable.items()
+    elif isinstance(iterable, str):
+        dmk = parse_data_map(iterable)
+        return [dmk]
+    elif isinstance(iterable, tuple):
+        return [iterable]
+    else:
+        return iterable
+
 def autoschema(
     data_file_to_mapping_file,
     existing_schema = {},
@@ -318,7 +329,7 @@ def autoschema(
     """Extend an existing_schema with what can be deduced from the given mapping files.
 
        Args:
-           data_file_to_mapping_file: a dictionary of the form {"filename": "mapping_file"}
+           data_file_to_mapping_file: a list of tuples of the form ("filename", "mapping_file", {"parameter":value}).
            existing_schema: a filename the schema file to extend
            extended_schema_filename: the filename to which to write the extended schema
            overwrite: if True, will raise an error if extended_schema_filename already exists
@@ -327,10 +338,9 @@ def autoschema(
        Returns:
            The extended_schema_filename
     """
-
     logger.info("Automatically generating a BioCypher schema based on the mappings...")
     mappings = []
-    for i,f2m in enumerate(data_file_to_mapping_file):
+    for i,f2m in enumerate(items_dmk(data_file_to_mapping_file)):
         _,with_mapping,_ = get_dmk(f2m)
         if with_mapping == "automap":
             msg = "As of now, I don't know how to handle `automap` with `autoschema`."
@@ -547,7 +557,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     Extracts nodes and edges from tabular data files based on provided mappings.
 
     Args:
-        data_to_mapping (tuple): 2- or 3-tuples containing data filenames or loded data structure, their corresponding mapping filenames (or a string containing "automap"), and named parameters to load the data (may be an empty dict).
+        data_to_mapping (list of tuples): a list of 2- or 3-tuples containing data filenames or loded data structure, their corresponding mapping filenames (or a string containing "automap"), and named parameters to load the data (may be an empty dict): ``("data_filename", "mapping_filename", {"parameter":value})``
         parallel_mapping (int): Number of workers to use in parallel mapping. Defaults to 0 for sequential processing.
         affix (str): The affix to use for type inclusion. Defaults to "none".
         type_affix_sep: The character(s) separating the label from its type affix. Defaults to ":".
@@ -570,15 +580,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lrg = loader.LoadOWLGraph()
     ljf = loader.LoadJSONFile()
 
-    def items(iterable):
-        if isinstance(iterable, dict):
-            return iterable.items()
-        elif isinstance(iterable, str):
-            return [iterable]
-        else:
-            return iterable
-
-    for dmk in items(data_to_mapping):
+    for dmk in items_dmk(data_to_mapping):
         data, mapping, data_kwargs = get_dmk(dmk)
         assert isinstance(data_kwargs, dict)
 
