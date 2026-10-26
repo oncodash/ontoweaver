@@ -505,7 +505,7 @@ For example:
 
     props_merger = merge.dictry.PerProperty({
         "source": merge.string.OrderedSet(),
-        "version": merge.string.UseFirst()
+        "version": merge.string.UseFirst(),
         "level": merge.string.UseLast()
     })
 

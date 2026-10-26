@@ -50,6 +50,9 @@ class Merger(metaclass=ABCMeta):
     See the `string.UseKey` class for an example of minimal implementation.
     """
 
+    def __init__(self):
+        self.merged = {}
+
     def __call__(self, key, lhs, rhs):
         """The actuall call interface, this only calls `precheck`, then `merge`.
 
@@ -104,6 +107,15 @@ class Merger(metaclass=ABCMeta):
         # logger.debug(f"Get Merger `{type(self).__name__}`")
         return self.merged
 
+
+class ErrorIfCalled(Merger):
+    def merge(self, key, lhs, rhs):
+        self.error(
+            f"You asked for this merger not to be called, but is was"\
+            f" on element `{key}`, merging: `{lhs}` and `{rhs}`.",
+            exception = exceptions.FusionError)
+
+
 class dictry:
     """Mergers operating on dictionaries."""
 
@@ -113,9 +125,6 @@ class dictry:
         Basically implements `precheck` with asserting that key is a base.Element
         and lhs & rhs are dict.
         """
-        def __init__(self):
-            self.merged = {}
-
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
             assert(isinstance(lhs, dict))
@@ -137,8 +146,16 @@ class dictry:
 
 
     class PerProperty(DictryMerger):
-        def __init__(self, pmergers: dict[str,Merger] = {}):
+        def __init__(self, pmergers: dict[str,Merger] = {}, default_key = '*'):
+            super().__init__()
+
             self.pmergers = pmergers
+
+            self.default_key = default_key
+            if self.default_key not in self.pmergers.keys():
+                logger.warning(
+                    f"You did not indicate a default property merger in `PerProperty`.")
+
 
         def add(self, property_name, merger):
             self.pmergers[property_name] = merger
@@ -149,15 +166,32 @@ class dictry:
                 m.reset()
 
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> dict[str,str]:
+            # Properties only in rhs.
             for p,v in rhs.items():
                 if p in lhs:
-                    self.pmergers[p].merge(p, lhs[p], rhs[p])
-                    v = self.pmergers[p].get()
-                    self.merged[p] = v
-                else:
-                    self.merged[p] = drhs[p]
+                    if p in self.pmergers.keys():
+                        # Merge with the defined merger.
+                        self.pmergers[p].merge(p, lhs[p], rhs[p])
+                        # Results is store in the merger, we get it.
+                        v = self.pmergers[p].get()
+                        self.merged[p] = v
+                    else:
+                        # We need a default merger for this property.
+                        if self.default_key not in self.pmergers:
+                            self.error(
+                                f"You did not defined a merger for property `{p}`,"\
+                                 " please define an explicit or a default one"\
+                                f" (with '{self.default_key}').",
+                                exception = exceptions.FusionConfigurationError)
 
-            # Properties only in lhs
+                        # Merge with the default merger.
+                        self.pmergers[self.default_key].merge(p, lhs[p], rhs[p])
+                        v = self.pmergers[self.default_key].get()
+                        self.merged[p] = v
+                else:
+                    self.merged[p] = rhs[p]
+
+            # Properties only in lhs.
             for p,v in lhs.items():
                 if p not in self.merged:
                     self.merged[p] = lhs[p]
@@ -171,8 +205,8 @@ class dictry:
         """
 
         def __init__(self, reconciliate_sep = "|"):
+            super().__init__()
             self.reconciliate_sep = reconciliate_sep
-            self.merged = {}
 
         def set(self, merged) -> None:
             assert(isinstance(merged, dict))
@@ -233,6 +267,7 @@ class string:
 
     class Function(StringMerger):
         def __init__(self, binary_function = None, unary_function = lambda x:x):
+            super().__init__()
             if not binary_function:
                 msg = f"merge.Function needs at least one binary function to works."
                 logger.error(msg)
@@ -292,6 +327,7 @@ class string:
         in the ontology hierarchy as the value."""
 
         def __init__(self, ontology):
+            super().__init__()
             self.ontology = ontology
 
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -332,6 +368,7 @@ class string:
         in the ontology hierarchy as the value."""
 
         def __init__(self, ontology):
+            super().__init__()
             self.ontology = ontology
 
         def merge(self, key, lhs: str, rhs: str) -> str:
@@ -373,6 +410,7 @@ class string:
         returns a string, where all values are joined.
         """
         def __init__(self, reconciliate_sep = "|"):
+            super().__init__()
             self.reconciliate_sep = reconciliate_sep
 
         def reset(self):
