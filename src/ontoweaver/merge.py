@@ -455,7 +455,9 @@ class string:
                 self.merged[value] = None
 
         def merge(self, key, lhs: str, rhs: str):
+            assert isinstance(lhs, str)
             self.set(OrderedDict({k:None for k in lhs.split(self.sep)}))
+            assert isinstance(rhs, str)
             self.set(OrderedDict({k:None for k in rhs.split(self.sep)}))
 
         def get(self) -> str:

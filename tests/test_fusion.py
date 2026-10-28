@@ -478,6 +478,271 @@ transformers:
     assert len(fnodes) == 2
     assert len(fedges) == 1
 
-if __name__ == "__main__":
-    logging.basicConfig(level="DEBUG")
-    test_fusion_remap_both()
+
+def test_fusion_property():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Last,First,Diploma
+Dreo,J.,PhD
+Dreo,Johann,Ph.D.
+Dreo,Johann,Ph.D.
+Dreo,Johann,PhD
+Dreo,Johann,Master
+Dreo,Johann,License
+Dreo,J.,Ph.D."""
+
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = r"""
+row:
+    compose:
+        columns:
+            - Last
+            - First
+        to_subject: person
+        call:
+            - cat_format:
+                format_string: "{Last}, {First}"
+            - western_name
+transformers:
+    - replace:
+        column: Diploma
+        forbidden: '\.'
+        substitute: ''
+        to_property: diploma
+        for_object: person
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for e in edges:
+        logging.debug(e.id)
+
+    assert len(nodes) == (len(data.split("\n"))-1)
+    assert len(edges) == 0
+
+    bc_nodes = ontoweaver.ow2bc(nodes)
+    bc_edges = ontoweaver.ow2bc(edges)
+
+    ###################################################
+    # Nodes Fusion.
+    ###################################################
+
+    logging.info(f"Fusion...")
+    fusion_separator = ","
+
+    # Find duplicates
+    on_shorts = ontoweaver.serialize.PerType({
+        "person": ontoweaver.serialize.node.IDWesternNameInitials(),
+        "*": ontoweaver.serialize.ID(),
+    })
+    nodes_congregater = ontoweaver.congregate.Nodes(on_shorts)
+
+    logging.info(f" | Congregate nodes")
+    for n in nodes_congregater(bc_nodes):
+        logging.info(f"Node congregation of: {n}")
+
+    # Fuse them
+    use_longer = ontoweaver.merge.string.UseLonger()
+    identicals = ontoweaver.merge.string.EnsureIdentical()
+    per_props = ontoweaver.merge.dictry.PerProperty({
+        "diploma": ontoweaver.merge.string.OrderedSet(),
+        "*": ontoweaver.merge.ErrorIfCalled(),
+    })
+    node_fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
+            merge_ID    = use_longer,
+            merge_label = identicals,
+            merge_prop  = per_props,
+        )
+
+    nodes_fusioner = ontoweaver.fusion.Reduce(node_fuser)
+    fnodes = set()
+    logging.info(f" | Fuse nodes")
+    for n in nodes_fusioner(nodes_congregater):
+        logging.info(f"Node fusion of: {n}")
+        fnodes.add(n)
+
+    ###################################################
+    # Edges remapping.
+    ###################################################
+
+    ID_mapping = node_fuser.ID_mapping
+
+    for v in ID_mapping.values():
+        # Not cycles.
+        assert v not in ID_mapping.keys(), f"Value `{v}` is also a key"
+
+    logging.info("IDs remapping:")
+    for k,v in ID_mapping.items():
+        logging.debug(f"├ `{k}` => `{v}`")
+
+    # EDGES REMAP
+    if len(ID_mapping) > 0:
+        remaped_edges = []
+        logging.info(f" | Remap edges")
+        for e in ontoweaver.fusion.remap_edges(bc_edges, ID_mapping):
+            logging.info(f"Edge remaping of: {e}")
+            remaped_edges.append(e)
+        logging.debug("Remaped edges:")
+        for n in remaped_edges:
+            logging.debug("\t"+repr(n))
+    else:
+        remaped_edges = bc_edges
+
+    ###################################################
+    # Edges Fusion.
+    ###################################################
+
+    # Find duplicates
+    on_STL = ontoweaver.serialize.edge.SourceTargetLabel()
+    edges_congregater = ontoweaver.congregate.Edges(on_STL)
+
+    logging.info(f" | Congregate edges")
+    for e in edges_congregater(remaped_edges):
+        logging.info(f"Edge congregation of: {e}")
+
+    # Fuse them
+    set_of_ID       = ontoweaver.merge.string.OrderedSet(fusion_separator)
+    identicals      = ontoweaver.merge.string.EnsureIdentical()
+    in_lists        = ontoweaver.merge.dictry.Append(fusion_separator)
+    use_last_source = ontoweaver.merge.string.UseLast()
+    use_last_target = ontoweaver.merge.string.UseLast()
+    edge_fuser = ontoweaver.fuse.Members(ontoweaver.base.GenericEdge,
+            merge_ID     = set_of_ID,
+            merge_label  = identicals,
+            merge_prop   = in_lists,
+            merge_source = use_last_source,
+            merge_target = use_last_target
+        )
+
+    edges_fusioner = ontoweaver.fusion.Reduce(edge_fuser)
+    fedges = set()
+    logging.info(f" | Fuse edges")
+    for e in edges_fusioner(edges_congregater):
+        logging.info(f"Edge fusion of: {e}")
+        fedges.add(e)
+
+    ###################################################
+    # Checks.
+    ###################################################
+
+    logging.info(f"Final nodes fusion result {len(fnodes)} nodes:")
+    for n in fnodes:
+        logging.debug(n.as_tuple())
+
+    logging.info(f"Final edges fusion result {len(fedges)} edges:")
+    for e in fedges:
+        logging.debug(e.as_tuple())
+
+    assert len(fnodes) == 1
+    assert len(list(fnodes)[0].as_tuple()[2]["diploma"].split("|")) == 3
+    assert len(fedges) == 0
+
+
+def test_fusion_properties():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Last,First,Diploma
+Dreo,J.,PhD
+Sponge,Bob,CAP
+Dreo,Johann,Ph.D.
+Dreo,Johann,PhD
+Dreo,Johann,Master
+Sponge,B.,PhD
+Sponge,Bob,BAC
+Dreo,Johann,License
+Dreo,J.,Ph.D."""
+
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = r"""
+row:
+    compose:
+        columns:
+            - Last
+            - First
+        to_subject: person
+        call:
+            - cat_format:
+                format_string: "{Last}, {First}"
+            - western_name
+transformers:
+    - replace:
+        column: Diploma
+        forbidden: '\.'
+        substitute: ''
+        to_property: diploma
+        for_object: person
+"""
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="prefix")
+
+    for e in edges:
+        logging.debug(e.id)
+
+    assert len(nodes) == (len(data.split("\n"))-1)
+    assert len(edges) == 0
+
+    bc_nodes = ontoweaver.ow2bc(nodes)
+    bc_edges = ontoweaver.ow2bc(edges)
+
+    ###################################################
+    # Nodes Fusion.
+    ###################################################
+
+    logging.info(f"Fusion...")
+    fusion_separator = ","
+
+    # Find duplicates
+    on_shorts = ontoweaver.serialize.PerType({
+        "person": ontoweaver.serialize.node.IDWesternNameInitials(),
+        "*": ontoweaver.serialize.ID(),
+    })
+    nodes_congregater = ontoweaver.congregate.Nodes(on_shorts)
+
+    logging.info(f" | Congregate nodes")
+    for n in nodes_congregater(bc_nodes):
+        logging.info(f"Node congregation of: {n}")
+
+    # Fuse them
+    use_longer = ontoweaver.merge.string.UseLonger()
+    identicals = ontoweaver.merge.string.EnsureIdentical()
+    per_props = ontoweaver.merge.dictry.PerProperty({
+        "diploma": ontoweaver.merge.string.OrderedSet(),
+        "*": ontoweaver.merge.ErrorIfCalled(),
+    })
+    node_fuser = ontoweaver.fuse.Members(ontoweaver.base.Node,
+            merge_ID    = use_longer,
+            merge_label = identicals,
+            merge_prop  = per_props,
+        )
+
+    nodes_fusioner = ontoweaver.fusion.Reduce(node_fuser)
+    fnodes = []
+    logging.info(f" | Fuse nodes")
+    for n in nodes_fusioner(nodes_congregater):
+        logging.info(f"Node fusion of: {n}")
+        fnodes.append(n)
+
+    assert len(fnodes) == 2
+    for n in fnodes:
+        assert len(n.as_tuple()[2]["diploma"].split("|")) == 3
+
