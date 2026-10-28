@@ -488,6 +488,9 @@ Fusing properties separately
 
 .. versionadded:: 1.8.0
 
+.. versionchanged:: 1.10.4
+    Allows to pass a default merger.
+
 Using the ``merge.dictry.PerProperty`` merger, you can apply different mergers
 
 to different properties.
@@ -506,7 +509,8 @@ For example:
     props_merger = merge.dictry.PerProperty({
         "source": merge.string.OrderedSet(),
         "version": merge.string.UseFirst(),
-        "level": merge.string.UseLast()
+        "level": merge.string.UseLast(),
+        "*": merge.string.OrderedSet(),  # Default for unspecified properties.
     })
 
     # You can then pass it as a property merger:
@@ -516,6 +520,17 @@ For example:
         merge_prop  = props_merger  # <-- here.
     )
 
+The default merger is indicated by the key ``"*"``, this default key can be
+changed at instantiation:
+
+.. code:: python
+
+    props_merger = merge.dictry.PerProperty(
+        default_key = "default",
+        {
+            "default": merge.string.OrderedSet(),
+        }
+    )
 
 Fusing with any bynary functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
