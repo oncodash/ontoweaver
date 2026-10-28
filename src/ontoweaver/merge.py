@@ -64,7 +64,11 @@ class Merger(metaclass=ABCMeta):
 
         # logger.debug(f"Call Merger `{type(self).__name__}`")
         self.precheck(key, lhs, rhs)
-        self.merge(key, lhs, rhs)
+        try:
+            self.merge(key, lhs, rhs)
+        except Exception as e:
+            logger.error(f"While merging {key}: {lhs} with {rhs}")
+            raise e
         # logger.debug(f"Merger `{type(self).__name__}` called: {self.merged}")
 
     def precheck(self, key, lhs, rhs) -> None:
