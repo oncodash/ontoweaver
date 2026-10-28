@@ -176,7 +176,12 @@ class dictry:
             if not rhs:
                 rhs = lhs
 
-            self.pmergers[p].merge(p, lhs[p], rhs[p])
+            try:
+                self.pmergers[p].merge(p, lhs[p], rhs[p])
+            except Exception as e:
+                logger.error(f"While merging property `{p}`: `{lhs[p]}` with `{rhs[p]}`")
+                raise e
+
             # Results is store in the merger, we get it.
             v = self.pmergers[p].get()
             self.merged[p] = v
