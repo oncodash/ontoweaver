@@ -457,13 +457,13 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(datan, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
-            data: whatever data item that the with_loader is able to load.
+            datain: whatever data item that the with_loader is able to load.
             with_mapping: the mapping filename, string containing "automap", or dict
-            with_loader: the loader with which to load data
+            with_loader: the loader with which to load datain
             parallel_mapping: if > 0, will run in parallel mode
             affix: whether to add a type affix
             type_affix_sep: a string for separating the ID from the type affix
@@ -475,18 +475,18 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         Returns:
             a pair of lists, the first one are nodes, the second one are egdes
     """
-    logger.debug(f"Use with_loader `{with_loader.__class__.__name__}` to load `{data}`")
+    logger.debug(f"Use with_loader `{with_loader.__class__.__name__}` to load `{datain}`")
 
-    assert with_loader.allows([data]), "This loader cannot handle this data"
+    assert with_loader.allows([datain]), "This loader cannot handle this data"
     nodes = []
     edges = []
 
-    data = with_loader([data], progress_bar = progress_bar, **kwargs)
+    data = with_loader([datain], progress_bar = progress_bar, **kwargs)
     mapping_options = {}
 
     assert 0.0 < sub_sample and sub_sample <= 100.0, "sub-sample mut be a percentage"
     if sub_sample < 100.0:
-        logger.info( f"Sub-sampling {sub_sample}% of {len(data)} rows of input data.")
+        logger.info( f"Sub-sampling {sub_sample}% of {len(data)} rows of input data {datain}.")
         data = data.sample(frac = sub_sample)
     else:
         logger.debug("No sub-sampling.")
@@ -522,7 +522,7 @@ def load_extract(data, with_mapping, with_loader, parallel_mapping = 0, affix="n
         raise_errors = raise_errors,
         progress_bar = progress_bar,
     )
-    logger.info(f"Run {type(adapter).__name__}...")
+    logger.info(f"Run {type(adapter).__name__} on {datain}...")
     if parallel_mapping > 0:
         logger.debug(f"\tin parallel over {parallel_mapping} cores")
         adapter.__call__()
