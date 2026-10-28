@@ -457,7 +457,7 @@ def extract_reconciliate_write(biocypher_config_path, schema_path, data_to_mappi
     return weave(biocypher_config_path, schema_path, data_to_mapping, parallel_mapping, reconciliate_sep, affix, type_affix_sep, validate_output, sort_key, raise_errors, **kwargs)
 
 
-def load_extract(datan, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
+def load_extract(datain, with_mapping, with_loader, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """ Load the given data with the given loader, and apply the given mapping on it.
 
         Args:
