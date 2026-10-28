@@ -67,7 +67,7 @@ class Merger(metaclass=ABCMeta):
         try:
             self.merge(key, lhs, rhs)
         except Exception as e:
-            logger.error(f"While merging {key}: {lhs} with {rhs}")
+            logger.error(f"While merging element `{key}`: `{lhs}` with `{rhs}`")
             raise e
         # logger.debug(f"Merger `{type(self).__name__}` called: {self.merged}")
 
@@ -459,9 +459,9 @@ class string:
                 self.merged[value] = None
 
         def merge(self, key, lhs: str, rhs: str):
-            assert isinstance(lhs, str)
+            assert isinstance(lhs, str), f"{type(lhs)}"
             self.set(OrderedDict({k:None for k in lhs.split(self.sep)}))
-            assert isinstance(rhs, str)
+            assert isinstance(rhs, str), f"{type(rhs)}"
             self.set(OrderedDict({k:None for k in rhs.split(self.sep)}))
 
         def get(self) -> str:
