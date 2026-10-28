@@ -156,6 +156,8 @@ class dictry:
                 logger.warning(
                     f"You did not indicate a default property merger in `PerProperty`.")
 
+            # "Specified" properties (defined by the user).
+            self.specified = set(self.pmergers.keys()).difference(self.default_key)
 
         def add(self, property_name, merger):
             self.pmergers[property_name] = merger
@@ -179,12 +181,9 @@ class dictry:
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> dict[str,str]:
             logger.debug(f"PerProperty({ {k:type(v).__name__ for k,v in self.pmergers.items()} })")
             logger.debug(f"Call merge({key}, {lhs}, {rhs}):")
+            logger.debug(f"  specified: {self.specified}")
 
-            # "Specified" properties (defined by the user).
-            specified = set(self.pmergers.keys()).difference(self.default_key)
-            logger.debug(f"  specified: {specified}")
-
-            unspecified = set(lhs.keys()).union(set(rhs.keys())).difference(specified)
+            unspecified = set(lhs.keys()).union(set(rhs.keys())).difference(self.specified)
             if not unspecified and self.default_key not in self.pmergers:
                 self.error(
                     f"You did not defined a merger for property `{p}`,"\
@@ -200,7 +199,7 @@ class dictry:
                     # (that may be useful for some mergers).
                     self.pmergers[p] = copy.deepcopy(self.pmergers[self.default_key])
 
-            for p in specified.union(unspecified):
+            for p in self.specified.union(unspecified):
                 assert p != self.default_key
                 logger.debug(f"    property: {p}")
                 if p in lhs and p in rhs:
@@ -432,6 +431,9 @@ class string:
         """Aggregate all seen values, ordered lexicographically.
 
         returns a string, where all values are joined.
+
+        Internally, this stores values as keys in an OrderedDict,
+        and serialize in strings when the value is get.
         """
         def __init__(self, reconciliate_sep = "|"):
             super().__init__()
@@ -444,8 +446,12 @@ class string:
         def set(self, value) -> None:
             if isinstance(value, OrderedDict):
                 for k in value.keys():
+                    # We associate None because OrderedDict
+                    # is the closest that we have from a proper OrderedSet
+                    # and thus we are only interested in keys.
                     self.merged[k] = None
             else:
+                assert isinstance(value, str)
                 self.merged[value] = None
 
         def merge(self, key, lhs: str, rhs: str):
@@ -454,3 +460,4 @@ class string:
 
         def get(self) -> str:
             return self.sep.join(self.merged.keys())
+
