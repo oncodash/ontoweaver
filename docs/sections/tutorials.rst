@@ -444,7 +444,7 @@ To run OntoWeaver and weave those data into a semantic knowledge graph, use the 
 
 .. code-block:: sh
 
-    ontoweave --biocypher-config demo_config.yaml --auto-schema extended_schema.yaml --auto-schema-overwrite --biocypher-schema demo_schema.yaml demo_data.csv:demo_mapping.yaml
+    ontoweave --biocypher-config demo_config.yaml --auto-schema extended_schema.yaml --auto-schema-overwrite --biocypher-schema demo_schema.yaml 'demo_data.csv{"dtype":"string"}:demo_mapping.yaml'
 
 
 Expected output file
