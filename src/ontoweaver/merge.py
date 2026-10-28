@@ -165,36 +165,60 @@ class dictry:
             for p,m in self.pmergers.items():
                 m.reset()
 
+
+        def _pmerge(self, p, lhs, rhs = None):
+            if not rhs:
+                rhs = lhs
+
+            self.pmergers[p].merge(p, lhs[p], rhs[p])
+            # Results is store in the merger, we get it.
+            v = self.pmergers[p].get()
+            self.merged[p] = v
+            logger.debug(f"        {self.merged}")
+
         def merge(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> dict[str,str]:
-            # Properties only in rhs.
-            for p,v in rhs.items():
-                if p in lhs:
-                    if p in self.pmergers.keys():
-                        # Merge with the defined merger.
-                        self.pmergers[p].merge(p, lhs[p], rhs[p])
-                        # Results is store in the merger, we get it.
-                        v = self.pmergers[p].get()
-                        self.merged[p] = v
-                    else:
-                        # We need a default merger for this property.
-                        if self.default_key not in self.pmergers:
-                            self.error(
-                                f"You did not defined a merger for property `{p}`,"\
-                                 " please define an explicit or a default one"\
-                                f" (with '{self.default_key}').",
-                                exception = exceptions.FusionConfigurationError)
+            logger.debug(f"PerProperty({ {k:type(v).__name__ for k,v in self.pmergers.items()} })")
+            logger.debug(f"Call merge({key}, {lhs}, {rhs}):")
 
-                        # Merge with the default merger.
-                        self.pmergers[self.default_key].merge(p, lhs[p], rhs[p])
-                        v = self.pmergers[self.default_key].get()
-                        self.merged[p] = v
-                else:
-                    self.merged[p] = rhs[p]
+            # "Specified" properties (defined by the user).
+            specified = set(self.pmergers.keys()).difference(self.default_key)
+            logger.debug(f"  specified: {specified}")
 
-            # Properties only in lhs.
-            for p,v in lhs.items():
-                if p not in self.merged:
-                    self.merged[p] = lhs[p]
+            unspecified = set(lhs.keys()).union(set(rhs.keys())).difference(specified)
+            if not unspecified and self.default_key not in self.pmergers:
+                self.error(
+                    f"You did not defined a merger for property `{p}`,"\
+                     " please define an explicit or a default one"\
+                    f" (with '{self.default_key}').",
+                    exception = exceptions.FusionConfigurationError)
+
+            # Copy the default merger for all unspecified keys.
+            logger.debug(f"  unspecified: {unspecified}")
+            for p in unspecified:
+                if p not in self.pmergers:
+                    # Copy to keep the state
+                    # (that may be useful for some mergers).
+                    self.pmergers[p] = copy.deepcopy(self.pmergers[self.default_key])
+
+            for p in specified.union(unspecified):
+                assert p != self.default_key
+                logger.debug(f"    property: {p}")
+                if p in lhs and p in rhs:
+                    # Merge with the defined merger.
+                    logger.debug(f"      2-merge: {p} = {type(self.pmergers[p]).__name__}({lhs[p]}, {rhs[p]})")
+                    self._pmerge(p, lhs, rhs)
+                elif p in lhs and p not in rhs:
+                    # Still call the merger, in case it does something
+                    # (like raising an error, as with ErrorIfCalled)
+                    # but call on lhs only.
+                    logger.debug(f"      lhs-merge: {p} = {type(self.pmergers[p]).__name__}({lhs[p]})")
+                    self._pmerge(p, lhs)
+                elif p not in lhs and p in rhs:
+                    # Same, only for rhs.
+                    logger.debug(f"      rhs-merge: {p} = {type(self.pmergers[p]).__name__}({rhs[p]})")
+                    self._pmerge(p, rhs)
+                else: # p not in lhs and p not in rhs
+                    continue
 
 
     class Append(DictryMerger):
@@ -411,7 +435,8 @@ class string:
         """
         def __init__(self, reconciliate_sep = "|"):
             super().__init__()
-            self.reconciliate_sep = reconciliate_sep
+            self.reset()
+            self.sep = reconciliate_sep
 
         def reset(self):
             self.merged = OrderedDict()
@@ -424,8 +449,8 @@ class string:
                 self.merged[value] = None
 
         def merge(self, key, lhs: str, rhs: str):
-            self.set(lhs)
-            self.set(rhs)
+            self.set(OrderedDict({k:None for k in lhs.split(self.sep)}))
+            self.set(OrderedDict({k:None for k in rhs.split(self.sep)}))
 
         def get(self) -> str:
-            return self.reconciliate_sep.join(self.merged.keys())
+            return self.sep.join(self.merged.keys())

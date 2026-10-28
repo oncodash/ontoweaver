@@ -57,7 +57,8 @@ def test_fusion():
     # to the merger instance we want to use to merge the values of this property.
     howto_merge = {
         "escat": MyMax(),  # Our own Merger define above.
-          "ref": ontoweaver.merge.string.OrderedSet(reconciliate_sep),
+         "ref": ontoweaver.merge.string.OrderedSet(reconciliate_sep),
+         "*": ontoweaver.merge.string.OrderedSet(reconciliate_sep),
     }
     # Instantiate the merger managing merges per property,
     # with the dictionary configuration.
