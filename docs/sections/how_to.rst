@@ -3,6 +3,33 @@
 How To
 ------
 
+Input Data
+~~~~~~~~~~
+
+How to load CSV files with another separator?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You need to pass an additional parameter to *Pandas*:
+
+.. code::
+
+    ontoweave 'data.xsv{"sep":";"}:mapping.yaml'
+
+Learn more in the documentation: :ref:`Pass parameters when loading data`.
+
+
+How to force the type of a column?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You need to pass additional parameters to *Pandas*:
+
+.. code::
+
+    ontoweave 'data.csv{"dtype":{"colA":"Int64","colB":"string"}}:mapping.yaml'
+
+Learn more in the documentation: :ref:`Pass parameters when loading data`.
+
+
 Mapping
 ~~~~~~~
 
