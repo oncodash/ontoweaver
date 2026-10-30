@@ -419,8 +419,21 @@ The ``dictry`` submodule provides:
   dictionary mapping the name of each properties toward an instance of a
   StringMerger.
 - ``Append``: merge all seen dictionaries in a single one, and aggregate
-  all the values of all the duplicated fields into a single
-  lexicographically ordered list (joined by a user-defined separator).
+  all the unique values of all the duplicated fields into a single
+  string (joined by a user-defined separator). The items in the string are not
+  sorted.
+
+  .. note::
+
+    The default separator is set to ``reconciliate_sep = "|"``.
+
+    .. versionchanged:: 1.10.4
+
+        If the separator is set to ``None`` or an empty string, the ``Append``
+        merger will not join a string, but let the list of values pass as a Python list.
+        This may lead to undefined behavior (depending on your fusion engine)
+        but may also be useful if you have some very specific fusion problems.
+
 
 For example, to fuse “congregated” nodes, one can do:
 

@@ -268,11 +268,18 @@ class dictry:
 
         def get(self) -> dict:
             merged = {}
-            for k,v in self.merged.items():
-                assert(isinstance(v, set))
-                # Convert sets as str.
-                merged[k] = self.reconciliate_sep.join(v)
-            return merged
+            if self.reconciliate_sep:
+                for k,v in self.merged.items():
+                    assert(isinstance(v, set))
+                    # Convert sets as str.
+                    merged[k] = self.reconciliate_sep.join(v)
+                return merged
+            else:
+                for k,v in self.merged.items():
+                    assert(isinstance(v, set))
+                    # Convert sets as list.
+                    merged[k] = list(v)
+                return merged
 
 
 class string:

@@ -153,6 +153,11 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         Extract properties of each property category for the given node type.
         If no properties are found, return an empty dictionary.
 
+        Properties values can be lists, for example when generated from
+        a `split` transformer.
+        If the property gets a list of one (or less) element, it is collapsed
+        to a (empty) string.
+
         Args:
             property_dict: Dictionary of transformer => property name
             row: The current row of the DataFrame.
@@ -171,15 +176,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             for prop_transformer, property_name in property_dict.items():
                 properties[property_name] = []
 
-                for property_value, none_node, none_edge, none_reverse_relation \
-                    in prop_transformer(row, i):
+                for property_value, _, _, _ in prop_transformer(row, i):
 
                     if property_value:
                         if isinstance(property_value, list):
-                            properties[property_name] += str(property_value)
+                            properties[property_name] += property_value
                         else:
-                            properties[property_name].append(str(property_value))
-                        # properties[property_name] = str(property_value).replace("'", "`") # FIXME double-check why the old code needed this.
+                            properties[property_name].append(property_value)
                         logger.debug(
                             f"                 {prop_transformer}" \
                             f" to property `{property_name}` with value" \
@@ -194,15 +197,16 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         # Collapse any list with less than one item to a string.
         # to_delete = []
         for k,v in properties.items():
-            # if len(v) == 0:
+            # if not v:
             #     to_delete.append(k)
-            # el
             if len(v) == 1:
                 properties[k] = v[0]
+            elif len(v) == 0:
+                properties[k] = ""
 
         # We don't delete empty properties, because BioCypher would complain.
         # for k in to_delete:
-            # del properties[k]
+        #     del properties[k]
 
         # If the metadata dictionary is not empty, add the metadata to the property dictionary.
         if self.metadata:
@@ -214,6 +218,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 for key, value in self.metadata[elem.__name__].items():
                     properties[key] = value
 
+        logger.debug(f"\t\t\tProcessed properties: {properties}")
         return properties
 
 

@@ -120,6 +120,10 @@ P48281	Q9JMA7	Vdr	Cyp3a41a; Cyp3a41b	True	True	False	True	True	False	ExTRI_Colle
 
     logging.debug("Run the adapter...")
     nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for n in nodes:
+        logging.debug(n)
+
     fnodes, fedges = ontoweaver.reconciliate(ontoweaver.ow2bc(nodes), ontoweaver.ow2bc(edges))
 
     for n in fnodes:
@@ -265,7 +269,6 @@ def test_transformer_split_list():
 
 
 if __name__ == "__main__":
-    test_transformer_split_string()
-
-
+    logging.getLogger().setLevel("DEBUG")
+    test_transformer_split_string_properties_2()
 

@@ -138,6 +138,11 @@ def config_paths(appname = "ontoweave"):
 
 
 def make_cli_parser(appname, config_files):
+    """Create a CLI parser.
+
+    appname: the name of the CLI
+    config_files: a list of config files, more probably from calling config_paths()
+    """
 
     do = jsonargparse.ArgumentParser(
         description = "A command line tool to run OntoWeaver mapping adapters on a set of tabular data, and call the created BioCypher export scripts.",

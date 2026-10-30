@@ -16,7 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Property values are not force-converted to strings anymore, during the mapping.
+- Property mapped with no values are now converted to an empty string (instead
+  of an empty list).
 - The `PerProperty` merger can have a default merger.
+- In the `Append` merger, if the separator is set to `None` or an empty string,
+  it will not join values as a string, but let the list of values pass as a
+  Python list.
 
 
 [v1.10.3] -- 2026-09-12
