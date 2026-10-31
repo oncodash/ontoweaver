@@ -4,6 +4,8 @@ import logging
 import subprocess
 
 import ontoweaver
+import pandas as pd
+import yaml
 
 
 def test_from_subject():
@@ -35,3 +37,40 @@ def test_from_subject():
     #     with open(f) as fd:
     #         assert fd.readlines()
 
+
+def test_from_subject_skips_when_subject_transformer_skips():
+    table = pd.DataFrame(
+        {
+            "variant_id": ["variant-a", "variant-b"],
+            "patient": ["known", "unknown"],
+        }
+    )
+    mapping = yaml.safe_load(
+        """
+        row:
+            rowIndex:
+                to_subject: row
+        transformers:
+            - translate:
+                column: patient
+                translations:
+                    known: translated-patient
+                on_unknown_value: skip
+                to_object: patient
+                via_relation: row_has_patient
+            - map:
+                column: variant_id
+                from_subject: patient
+                to_object: variant
+                via_relation: patient_has_variant
+        """
+    )
+
+    nodes, edges = ontoweaver.extract_table(table, mapping, affix="none")
+
+    assert {node.id for node in nodes if node.label == "variant"} == {"variant-a"}
+    assert {
+        (edge.id_source, edge.id_target)
+        for edge in edges
+        if edge.label == "patient_has_variant"
+    } == {("translated-patient", "variant-a")}
