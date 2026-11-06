@@ -135,6 +135,44 @@ node for each patient, and an edge for each phenotype-patient pair:
               │              ╚════╪════╝
               ╰───────────────────╯
 
+
+Edges between any nodes
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The default behavior for an "object" transformer (i.e. a transformer in the
+"transformers" section) is to link its node with the node created by the "subject"
+transformer (i.e. the transformer in the "row" section).
+But you can ask for an edge to be created between the node yielded by an object
+transformer and a node created by another object transformer.
+
+To do so, add the ``from_subject`` keyword and point it to the desired type.
+
+For example:
+
+.. code:: yaml
+
+    # This creates (variant)-[in]->(sample)-[from]->(patient)
+    row:
+        rowIndex:
+            to_subject: variant
+    tranformers:
+        - map:
+            column: Sample
+            to_object: sample
+            via_relation: in
+        - map:
+            column: Patient
+            to_object: patient
+            from_subject: sample
+            via_relation: from
+
+..versionchanged:: 1.10.4
+
+    If a transformer relies on `from_subject`, but the transformer supposed to
+    create the subject node skips it instead (e.g. its value is empty),
+    then the object node (and its edge) will be skipped as well.
+
+
 Available Transformers
 ^^^^^^^^^^^^^^^^^^^^^^
 

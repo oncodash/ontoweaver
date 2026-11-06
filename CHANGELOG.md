@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Adds a feature to pass additional parameters when loading data.
+- Adds a match/query transformer to construct a node according to the result
+  of a pandas query on the table.
 
 ### Changed
 
@@ -23,12 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In the `Append` merger, if the separator is set to `None` or an empty string,
   it will not join values as a string, but let the list of values pass as a
   Python list.
-
-### Added
-
-- Adds a feature to pass additional parameters when loading data.
-- Adds a match/query transformer to construct a node according to the result
-  of a pandas query on the table.
+- When a transformer skips, any target transformer using `from_subject` that
+  rely on it also skips.
 
 
 [v1.10.3] -- 2026-09-12

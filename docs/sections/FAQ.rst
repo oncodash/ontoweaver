@@ -33,8 +33,8 @@ then maybe try:
 How is the `from_subject` clause handled?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There is 3 ways in which a `from_subject` clause finds the node(s) to which add
-a link:
+There is several ways in which a `from_subject` clause finds the node(s) to
+which add a link:
 
 1. The subject type is the same as the one declared in the subject/row section.
    This is the default, and you don't need to explicitely add a `from_subject`
@@ -59,6 +59,11 @@ a link:
     In the 3d and 4th cases, if the subject type does not match, the creation
     of the link is silently ignored.
 
+..versionchanged:: 1.10.4
+
+    If a transformer relies on `from_subject`, but the transformer supposed to
+    create the subject node skips it instead, then the object node (and its edge)
+    will be skipped as well.
 
 Example showing cases 2, 3 and 4:
 

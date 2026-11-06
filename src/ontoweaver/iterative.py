@@ -399,6 +399,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         assert not isinstance(fromsubject, list)
 
         found_subject = None
+        found_compatible_transformer = False
         nt = 0
         logger.debug(f"Looking into {len(self.transformers)} transformers:")
         if logging.getLevelName(logger.level) == "DEBUG":
@@ -409,6 +410,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             logger.debug(f"Check transformer {nt-1}: {t}")
             if t.target_type == fromsubject:
                 logger.debug(f"compatible with `{fromsubject}`")
+                found_compatible_transformer = True
                 logger.debug(f"Call this transformer: {t}")
                 tn = 0
                 for s_id, s_edge, s_node, s_reverse_edge in t(row, i):
@@ -461,7 +463,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         # )
 
                 if tn == 0:
-                    self.error(f"Transformer did not yield anything: {t}")
+                    logger.error(f"Subject transformer was compatible, but did not yield anything: {t}")
+                    # We keep searching, just in case.
 
             else:
                 # This t's target_type does not match the type in the `from_subject` attribute.
@@ -470,7 +473,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         if nt == 0:
             self.error(f"There was no transformer found.")
 
-        return found_subject, made_edge
+        return found_subject, made_edge, found_compatible_transformer
 
 
     def _no_element(self, local_nodes, local_edges, local_errors, local_rows, local_transformations, local_nb_nodes):
@@ -646,16 +649,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             local_errors = []
             local_rows = 0
             local_transformations = 0 # Count of transformations for this row. Does not include the property transformers.
-            local_nb_nodes = 0
 
             logger.debug(f"Process row {i}...")
             local_rows += 1
 
             for source_node_id, subject_node_type in self._make_default_source_node_id(row, i, local_nodes, local_errors):
                 logger.debug(f"\tGot subject node ID: `{source_node_id}`")
-                if source_node_id:
-                    local_nb_nodes += 1
-                else:
+                if not source_node_id:
                     return None, None, None, None, None, None
 
                 # Loop over list of transformer instances and label_maker corresponding nodes and edges.
@@ -687,7 +687,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                 continue
                             else:
                                 logger.debug(f"\t\tTarget node ID: {target_node_id}")
-                                local_nb_nodes += 1
 
                                 # If a `from_subject` attribute is present in the transformer,
                                 # loop over the transformer list to find the transformer instance
@@ -700,7 +699,8 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                     logger.debug(f"{target_edge.fields()}")
 
                                     found_subject_in_transformers, \
-                                    made_edge                      \
+                                    made_edge,                     \
+                                    found_compatible_transformer   \
                                         = self._make_alternative_source_node_id(
                                             row,
                                             i,
@@ -716,6 +716,14 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                     if found_subject_in_transformers:
                                         logger.debug(f"\t\t\tFound a matching subject in explicit transformers.")
                                         assert made_edge  # FIXME double-check
+
+                                    elif found_compatible_transformer:
+                                        logger.debug(f"\t\t\tCompatible transformer yielded nothing.")
+                                        # The target that was meant to be linked to this subject is skipped as well.
+                                        skipped_target = local_nodes.pop()
+                                        skipped_edge = local_edges.pop()
+                                        logger.debug(f"\t\t\t\tSkip target node `{skipped_target}` and edge `{skipped_edge}` because from_subject was skipped.")
+                                        continue
 
                                     else:
                                         # No other transformer has a target_type that corresponds
@@ -801,7 +809,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             # Apply final types
             final_local_nodes, final_local_edges = self._map_final_types(local_nodes, local_edges)
 
-            return final_local_nodes, final_local_edges, local_errors, local_rows, local_transformations, local_nb_nodes
+            return final_local_nodes, final_local_edges, local_errors, local_rows, local_transformations, len(final_local_nodes)
             # End of process_row local function
 
         nb_rows = 0
