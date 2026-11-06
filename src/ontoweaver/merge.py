@@ -63,7 +63,7 @@ class Merger(errormanager.ErrorManager, metaclass=ABCMeta):
         Args:
             key: the key that has been used to decide that lhs and rhs were duplicates
             lhs: variable of interest
-            rhs: variable of interest 
+            rhs: variable of interest
         """
 
         # logger.debug(f"Call Merger `{type(self).__name__}`")
@@ -120,7 +120,7 @@ class ErrorIfCalled(Merger):
     def __init__(self, raise_errors = True, delayed_print_limit = 20):
         super().__init__(raise_errors, delayed_print_limit)
         self.merged = {}
-        
+
     def merge(self, key, lhs, rhs):
         self.error(
             f"You asked for this merger not to be called, but is was"\
@@ -140,7 +140,7 @@ class dictry:
         def __init__(self, raise_errors = True, delayed_print_limit = 20):
             super().__init__(raise_errors, delayed_print_limit)
             self.merged = {}
-            
+
         def precheck(self, key, lhs: dict[str,str], rhs: dict[str,str]) -> None:
             assert(issubclass(type(key), base.Element))
             assert(isinstance(lhs, dict))
@@ -162,10 +162,13 @@ class dictry:
 
 
     class PerProperty(DictryMerger):
-        def __init__(self, pmergers: dict[str,Merger] = {}, default_key = '*', raise_errors = True, delayed_print_limit = 20):
+        def __init__(self, pmergers: dict[str,Merger] = None, default_key = '*', raise_errors = True, delayed_print_limit = 20):
             super().__init__(raise_errors, delayed_print_limit)
 
-            self.pmergers = pmergers
+            if not pmergers:
+                self.pmergers = {}
+            else:
+                self.pmergers = pmergers
 
             self.default_key = default_key
             if self.default_key not in self.pmergers.keys():
