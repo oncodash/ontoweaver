@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 ------------
 
+
+[v1.10.4] -- 2026-11-06
+-----------------------
+
 ### Added
 
 - Adds a feature to pass additional parameters when loading data.
