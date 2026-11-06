@@ -1,0 +1,10 @@
+row:
+    map:
+        column: B
+        to_subject: B
+transformers:
+    - map:
+        column: A
+        to_object: A
+        via_relation: A_to_B
+
