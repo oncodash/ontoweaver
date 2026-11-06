@@ -1,0 +1,8 @@
+biocypher:
+    debug: true
+    offline: true
+    dbms: csv
+
+    # Ontology configuration
+    head_ontology: null
+
