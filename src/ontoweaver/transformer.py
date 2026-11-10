@@ -732,8 +732,8 @@ class translate(base.Transformer):
                         assert self.on_unknown_value == "error"
                         self.error(f"The cell value `{cell}` at column `{key}`" \
                             f" is not found in the translation table" \
-                            f" (`{self.translate_from}` => `{self.translate_to}`)" \
-                            f" I'll skip this value.",
+                            f" (`{self.translate_from}` => `{self.translate_to}`)." \
+                            f" You can tell me to skip this values by setting `on_unknown_value: skip` in your mapping.",
                             exception = exceptions.TransformerDataError
                         )
 
