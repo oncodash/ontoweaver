@@ -1,6 +1,7 @@
 """ Classes related to loading input data.
 """
 
+import re
 import sys
 import glob
 import copy
@@ -8,6 +9,7 @@ import rdflib
 import pathlib
 import logging
 import inspect
+import sqlalchemy
 
 import json as pyjson
 import pandas as pd
@@ -562,4 +564,35 @@ class LoadJSONFile(Loader):
 
     def adapter(self, **kwargs):
         return json.JSONAdapter
+
+
+class LoadSQL(Loader):
+    def __init__(self, progress_bar = False):
+        super().__init__(progress_bar)
+
+    def allows(self, urls):
+        # From: https://docs.sqlalchemy.org/en/21/core/engines.html#database-urls
+        # The format of the URL generally follows RFC-1738, with some exceptions,
+        # including that underscores, not dashes or periods,
+        # are accepted within the “scheme” portion.
+        # URLs typically include username, password, hostname, database name fields,
+        # as well as optional keyword arguments for additional configuration.
+        # In some cases a file path is accepted, and in others a “data source name”
+        # replaces the “host” and “database” portions.
+        # The typical form of a database URL is:
+        # dialect+driver://username:password@host:port/database
+        # \___scheme___/
+        return all(re.match(r"^[a-z0-9_+]+://.*", url) for url in urls)
+
+    def load(self, urls, query, **kwargs):
+
+        for url in urls:
+            db = sqlalchemy.create_engine(url, **kwargs)
+            with db.connect() as conn, conn.begin():
+                data = pd.read_sql_query(query, conn)
+
+        return data
+
+    def adapter(self, **kwargs):
+        return tabular.PandasAdapter
 

@@ -312,7 +312,7 @@ def items_dmk(iterable):
     if isinstance(iterable, dict):
         return iterable.items()
     elif isinstance(iterable, str):
-        dmk = parse_data_map(iterable)
+        dmk = ontoweave.parse_data_map(iterable)
         return [dmk]
     elif isinstance(iterable, tuple):
         return [iterable]

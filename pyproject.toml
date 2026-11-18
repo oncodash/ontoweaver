@@ -31,6 +31,7 @@ dependencies = [
     "fastparquet>=2025.12.0",
     "csvkit>=2.2.0",
     "rdflib>=7.6.0",
+    "sqlalchemy>=2.0.48",
 ]
 
 [dependency-groups]

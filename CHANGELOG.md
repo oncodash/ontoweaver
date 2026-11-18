@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]
 ------------
 
+### Added
+
+- Allows loading tables from a SQL query on a relationnal database.
+
 
 [v1.10.4] -- 2026-11-06
 -----------------------

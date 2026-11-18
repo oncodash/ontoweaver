@@ -243,7 +243,7 @@ def parse_data_map(data_map):
         logger.error(msg)
         sys.exit(ontoweaver.exceptions.ConfigError.code)
 
-    # Last token i always the mapping file.
+    # Last token is always the mapping file.
     tokens = data_map.split(":")
     map = tokens[-1]
 

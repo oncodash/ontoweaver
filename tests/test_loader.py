@@ -1,4 +1,6 @@
 import rdflib
+import sqlite3
+import tempfile
 import ontoweaver
 import pandas as pd
 
@@ -33,4 +35,31 @@ def test_multi_files_glob():
     testing_functions.create_parquet_files()
     lpf = ontoweaver.loader.LoadPandasFile()
     lpf.load(["./tests/parquets/numbers_*.parquet"])
+
+
+def test_load_sql():
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        tmp = f"{tmpdir}/tmp.sqlite3"
+
+        lsql = ontoweaver.loader.LoadSQL()
+        assert lsql.allows([f"sqlite:///{tmp}"])
+
+        # Create a table and insert data
+        conn = sqlite3.connect(f"file:{tmp}")
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE people (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL
+            )
+        """)
+        cursor.execute("INSERT INTO people (name) VALUES ('Johann')")
+        conn.commit()
+        conn.close()
+
+        data = lsql.load([f"sqlite:///{tmp}"], query = "SELECT * FROM people")
+
+        assert data.shape == (1,2)
+        assert "Johann" in data.iloc[0]["name"]
 

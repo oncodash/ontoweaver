@@ -27,6 +27,9 @@ The following sections show the available input data adapters.
 Tabular data
 ~~~~~~~~~~~~
 
+Files
+^^^^^
+
 Tables being the most ubiquituous data structure, they are used as the main
 example across OntoWeaver documentation, as you may have seen in the previous
 sections.
@@ -34,7 +37,7 @@ sections.
 The basic processing of a table is to iterate over each row,
 and map from column names to element types.
 
-Tables can be in any format that Pandas can read.
+Table files can be in any format that Pandas can read.
 The automatic input data type detection can handle the following
 formats/extensions:
 csv, tsv, txt,  xls, xlsx, xlsm, xlsb, odf, ods, odt, json, html, hdf,
@@ -42,6 +45,63 @@ feather, parquet, pickle, orc, sas, spss, stata.
 
 Simple tables being the most common data format, we use it for all examples in
 the :ref:`mapping-api` section.
+
+For example, to load data from a csv and a set of parquet files,
+you may call:
+
+.. code:: sh
+
+    ontoweave names.csv:names.yaml locations*.parquet:locations.yaml
+
+.. note::
+
+    See section :ref:`Multiple data files at once` for the meaning of
+    the `*` here.
+
+.. note::
+
+    See also how to :ref:`Pass parameters when loading data`.
+
+
+SQL databases
+^^^^^^^^^^^^^
+
+.. versionadded:: 1.11
+
+Tables can be extracted by running a
+`Structured Query Language <https://en.wikipedia.org/wiki/SQL>`__
+(SQL) query on a database.
+SQL is ubiquituous to relational databases,
+and such a query is basically a way to extract
+a single table from them.
+
+As such, OntoWeaver allows using a Uniform Ressource Location (URL)
+indicating how to connect to a database (for instance ``oracle://127.0.0.1``),
+wherever a filename would make sense.
+
+Along with the connection URL, you should pass the SQL query in a JSON
+dictionary, in a "query" key. The query can be as simple as ``SELECT * FROM my_table``.
+
+For example, to load data from a SQLite file and a MySQL server:
+
+.. code:: sh
+
+    ontoweave \
+        sqlite:///names.sqlite3{"query":"SELECT * FROM people"}:names.yaml \
+        mysql+mysqldb://johann@localhost/base{"query":"SELECT name,locations FROM places WHERE latitude > 0"}:locations.yaml
+
+.. note::
+
+    Passing the query is done in the same way than passing additional
+    arguments to the file loading function, as shown in section:
+    :ref:`Pass parameters when loading data`.
+
+.. note::
+
+    OntoWeaver uses the URL schema from `SQLAlchemy <https://docs.sqlalchemy.org>`__,
+    which looks like: ``dialect+driver://username:password@host:port/database``.
+
+    See the `list of supported engines <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__ for examples.
 
 
 Web Ontology data
