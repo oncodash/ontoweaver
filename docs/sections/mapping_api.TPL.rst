@@ -1132,6 +1132,54 @@ nodes of type ``person`` would be connected to the nodes of type ``kitchen_furni
 ``will_not_sit``, and to the node of type ``rest_of_house_furniture`` via an edge of type ``will_sit``.
 
 
+Advanced filtering with *match*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.10.4
+
+In a match section, you can use a
+`Pandas query <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.query.html>`__
+instead of regular expressions.
+To do so, you need to configure ``match_with: query`` as a parameter
+of the section containing the match section.
+
+For example:
+
+.. code:: yaml
+
+    - map:
+      column: date
+      # Do not interpret match clauses as regexp,
+      # but as Pandas queries:
+      match_with: query
+      match:
+        # Column names containing spaces should be
+        # quoted with backticks.
+        - 6 < `Wind max speed`< 8:
+            to_object: windlevel2
+            via_relation: reports
+        - 8 < `Wind max speed` < 10:
+            to_object: windlevel3
+            via_relation: reports
+        - 10 < `Wind max speed`:
+            to_object: windlevel4
+            via_relation: reports
+
+.. hint::
+
+    Using numeric match clauses requires that the input table
+    have the correct *dtypes*.
+    See section: :ref:`Pass parameters when loading data`
+    to learn how to ensure that.
+
+.. warning::
+
+    The match clauses can run arbitrary code which can make
+    you vulnerable to code injection if you run third-party
+    mappings. Never run third-party mappings without double-checking
+    they are legit.
+
+
 Mapping different items to the same type with `final_type`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

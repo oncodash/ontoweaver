@@ -56,7 +56,7 @@ you may call:
 .. note::
 
     See section :ref:`Multiple data files at once` for the meaning of
-    the `*` here.
+    the ``*`` here.
 
 .. note::
 
@@ -70,39 +70,24 @@ SQL databases
 
 Tables can be extracted by running a
 `Structured Query Language <https://en.wikipedia.org/wiki/SQL>`__
-(SQL) query on a database.
+(SQL) query on a database. See section:
+:ref:`Load a table from a SQL query`.
+
 SQL is ubiquituous to relational databases,
 and such a query is basically a way to extract
-a single table from them.
-
-As such, OntoWeaver allows using a Uniform Ressource Location (URL)
-indicating how to connect to a database (for instance ``oracle://127.0.0.1``),
-wherever a filename would make sense.
-
-Along with the connection URL, you should pass the SQL query in a JSON
-dictionary, in a "query" key. The query can be as simple as ``SELECT * FROM my_table``.
-
-For example, to load data from a SQLite file and a MySQL server:
-
-.. code:: sh
-
-    ontoweave \
-        sqlite:///names.sqlite3{"query":"SELECT * FROM people"}:names.yaml \
-        mysql+mysqldb://johann@localhost/base{"query":"SELECT name,locations FROM places WHERE latitude > 0"}:locations.yaml
+a single table from them, which can them be mapped.
 
 .. note::
 
-    Passing the query is done in the same way than passing additional
-    arguments to the file loading function, as shown in section:
-    :ref:`Pass parameters when loading data`.
+    The mappings for tabular data are independent of the
+    way the table was loaded (a tabular file or a SQL query).
 
-.. note::
+.. hint::
 
-    OntoWeaver uses the URL schema from `SQLAlchemy <https://docs.sqlalchemy.org>`__,
-    which looks like: ``dialect+driver://username:password@host:port/database``.
+    That means that you can filter your data either in the SQL query,
+    or in the mapping, using Pandas' queries.
 
-    See the `list of supported engines <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__ for examples.
-
+    See 
 
 Web Ontology data
 ~~~~~~~~~~~~~~~~~

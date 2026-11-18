@@ -151,7 +151,7 @@ documents that can be queried (XML dialects, `JSON <https://json.org>`_, or
 
 Note that OntoWeaver delegates filtering to query languages (e.g.
 `XPath <https://www.w3.org/TR/xpath/>`_,
-`JMESPath <https://jmespath.org/>`_ or regular expressions).
+`JMESPath <https://jmespath.org/>`_, regular expressions or Pandas queries).
 
 The mapping references any existing types in the assembled ontology, and the engine will
 project all the ancestors in the assembled taxonomy onto the nodes and edges.

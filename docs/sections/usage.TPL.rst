@@ -131,8 +131,8 @@ input data file.
 
 .. warning::
 
-    The JSON dictionary of parameters SHOULD NOT contain space,
-    and MUST BE  double-quoted.
+    The JSON dictionary of parameters SHOULD NOT contain unquoted
+    spaces, and MUST BE double-quoted.
 
 .. hint::
 
@@ -152,7 +152,7 @@ input data file.
     If you want to pass shell variables into the JSON dictionary of parameters,
     you can escape the double quotes: ``"data.csv{\"dtype\":\"$MYDTYPE\"}:mapping.yaml"``
 
-For tabular data, OntoWeaver use functions from
+For tabular data files, OntoWeaver use functions from
 `Pandas <https://pandas.pydata.org>`_, with some default parameters:
 
 {{{READFUNCS}}}
@@ -167,13 +167,72 @@ For tabular data, OntoWeaver use functions from
     For the list of available string representations of types, see the
     `Pandas doc about dtypes <https://pandas.pydata.org/pandas-docs/stable/user_guide/basics.html#basics-dtypes>`_.
 
-For OWL data, OntoWeaver uses `RDFlib <https://rdflib.readthedocs.io>`_:
+
+For OWL data files, OntoWeaver uses `RDFlib <https://rdflib.readthedocs.io>`_:
 
 - **.owl**: `rdflib.graph.Graph.parse <https://rdflib.readthedocs.io/en/latest/apidocs/rdflib.graph/#rdflib.graph.Graph.parse>`_ ``{"format":"xml"}``,
 - **any other extension**: `rdflib.graph.Graph.parse <https://rdflib.readthedocs.io/en/latest/apidocs/rdflib.graph/#rdflib.graph.Graph.parse>`_ (without default parameter).
 
 Other loader functions either do not take parameters, or those parameters are
 Python objects, which OntoWeaver does not support so far.
+
+
+Load a table from a SQL query
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.11
+
+Tables can be extracted by running a
+`Structured Query Language <https://en.wikipedia.org/wiki/SQL>`__
+(SQL) query on a database.
+You can load a table from a SQL query,
+by indicating how to connect to the database,
+and which query to run:
+
+.. code:: sh
+
+    # Note the quotes.
+    ontoweave 'mysql://localhost{"query":"SELECT * FROM table"}:mapping.yaml'
+
+OntoWeaver allows using a
+`Uniform Ressource Locator <https://en.wikipedia.org/wiki/URL>`__
+(URL) indicating how to connect to a database,
+wherever a filename would make sense.
+
+Along with the connection URL, you should pass the SQL query in a JSON
+dictionary, in a "query" key. The query needs at least to indicate the table,
+but can be a complex one with filtering, ordering, joins, etc.
+
+.. note::
+
+    Passing the query is done in the same way than passing additional
+    arguments to the file loading function, as shown in section:
+    :ref:`Pass parameters when loading data` above.
+
+For example, to load data from a SQLite file and a MySQL server:
+
+.. code:: sh
+
+    ontoweave \
+        'sqlite:///names.sqlite3{"query":"SELECT * FROM people"}:names.yaml' \
+        'mysql+mysqldb://johann@localhost/base{"query":"SELECT name,locations FROM places WHERE latitude > 0"}:locations.yaml'
+
+.. note::
+
+    OntoWeaver uses the URL schema from `SQLAlchemy <https://docs.sqlalchemy.org>`__,
+    which looks like: ``dialect+driver://username:password@host:port/database``.
+
+    See their `list of supported engines <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__ for examples, and also their `list of dialects <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
+
+.. hint::
+
+    `SQLite <https://www.sqlite.org/>`__
+    files are a special case, you must use the URL/SQL syntax
+    to load them, just as if they were a database server, e.g.:
+
+    .. code:: sh
+
+        ontoweave 'sqlite:///path/to/file.sqlite3{"query":"SELECT * FROM this_table"}:mapping.yaml'
 
 
 Run the data importer
