@@ -932,7 +932,7 @@ For example:
         call:
             - cat_format:
                 # This sees both columns.
-                format_string: "{last name}, {first name}
+                format_string: "{last name}, {first name}"
             - capitalize
                 # You cannot indicate "column" or "to_object" here.
                 # This will process the formatted string yield by `cat_format`.

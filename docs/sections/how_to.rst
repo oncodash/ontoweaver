@@ -384,8 +384,30 @@ may consult the ``Keyword Synonyms`` section for more synonyms.
            via_relation: disease_affects_patient
            reverse_relation: patient_has_disease
 
+
 How to Compose Multiple Transformers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Compose standard transformers
+.............................
+
+Use the :ref:`compose` transformer, for example:
+
+.. code:: yaml
+
+    compose:
+        column: list_of_list
+        to_object: item
+        via_relation: has_item
+        call:
+            - split:
+                separator: ';'
+            - lower
+            - capitalize
+
+
+Compose user.defined transformers
+.................................
 
 Custom transformers (See the ``User-defined Transformers`` and ``User-defined Transformer-Like Functions`` sections) can
 be configured to compose multiple transformers together. This is useful when you want to apply a series of transformations
