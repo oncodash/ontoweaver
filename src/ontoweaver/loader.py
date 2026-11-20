@@ -114,6 +114,9 @@ class Loader(metaclass = ABSTRACT):
                     # If the passed filename is itself an extension,
                     # just use it as-is.
                     ext = filename
+                else:
+                    # Remove the dot.
+                    ext = ext[1:]
                 assert ext != '', f"I can't parse the extension of file {filename}"
                 extensions.append(ext)
             else:
@@ -173,43 +176,43 @@ class LoadPandasFile(Loader):
             #'c' engine does not support regex separators (separators > 1 char and different
             # from '\s+' are interpreted as regex) which results in an error.
         self.read_funcs = {
-            '.csv'    : (self.read_csv_progress, {
+            'csv'    : (self.read_csv_progress, {
                 'sep': ',',
                 'na_filter': True, # Do not load empty cells, if possible.
                 'engine': 'python'
             }),
-            '.tsv'    : (self.read_csv_progress, {
+            'tsv'    : (self.read_csv_progress, {
                 'sep': '\t',
                 'na_filter': True,
                 'engine': 'python'
             }),
-            '.txt'    : (self.read_csv_progress, {
+            'txt'    : (self.read_csv_progress, {
                 'na_filter': True,
                 'engine': 'python'
             }),
-            '.dat'    : (self.read_csv_progress, {
+            'dat'    : (self.read_csv_progress, {
                 'na_filter': True,
                 'engine': 'python'
             }),
 
-            '.xls'    : (pd.read_excel,   {'na_filter': True}),
-            '.xlsx'   : (pd.read_excel,   {'na_filter': True}),
-            '.xlsm'   : (pd.read_excel,   {'na_filter': True}),
-            '.xlsb'   : (pd.read_excel,   {'na_filter': True}),
-            '.odf'    : (pd.read_excel,   {'na_filter': True}),
-            '.ods'    : (pd.read_excel,   {'na_filter': True}),
-            '.odt'    : (pd.read_excel,   {'na_filter': True}),
-            '.orc'    : (pd.read_orc,     {'na_filter': True}),
-            '.sas'    : (pd.read_sas,     {'na_filter': True}),
-            '.spss'   : (pd.read_spss,    {'na_filter': True}),
-            '.stata'  : (pd.read_stata,   {'na_filter': True}),
+            'xls'    : (pd.read_excel,   {'na_filter': True}),
+            'xlsx'   : (pd.read_excel,   {'na_filter': True}),
+            'xlsm'   : (pd.read_excel,   {'na_filter': True}),
+            'xlsb'   : (pd.read_excel,   {'na_filter': True}),
+            'odf'    : (pd.read_excel,   {'na_filter': True}),
+            'ods'    : (pd.read_excel,   {'na_filter': True}),
+            'odt'    : (pd.read_excel,   {'na_filter': True}),
+            'orc'    : (pd.read_orc,     {'na_filter': True}),
+            'sas'    : (pd.read_sas,     {'na_filter': True}),
+            'spss'   : (pd.read_spss,    {'na_filter': True}),
+            'stata'  : (pd.read_stata,   {'na_filter': True}),
 
             # Allow multiple dtypes for the others.
-            # '.json'   : (pd.read_json,    {}),  # Handled by LoadJSONFile
-            '.feather': (pd.read_feather, {'na_filter': True}),
-            '.pickle' : (pd.read_pickle,  {'na_filter': True}),
-            '.hdf'    : (pd.read_hdf,     {'na_filter': True}),
-            '.parquet': (pd.read_parquet, {}), # There's no na_filter in read_parquet.
+            # 'json'   : (pd.read_json,    {}),  # Handled by LoadJSONFile
+            'feather': (pd.read_feather, {'na_filter': True}),
+            'pickle' : (pd.read_pickle,  {'na_filter': True}),
+            'hdf'    : (pd.read_hdf,     {'na_filter': True}),
+            'parquet': (pd.read_parquet, {}), # There's no na_filter in read_parquet.
         }
 
         super().__init__(progress_bar)
@@ -281,8 +284,9 @@ class LoadPandasFile(Loader):
 
         data = []
         for filename in filenames:
-            loadfunc  = self.read_funcs[pathlib.Path(filename).suffix][0]
-            kw = self.read_funcs[pathlib.Path(filename).suffix][1]
+            ext = pathlib.Path(filename).suffix[1:]  # Remove dot from extension.
+            loadfunc  = self.read_funcs[ext][0]
+            kw = self.read_funcs[ext][1]
 
             logger.debug(f"Loading function loadfunc = {loadfunc.__name__}")
 
@@ -368,7 +372,7 @@ class LoadOWLFile(Loader):
         that it is quite improbable that this would work.
     """
     def __init__(self, progress_bar = False):
-        self.allowed = [".owl", ".n3", ".turtle", ".ttl", ".nt", ".trig", ".trix", ".json-ld"]
+        self.allowed = ["owl", "n3", "turtle", "ttl", "nt", "trig", "trix", "json-ld"]
         super().__init__(progress_bar)
 
     def allows(self, filenames):
@@ -458,7 +462,7 @@ class LoadXMLFile(Loader):
     """
     def __init__(self, progress_bar = False):
         self.xl = LoadXMLString()
-        self.allowed = [".xml"]
+        self.allowed = ["xml"]
         super().__init__(progress_bar)
 
     def allows(self, filenames):
@@ -538,13 +542,13 @@ class LoadJSONFile(Loader):
     """ Load the given JSON file.
     """
     def __init__(self, progress_bar = False):
-        self.allowed = [".json"]
+        self.allowed = ["json"]
         self.jl = LoadJSONString()
         super().__init__(progress_bar)
 
     def allows(self, filenames):
         # assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
-        return all(pathlib.Path(f).suffix in self.allowed for f in filenames)
+        return all(pathlib.Path(f).suffix[1:] in self.allowed or f in self.allowed for f in filenames)
 
     def load(self, filenames, **kwargs):
         assert type(filenames) != str and len(filenames) > 0 and all(i != '' for i in filenames), "A Loader expects a list (or an iterable) of data."
