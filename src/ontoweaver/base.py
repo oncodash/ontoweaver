@@ -18,6 +18,7 @@ from . import errormanager
 from . import serialize
 from . import exceptions
 from . import validate
+from . import make_labels
 from . import types as owtypes
 
 logger = logging.getLogger("ontoweaver")
@@ -694,7 +695,12 @@ class Transformer(errormanager.ErrorManager):
 
         self.properties_of = properties_of
         self.value_maker = value_maker
-        self.label_maker = label_maker
+
+        if label_maker:
+            self.label_maker = label_maker
+        else:
+            self.label_maker = make_labels.SimpleLabelMaker()
+
         self.branching_properties = branching_properties
         self.columns = columns
         self.output_validator = output_validator

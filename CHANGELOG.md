@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Allows loading tables from a SQL query on a relationnal database.
 
+### Fixed
+
+- Transformers can now be instantiated without a label_maker
+  (only visible to people using the library API).
+
 
 [v1.10.4] -- 2026-11-06
 -----------------------

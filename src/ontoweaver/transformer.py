@@ -1802,23 +1802,29 @@ class compose(base.Transformer):
 
         for section in self.call:
             if type(section) is str:
-                continue
-            if len(section.keys()) > 1:
-                self.error(f"There is several transformer names: {' & '.join(section.keys())}, but there should be only one.")
+                t_name = section
+            else:
+                t_name = list(section.keys())[0]
 
-            t_name = list(section.keys())[0]
             if not hasattr(current, t_name):
-                self.error(f"I cannot find a transformer named `{t}`, check for spelling error or register this transformer class.")
+                self.error(f"I cannot find a transformer named `{t_name}`, check for spelling error or register this transformer class.")
 
-            # Check that arguments in each transformer's section are not reserved.
-            for arg,val in section[t_name].items():
-                for attr in dir(MP):
-                    if re.match(r"^\s*k_([a-z_]+)", attr):
-                        keywords = getattr(MP, attr)
-                        for k in keywords:
-                            if arg == k:
-                                self.error(f"You should not pass the `{k}` argument to transformers within a `compose` transformer. Try passing this in the `compose` section transformer instead.")
-                                break
+            if type(section) is str:
+                continue
+
+            elif len(section.keys()) > 1:
+                self.error(f"There are several transformer names: {' & '.join(section.keys())}, but there should be only one.")
+
+            else:
+                # Check that arguments in each transformer's section are not reserved.
+                for arg,val in section[t_name].items():
+                    for attr in dir(MP):
+                        if re.match(r"^\s*k_([a-z_]+)", attr):
+                            keywords = getattr(MP, attr)
+                            for k in keywords:
+                                if arg == k:
+                                    self.error(f"You should not pass the `{k}` argument to transformers within a `compose` transformer. Try passing this in the `compose` section transformer instead.")
+                                    break
 
 
     def __init__(self,
