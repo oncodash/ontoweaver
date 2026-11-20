@@ -584,6 +584,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     lrf = loader.LoadOWLFile()
     lrg = loader.LoadOWLGraph()
     ljf = loader.LoadJSONFile()
+    lsq = loader.LoadSQL()
 
     for dmk in items_dmk(data_to_mapping):
         data, mapping, data_kwargs = get_dmk(dmk)
@@ -592,7 +593,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         data_kwargs.update(kwargs) # Merge local args with global args.
 
         found_loader = False
-        for with_loader in [lpf, lpd, lrf, lrg, ljf]:
+        for with_loader in [lpf, lpd, lrf, lrg, ljf, lsq]:
             logger.debug(f"Trying loader: {type(with_loader).__name__}")
             if with_loader.allows([data]):
                 logger.debug("  Loader allows this data type")
