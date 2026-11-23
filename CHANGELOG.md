@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Transformers can now be instantiated without a label_maker
   (only visible to people using the library API).
+- The JSON adapter was missing properties when the mapping was producing only
+  one subject node with attached properties (quite a rare case).
 
 
 [v1.10.4] -- 2026-11-06

@@ -49,8 +49,9 @@ class JSONAdapter(iterative.IterativeAdapter):
         self.json_data = json.loads(json_str)
         self.df = pd.DataFrame()
 
-        columns = list(chain.from_iterable(
-            [subject_transformer.columns]
+        columns = set(chain.from_iterable(
+              [subject_transformer.columns]
+            + [k.columns for k in subject_transformer.properties_of]
             + [t.columns for t in transformers]
             + [k.columns for t in transformers for k in t.properties_of]
         ))
