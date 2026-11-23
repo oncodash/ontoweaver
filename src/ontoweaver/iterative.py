@@ -19,6 +19,7 @@ from . import transformer
 from . import exceptions
 from . import validate
 
+
 logger = logging.getLogger("ontoweaver")
 
 class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
@@ -62,7 +63,6 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         self.subject_transformer = subject_transformer
         assert self.subject_transformer
         self.transformers = transformers
-        self.property_transformers = [] # populated at parsing in self.properties.
         self.metadata = metadata
         # logger.debug(self.target_element_properties)
         self.parallel_mapping = parallel_mapping
@@ -318,18 +318,18 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                     exception = exceptions.TransformerDataError ))
 
 
-    def _make_target_node_id(self, row, i, transformer, j, target_id, target_edge, target_node, local_nodes, local_errors):
+    def _make_target_node_id(self, row, i, transform, j, target_id, target_edge, target_node, local_nodes, local_errors):
         """
         Helper function to create the target node id for each target transformer.
         """
 
         if target_id and target_edge and target_node:
 
-            if transformer.final_type:
+            if transform.final_type:
                 # If a final_type attribute is present in the transformer,
                 # use it as the target node type, instead
                 # of the default type.
-                final_type = transformer.final_type
+                final_type = transform.final_type
             else:
                 final_type = target_node
 
@@ -343,7 +343,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         # FIXME: Should we use the meta-way of accessing node properties as well?
                         # FIXME: This would require a refactoring of the transformer interfaces and tabular.run.
                         properties = self.properties(
-                            transformer.properties_of, row,
+                            transform.properties_of, row,
                             i, target_edge, target_node, node=True
                         )
                     ),
@@ -352,7 +352,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
             )
 
         else:
-            local_errors.append(self.error(f"No valid target node identifier from {transformer}"
+            local_errors.append(self.error(f"No valid target node identifier from {transform}"
                                            f" for {i}th row.", indent=2, section="transformers",
                                            index=j, exception=exceptions.TransformerDataError))
 
@@ -370,13 +370,13 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         return final_local_nodes, local_edges
 
 
-    def _get_fromsubject(self, transformer):
-        if hasattr(transformer, "from_subject"):
-            return transformer.from_subject
+    def _get_fromsubject(self, transform):
+        if hasattr(transform, "from_subject"):
+            return transform.from_subject
         else:
             fromsubject = []
-            if hasattr(transformer, "match"):
-                for d in transformer.match:
+            if hasattr(transform, "match"):
+                for d in transform.match:
                     for subd in d.values():
                         for k in subd:
                             if k == "from_subject":
@@ -387,14 +387,14 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                 return fromsubject
 
 
-    def _make_alternative_source_node_id(self, row, i, transformer, j, target_node_id, target_edge, reverse_edge, local_edges, local_errors):
+    def _make_alternative_source_node_id(self, row, i, transform, j, target_node_id, target_edge, reverse_edge, local_edges, local_errors):
         """
         Helper function to create an alternative source node id, in case the target transformer has a `from_subject` attribute.
         """
 
         made_edge = None
         # We should have a from_subject somewhere within the given transformer.
-        fromsubject = self._get_fromsubject(transformer)
+        fromsubject = self._get_fromsubject(transform)
         assert fromsubject
         assert not isinstance(fromsubject, list)
 
@@ -404,7 +404,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
         logger.debug(f"Looking into {len(self.transformers)} transformers:")
         if logging.getLevelName(logger.level) == "DEBUG":
             for i,t in enumerate(self.transformers):
-                logger.debug(f"  I will look into the {i}th transformer: {t}")
+                logger.debug(f"  I will look into the {i}th transform: {t}")
         for t in self.transformers:
             nt += 1
             logger.debug(f"Check transformer {nt-1}: {t}")
@@ -456,7 +456,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                         # local_errors.append(
                         self.error(
                             f"No valid identifiers from {t} for {i}th row, when trying to change default subject type",
-                            f"by `{transformer}` with `from_subject` attribute.",
+                            f"by `{transform}` with `from_subject` attribute.",
                             indent=7, section="transformers", index=j,
                             exception=exceptions.TransformerDataError
                         )
@@ -559,10 +559,10 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
         # Final logger
         error_count = {}
-        for transformer in chain([self.subject_transformer], self.transformers, self.property_transformers):
-            if transformer.output_validator:
-                for msg,err in transformer.output_validator.messages.items():
-                    desc = f"in {err['section']} with {transformer}: {msg}"
+        for transform in chain([self.subject_transformer], self.transformers):
+            if transform.output_validator:
+                for msg,err in transform.output_validator.messages.items():
+                    desc = f"in {err['section']} with {transform}: {msg}"
                     # FIXME do we want the number of validation errors or the number of bad cell values?
                     # error_count[desc] = error_count.get(desc, 0) + err['count']
                     error_count[desc] = error_count.get(desc, err['count'])
@@ -660,18 +660,28 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
 
                 # Loop over list of transformer instances and label_maker corresponding nodes and edges.
                 # FIXME the transformer variable here shadows the transformer module.
-                for j,transformer in enumerate(self.transformers):
+                for j,transform in enumerate(self.transformers):
                     local_transformations += 1
-                    logger.debug(f"\tCalling the {j}th transformer: {transformer}")
+                    logger.debug(f"\tCalling the {j}th transformer: {transform}")
                     k = 0
+
                     try:
-                        for target_id, target_edge, target_node, reverse_relation in transformer(row, i):
+                        # submap transformer is a special case.
+                        if isinstance(transform, transformer.submap):
+                            _ = transform(row, i)
+                            n,e = transform.get()
+                            local_codes += n
+                            local_edges += e
+                            continue
+
+                        # Regular transformer.
+                        for target_id, target_edge, target_node, reverse_relation in transform(row, i):
                             logger.debug(f"\t\t{k}th element yielded by transformer:")
                             k += 1
                             target_node_id = self._make_target_node_id(
                                 row,
                                 i,
-                                transformer,
+                                transform,
                                 j,
                                 target_id,
                                 target_edge,
@@ -691,7 +701,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                 # If a `from_subject` attribute is present in the transformer,
                                 # loop over the transformer list to find the transformer instance
                                 # mapping to the correct type.
-                                fromsubject = self._get_fromsubject(transformer)
+                                fromsubject = self._get_fromsubject(transform)
                                 if fromsubject:
                                     logger.debug(f"\t\tThis transformer have a `from_subject: {fromsubject}`")
                                     logger.debug(f"\t\tSearch a transformer having `{fromsubject}` as a target")
@@ -704,7 +714,7 @@ class IterativeAdapter(base.Adapter, metaclass = ABSTRACT):
                                         = self._make_alternative_source_node_id(
                                             row,
                                             i,
-                                            transformer,
+                                            transform,
                                             j,
                                             target_node_id,
                                             target_edge,

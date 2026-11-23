@@ -27,14 +27,13 @@ import pandas as pd
 from pandera.pandas import errors
 
 from . import base
-from . import transformer
+
 Node = base.Node
 Edge = base.Edge
 Transformer = base.Transformer
 Adapter = base.Adapter
 All = base.All
 
-from . import base
 from . import types
 from . import tabular
 from . import serialize
@@ -54,6 +53,7 @@ from . import mapping
 from . import ontoweave
 from . import owl_to_biocypher
 from . import biocypher_to_owl
+from . import transformer
 
 logger = logging.getLogger("ontoweaver")
 
@@ -557,6 +557,19 @@ def pairs(iterable):
     else:
         return iterable
 
+
+def available_loaders(progress_bar = False):
+    lpf = loader.LoadPandasFile(progress_bar)
+    lpd = loader.LoadPandasDataframe()
+    lrf = loader.LoadOWLFile()
+    lrg = loader.LoadOWLGraph()
+    ljf = loader.LoadJSONFile()
+    ljs = loader.LoadJSONString()
+    lsq = loader.LoadSQL()
+
+    return [lpf, lpd, lrf, lrg, ljf, ljs, lsq]
+
+
 def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=":", validate_output = False, raise_errors = True, progress_bar = False, sub_sample = 100, **kwargs) -> Tuple[list[Tuple], list[Tuple]]:
     """
     Extracts nodes and edges from tabular data files based on provided mappings.
@@ -579,12 +592,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
     nodes = []
     edges = []
 
-    lpf = loader.LoadPandasFile(progress_bar)
-    lpd = loader.LoadPandasDataframe()
-    lrf = loader.LoadOWLFile()
-    lrg = loader.LoadOWLGraph()
-    ljf = loader.LoadJSONFile()
-    lsq = loader.LoadSQL()
+    loaders = available_loaders(progress_bar)
 
     for dmk in items_dmk(data_to_mapping):
         data, mapping, data_kwargs = get_dmk(dmk)
@@ -593,7 +601,7 @@ def extract(data_to_mapping, parallel_mapping = 0, affix="none", type_affix_sep=
         data_kwargs.update(kwargs) # Merge local args with global args.
 
         found_loader = False
-        for with_loader in [lpf, lpd, lrf, lrg, ljf, lsq]:
+        for with_loader in loaders:
             logger.debug(f"Trying loader: {type(with_loader).__name__}")
             if with_loader.allows([data]):
                 logger.debug("  Loader allows this data type")

@@ -58,6 +58,45 @@ P2,V2-2,S3"""
     for node in nodes:
         assert(node.as_tuple()[2]["something"] == "Whatever it is")
 
+
+def test_transformer_string_prop():
+
+    logging.debug("Load data...")
+
+    # Do not add newlines or spaces here
+    # or else the parsing will be wrong.
+    data = """Patient,Variant,Source
+P1,V1-1,S0
+P1,V1-2,S1
+P2,V2-1,S2
+P2,V2-2,S3"""
+    csv = io.StringIO(data)
+    table = pd.read_csv(csv)
+
+    logging.debug("Load mappings...")
+
+    mapping = """
+    row:
+        map:
+            column: Variant
+            to_subject: variant
+    transformers:
+        - map:
+            column: Patient
+            to_property: patient
+            for_object: variant
+    """
+
+    map = yaml.safe_load(mapping)
+
+    logging.debug("Run the adapter...")
+    nodes, edges = ontoweaver.extract_table(table, map, affix="none")
+
+    for node in nodes:
+        logging.debug(node.as_tuple())
+        assert "patient" in node.as_tuple()[2]
+
+
 if __name__ == "__main__":
     test_transformer_string()
 

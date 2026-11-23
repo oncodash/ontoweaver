@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Allows loading tables from a SQL query on a relationnal database.
+- Allows loading tables from a SQL query on a relational database.
+- Allows to apply a sub-mapping to an iterable data structure held somewhere
+  within the primary input data.
 
 ### Fixed
 

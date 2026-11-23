@@ -943,6 +943,58 @@ For example:
                 # And the result is what is returned by the compose transformer.
 
 
+submap
+~~~~~~
+
+.. versionadded:: 1.11.0
+
+This transformer allows to run a complete independent sub-mapping onto an
+iterable data structure held somewhere within the primary input data.
+For example, you can extract data from a JSON object that sits in the cell
+of a table:
+
+.. code:: yaml
+
+    row:
+        rowIndex:
+            to_subject: concept
+    transformers:
+        - submap:
+            column: related
+            # no possible relation
+            submapping:
+            # This whole section below is an independent mapping:
+              row:
+                  map:
+                      # This is JMESPath query:
+                      element: concepts[*].id
+                      to_subject: concept
+              transformers:
+                  - map:
+                      element: concepts[*].group
+                      to_object: group
+                      via_relation: related
+            # End of the submapping.
+        - map:
+            to_object: other
+            via_relation: related
+
+As of version 1.11.0, the sub-mapping is independent: there is not data
+that can pass to/from it. For instance, you cannot create an edge from
+the nodes created in the main mapping to the nodes created by the sub-mapping.
+This means you should rely on the fusion engine to merge the created nodes.
+
+The ``submap`` transformer will detect which data structure it passes to the
+sub-mapping, and use the corresponding adapter
+(see section :ref:`Iterable input data`).
+
+.. hint::
+
+    In case submap cannot detect the input data type, do not forget you can pass
+    additional parameters to the Pandas data loader to forces column types
+    (see :ref:`Pass parameters when loading data`).
+
+
 Symmetric relations
 ^^^^^^^^^^^^^^^^^^^
 
@@ -976,7 +1028,6 @@ including when you use a ``from_subject``. For instance:
             to_object: object
             via_relation: target_to_object
             reverse_relation: object_to_target
-
 
 
 Advanced type management

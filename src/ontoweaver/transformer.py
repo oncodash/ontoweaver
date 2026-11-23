@@ -24,7 +24,7 @@ import pandera.pandas as pa
 
 
 from . import errormanager
-from. import exceptions
+from . import exceptions
 from . import validate
 from . import make_value
 from . import make_labels
@@ -470,7 +470,7 @@ class nested(base.Transformer):
             if dic is None:
                 return None
 
-            if isinstance(dic, str) and not keys:
+            if not keys:
                 # Break recursivity.
                 logger.debug(f"{depth}Ended with: `{dic}`")
                 return dic
@@ -481,6 +481,7 @@ class nested(base.Transformer):
                     if ':' in dic and '{' in dic and '}' in dic:
                         # Probably a Python/JSON dictionary.
                         logger.debug(f"{depth}I'm parsing a JSON dictionary string.")
+                        logger.debug(f"{depth}{dic}")
                         dic = json.loads(dic)
                         logger.debug(f"{depth}{dic}")
                     assert not isinstance(dic, str)
@@ -1865,6 +1866,7 @@ class compose(base.Transformer):
         )
         self.init_checks()
 
+        # Local function because we directly pass the constructor's arguments.
         def make_transformer(t_section, columns = None):
             if type(t_section) is str:
                 t_name = t_section
@@ -1877,7 +1879,13 @@ class compose(base.Transformer):
                 columns = [compose.tag]
 
             current = sys.modules[__name__]
+            if not hasattr(current, t_name):
+                self.error(f"Cannot find a transformer class with name `{transformer_type}`. Did you forget to register your transformer module?", exception = exceptions.DeclarationError)
+
             t_class = getattr(current, t_name)
+            if not issubclass(t_class, base.Transformer):
+                self.error(f"Class `{t_name}` is not a known transformer class.", exception = exceptions.DeclarationError)
+
             return t_class(
                     properties_of,
                     label_maker,
@@ -1929,4 +1937,218 @@ class compose(base.Transformer):
         t_indices = list(range(len(self.transformers)))
         for venr in self.recursive_call(row, i, t_indices):
             yield venr
+
+
+class submap(base.Transformer):
+    """Independent mapping called onto a nested data structure.
+
+    .. note::
+
+        This cannot create edge between
+        nodes yielded from the supermapping and
+        nodes yielded from the submapping.
+        The only possible data transfer is property values,
+        from the supermapping to the submapping.
+
+    .. warning::
+
+        A ``final_type`` clause in the supermapping
+        is still applied to the node types yielded
+        from the submapping!
+    """
+
+    class ValueMaker(make_value.ValueMaker):
+        def __init__(self, raise_errors: bool = True):
+            super().__init__(raise_errors)
+
+        def __call__(self, columns, row, i):
+            assert columns
+            assert len(columns) == 1
+            assert columns[0] in row
+            yield row[columns[0]]
+
+
+    def init_checks(self):
+        if not hasattr(self, "columns"):
+            self.error("You forgot to indicate how I should access the data.", section = "submap", exception = exceptions.TransformerConfigError)
+
+            if len(self.columns):
+                self.error(f"I can only handle one data cell, but you indicated `columns: {len(self.columns)}`", section = "submap", exception = exceptions.TransformerConfigError)
+
+        # if not hasattr(self, "loader"):
+        #     self.error("You must indicate which type of data the submapping is getting with the `loader` parameter. This is usually the extension of file that could hold the data, or an URL for connecting to a database.", section = "submap", exception = exceptions.TransformerConfigError)
+
+        #     if type(loader) is str:
+        #         self.error(f"I can only handle one loader type, you passed: `{self.loader}`, I was expecting a string.", section = "submap", exception = exceptions.TransformerConfigError)
+
+        if not hasattr(self, "submapping"):
+            self.error("You must indicate how to accessed the iterable data within the main input, using the `column` parameter.", section = "submap", exception = exceptions.TransformerConfigError)
+
+        if not hasattr(self, "submapping"):
+            self.error("You must indicate a sub-mapping to handle the accessed data, with the `mapping` parameter.", section = "submap", exception = exceptions.TransformerConfigError)
+
+        if hasattr(self, "submetadata"):
+            if type(self.submetadata) is not list:
+                self.error("The submetadata section of submap expects a list of transformers.", section = "submap", exception = exceptions.TransformerConfigError)
+            else:
+                for section in self.submetadata:
+                    trans = section[list(section.keys())[0]]
+
+                    p2o = self.get_k(trans, "k_prop_to_object")
+                    if p2o:
+                        self.error(f"Transformers in the submetadata section of submap CANNOT have a `{p2o[0]}: {p2o[1]}` parameter.", section = "submap", exception = exceptions.TransformerConfigError)
+
+                    p2p = self.get_k(trans, "k_properties")
+                    if not p2p:
+                        self.error(f"Transformers in the submetadata section of submap SHOULD have a `{'` or a `'.join(self.vocab.k_properties)}` parameter.", section = "submap", exception = exceptions.TransformerConfigError)
+
+
+    def get_k(self, dic, k_attr):
+        for a in getattr(self.vocab, k_attr):
+            if a in dic:
+                return a, dic[a]
+        return None
+
+    def available_loaders(self, progress_bar = False):
+        lpd = loader.LoadPandasDataframe()
+        lrg = loader.LoadOWLGraph()
+        ljs = loader.LoadJSONString()
+        lsq = loader.LoadSQL()
+        lpd = loader.LoadPythonDict()
+
+        return [lpd, lrg, ljs, lsq, lpd]
+
+    def __init__(self,
+            properties_of,
+            label_maker = None,
+            branching_properties = None,
+            columns=None,
+            output_validator: validate.OutputValidator = None,
+            multi_type_dict = None,
+            raise_errors = True,
+            submapping = None,
+            submetadata = None,
+            **kwargs
+        ):
+        """
+        Constructor.
+
+        Args:
+            properties_of: Properties of the node.
+            value_maker: the ValueMaker object used for the logic of cell value selection for each transformer.
+            label_maker: the LabelMaker object used for handling the creation of the output of the transformer. Default is None.
+            branching_properties: in case of branching on cell values, the dictionary holding the properties for each branch.
+            columns: The columns to be processed.
+            output_validator: the OutputValidator object used for validating transformer output.
+            multi_type_dict: the dictionary holding regex patterns for node and edge type branching based on cell values.
+            raise_errors: if True, the caller is asking for raising exceptions when an error occurs
+        """
+        self.value_maker = self.ValueMaker(raise_errors=raise_errors)
+
+        super().__init__(
+            properties_of,
+            self.value_maker,
+            label_maker,
+            branching_properties,
+            columns,
+            output_validator,
+            multi_type_dict,
+            raise_errors = raise_errors,
+            **kwargs
+        )
+        assert self.columns
+
+        self.vocab = base.MappingParser
+
+        if submapping:
+            self.submapping = submapping
+        else:
+            self.submapping = {}
+
+        if submetadata:
+            self.submetadata = submetadata
+        else:
+            self.submetadata = []
+
+        self.init_checks()
+
+        self.submeta_transformers = self.parse_submetadata(raise_errors)
+
+
+    def parse_submetadata(self, raise_errors = True):
+        # Depedency injection by deferred import.
+        from . import mapping
+
+        # FIXME pass module and validate_output?
+        parser = mapping.YamlParser(
+            {"transformers": self.submetadata},
+            raise_errors = raise_errors)
+
+        possible_subject_types = set()
+
+        self.subproperties_of = {}
+        self.subproperties_of = parser.parse_properties(
+            self.subproperties_of,
+            possible_subject_types,
+            self.submetadata)
+
+        # transformers, possible_target_types, possible_edge_types, metadata
+        transformers, _, _, _ = parser.parse_targets(
+            self.submetadata,
+            self.subproperties_of,
+            None, # source_t,
+            None, # metadata_list,
+            {}) # metadata)
+
+        return transformers
+
+
+    def _find_subloader(self, value):
+        # Cache the first found subloader
+        found = False
+        for subloader in self.available_loaders(progress_bar = False):
+            # Find a subloader for this type through its name or as an extension.
+            if subloader.allows([value]):
+                found = True
+                break
+
+        if not found:
+            self.error(f"I found no subloader able to manage: `{value}`", section = "submap", exception = exceptions.TransformerConfigError)
+
+        logger.debug(f"Load with {type(subloader).__name__}")
+        return subloader
+
+
+    def __call__(self, row, i):
+        # Dependency injection by defered import,
+        # since load_extract relies on the ontoweaver module to be fully imported,
+        # which in turn rely on transformers to be imported.
+        from . import load_extract
+
+        assert self.columns
+        self.local_nodes = []
+        self.local_edges = []
+        try:
+            for cell in self.value_maker(self.columns, row, i):
+                if cell:
+                    # FIXME handle kwargs from mapping
+                    subloader = self._find_subloader(cell)
+                    nodes,edges = load_extract(
+                        cell,
+                        self.submapping,
+                        subloader,
+                        # FIXME pass global options
+                    )
+                    self.local_nodes += nodes
+                    self.local_edges += edges
+
+        except Exception as e:
+            logger.error(f"When calling transformer: {repr(self)} on row: {i}")
+            raise e
+
+        # Do not yield anything, so that there is nothing
+        # created here, and it is skiped.
+
+    def get(self):
+        return self.local_nodes, self.local_edges
 

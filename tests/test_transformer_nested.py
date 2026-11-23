@@ -47,6 +47,30 @@ transformers:
     assert(len(edges)==4)
 
 
-if __name__ == "__main__":
-    test_transformer_nested()
+def test_nested_list():
+
+    data = {"column":
+        '''{
+            "concepts": [
+                {"id": "c1",
+                    "label": "individual",
+                    "group": "other"
+                },
+                {"id": "c2",
+                    "label": "gene",
+                    "group": "genetics"
+                }
+            ]
+        }'''
+    }
+
+    t = ontoweaver.transformer.nested(
+        properties_of = {},
+        columns = ["column", "concepts"],
+    )
+
+    results = list(t(data, 0))
+
+    for res in results:
+        logging.debug(res)
 

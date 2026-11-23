@@ -145,6 +145,27 @@ class LoadPandasDataframe(Loader):
     def load(self, dataframes, **kwargs):
         logger.debug(dataframes)
         assert type(dataframes) != str and len(dataframes) > 0 and not any(d.empty for d in dataframes), "A Loader expects a list (or an iterable) of data."
+
+        return pd.concat(dataframes)
+
+    def adapter(self, **kwargs):
+        return tabular.PandasAdapter
+
+
+class LoadPythonDict(Loader):
+    """ Load a Python dictionary in a Pandas DataFrame
+    """
+    def allows(self, data):
+        return all(type(d) is dict for d in data)
+
+    def load(self, dics, **kwargs):
+        self.dataframes = []
+        for dic in dics:
+            self.dataframes.append(pd.DataFrame(dic, **kwargs))
+
+        logger.debug(dataframes)
+        assert type(dataframes) != str and len(dataframes) > 0 and not any(d.empty for d in dataframes), "A Loader expects a list (or an iterable) of data."
+
         return pd.concat(dataframes)
 
     def adapter(self, **kwargs):
