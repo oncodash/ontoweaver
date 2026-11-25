@@ -59,7 +59,7 @@ metadata: # Optional properties added to every node and edge.
 ```
 
 OntoWeaver can read anything that [Pandas](https://pandas.pydata.org/) can load,
-which means a lot of tabular formats. It can also parse graphs from OWL, and query XML or JSON files.
+which means a lot of tabular formats, or anything that [SQLAlchemy](https://www.sqlalchemy.org/) can query, which is a lot of relational databases. It can also parse graphs from OWL, and query XML or JSON files.
 
 
 ### Usage
