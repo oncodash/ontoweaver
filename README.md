@@ -128,6 +128,11 @@ see [BioCypher's documentation](https://biocypher.org/output/index.html)).
 
 ## Development
 
+### Get help or ask for features
+
+Reach us on the [BioCypher Zulip chat](https://biocypher.zulipchat.com/#narrow/channel/638346-ontoweaver)
+
+
 ### Tests
 
 Tests are located in the `tests/` subdirectory and may be a good starting point
