@@ -431,6 +431,13 @@ class YamlParser(base.MappingParser):
                     continue
 
                 if any(field in field_dict for field in base.MappingParser.k_properties):
+                    if "match" in field_dict:
+                        self.error(
+                            "The `match` clause is not supported for property mappings.",
+                            section="transformers", index=n_transformer,
+                            exception=exceptions.TransformerConfigError
+                        )
+                        continue
                     object_types = self.get(base.MappingParser.k_prop_to_object, pconfig=field_dict)
                     property_names = self.get(base.MappingParser.k_properties, pconfig=field_dict)
                     if not isinstance(property_names, list):
